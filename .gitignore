@@ -1,3 +1,10 @@
+# Idea folder
+.idea
+*.iml
+
+# Build folder
+target
+
 # Compiled class file
 *.class
 
