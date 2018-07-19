@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+group = 'io.nats.java-nats'
+version = '1.0-SNAPSHOT'
+
+description = "Examples for NATS Java Client"
+
+repositories {
+     mavenCentral()
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.0+'
+}
