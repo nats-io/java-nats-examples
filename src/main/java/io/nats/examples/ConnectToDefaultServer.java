@@ -7,10 +7,10 @@ public class ConnectToDefaultServer {
     public static void main(String[] args) {
 
         try {
-            // [begin default_connect]
+            // [begin connect_default]
             Connection nc = Nats.connect();
             nc.close();
-            // [end default_connect]
+            // [end connect_default]
         } catch (Exception e) {
             e.printStackTrace();
         }
