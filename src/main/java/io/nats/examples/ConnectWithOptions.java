@@ -10,9 +10,9 @@ public class ConnectWithOptions {
         try {
             // [begin connect_options]
             Options options = new Options.Builder().
-                                            server("nats://localhost:1222").
-                                            noReconnect().
-                                            build();
+                                        server("nats://demo.nats.io:4222").
+                                        noReconnect().
+                                        build();
             Connection nc = Nats.connect(options);
 
             // Do something with the connection
