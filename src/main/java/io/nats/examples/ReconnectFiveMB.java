@@ -11,7 +11,7 @@ public class ReconnectFiveMB {
             // [begin reconnect_5mb]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
-                                        reconnectBufferSize(5 * 1024 * 1024).
+                                        reconnectBufferSize(5 * 1024 * 1024).  // Set buffer in bytes
                                         build();
             Connection nc = Nats.connect(options);
 

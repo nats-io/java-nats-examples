@@ -11,7 +11,7 @@ public class ReconnectNone {
             // [begin reconnect_none]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
-                                        noReconnect().
+                                        noReconnect(). // Disable reconnect attempts
                                         build();
             Connection nc = Nats.connect(options);
 

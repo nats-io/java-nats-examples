@@ -11,7 +11,7 @@ public class ReconnectTenTimes {
             // [begin reconnect_10x]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
-                                        maxReconnects(10).
+                                        maxReconnects(10). // Set max reconnect attempts
                                         build();
             Connection nc = Nats.connect(options);
 

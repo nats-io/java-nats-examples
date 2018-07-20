@@ -13,7 +13,7 @@ public class ReconnectTenSeconds {
             // [begin reconnect_10s]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
-                                        reconnectWait(Duration.ofSeconds(10)).
+                                        reconnectWait(Duration.ofSeconds(10)).  // Set Reconnect Wait
                                         build();
             Connection nc = Nats.connect(options);
 
