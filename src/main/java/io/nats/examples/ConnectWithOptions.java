@@ -1,5 +1,7 @@
 package io.nats.examples;
 
+import java.time.Duration;
+
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
@@ -11,7 +13,7 @@ public class ConnectWithOptions {
             // [begin connect_options]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
-                                        noReconnect().
+                                        connectionTimeout(Duration.ofSeconds(10)). // Set timeout
                                         build();
             Connection nc = Nats.connect(options);
 
