@@ -8,7 +8,7 @@ public class ConnectToServerURL {
 
         try {
             // [begin connect_url]
-            Connection nc = Nats.connect("nats://localhost:4222");
+            Connection nc = Nats.connect("nats://demo.nats.io:4222");
             nc.close();
             // [end connect_url]
         } catch (Exception e) {
