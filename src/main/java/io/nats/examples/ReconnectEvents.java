@@ -9,7 +9,7 @@ public class ReconnectEvents {
     public static void main(String[] args) {
 
         try {
-            // [begin reconnect_10x]
+            // [begin reconnect_event]
             Options options = new Options.Builder().
                                         server("nats://demo.nats.io:4222").
                                         connectionListener((conn, type) -> {
@@ -25,7 +25,7 @@ public class ReconnectEvents {
             // Do something with the connection
 
             nc.close();
-            // [end reconnect_10x]
+            // [end reconnect_event]
         } catch (Exception e) {
             e.printStackTrace();
         }
