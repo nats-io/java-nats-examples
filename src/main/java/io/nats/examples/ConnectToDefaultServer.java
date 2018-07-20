@@ -9,6 +9,9 @@ public class ConnectToDefaultServer {
         try {
             // [begin connect_default]
             Connection nc = Nats.connect();
+
+            // Do something with the connection
+
             nc.close();
             // [end connect_default]
         } catch (Exception e) {

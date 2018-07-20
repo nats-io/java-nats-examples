@@ -9,6 +9,9 @@ public class ConnectToServerURL {
         try {
             // [begin connect_url]
             Connection nc = Nats.connect("nats://demo.nats.io:4222");
+
+            // Do something with the connection
+
             nc.close();
             // [end connect_url]
         } catch (Exception e) {
