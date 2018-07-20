@@ -8,7 +8,7 @@ public class ConnectToMultipleServers {
     public static void main(String[] args) {
 
         try {
-            // [begin connect_url]
+            // [begin connect_multiple]
             Options options = new Options.Builder().
                                             server("nats://localhost:1222").
                                             server("nats://localhost:1223").
@@ -19,7 +19,7 @@ public class ConnectToMultipleServers {
             // Do something with the connection
 
             nc.close();
-            // [end connect_url]
+            // [end connect_multiple]
         } catch (Exception e) {
             e.printStackTrace();
         }
