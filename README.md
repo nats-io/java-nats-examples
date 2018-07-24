@@ -4,7 +4,7 @@
 
 A [Java](http://java.com) examples for the [NATS messaging system](https://nats.io).
 
-[![License MIT](https://img.shields.io/badge/License-MIT-blue.svg)](http://opensource.org/licenses/MIT)
+[![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Build Status](https://travis-ci.org/nats-io/java-nats-examples.svg?branch=master)](http://travis-ci.org/nats-io/java-nats-examples)
 
 
