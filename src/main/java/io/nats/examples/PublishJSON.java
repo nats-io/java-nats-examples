@@ -34,4 +34,4 @@ public class PublishJSON {
         }
     }
 }
-// [end publish_bytes]
+// [end publish_json]
