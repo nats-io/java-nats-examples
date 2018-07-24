@@ -8,7 +8,7 @@ public class ConnectUserPasswordURL {
 
         try {
             // [begin connect_userpass_url]
-            Connection nc = Nats.connect("nats://myname:password@localhost:4222"); // User:PW in URL
+            Connection nc = Nats.connect("nats://myname:password@localhost:4222");
 
             // Do something with the connection
 
