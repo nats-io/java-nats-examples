@@ -1,6 +1,7 @@
 package io.nats.examples;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -9,7 +10,7 @@ import io.nats.client.Connection;
 import io.nats.client.Nats;
 
 // [begin publish_json]
-class StockForJson {
+class StockForJsonPub {
     public String symbol;
     public float price;
 }
@@ -20,7 +21,7 @@ public class PublishJSON {
             Connection nc = Nats.connect("nats://demo.nats.io:4222");
 
             // Create the data object
-            StockForJson stk = new StockForJson();
+            StockForJsonPub stk = new StockForJsonPub();
             stk.symbol="GOOG";
             stk.price=1200;
 
@@ -32,6 +33,8 @@ public class PublishJSON {
             // Publish the message
             nc.publish("updates", json.getBytes(StandardCharsets.UTF_8));
 
+            // Make sure the message goes through before we close
+            nc.flush(Duration.ZERO);
             nc.close();
         } catch (Exception e) {
             e.printStackTrace();
