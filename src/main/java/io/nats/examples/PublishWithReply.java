@@ -26,6 +26,7 @@ public class PublishWithReply {
             // Send the request
             nc.publish("time", uniqueReplyTo, null);
 
+            // Read the reply
             Message msg = sub.nextMessage(Duration.ofSeconds(1));
 
             // Use the response
