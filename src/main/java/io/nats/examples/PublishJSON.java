@@ -19,13 +19,17 @@ public class PublishJSON {
         try {
             Connection nc = Nats.connect("nats://demo.nats.io:4222");
 
+            // Create the data object
             StockForJson stk = new StockForJson();
             stk.symbol="GOOG";
             stk.price=1200;
 
+            // use Gson to encode the object to JSON
             GsonBuilder builder = new GsonBuilder();
             Gson gson = builder.create();
             String json = gson.toJson(stk);
+
+            // Publish the message
             nc.publish("updates", json.getBytes(StandardCharsets.UTF_8));
 
             nc.close();
