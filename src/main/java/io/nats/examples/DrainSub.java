@@ -2,6 +2,7 @@ package io.nats.examples;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import io.nats.client.Connection;
@@ -32,7 +33,10 @@ public class DrainSub {
             latch.await();
 
             // Messages that have arrived will be processed
-            d.drain(Duration.ofSeconds(10));
+            CompletableFuture<Boolean> drained = d.drain(Duration.ofSeconds(10));
+
+            // Wait for the drain to complete
+            drained.get();
 
             // Close the connection
             nc.close();
