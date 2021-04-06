@@ -1,0 +1,20 @@
+apply plugin: 'java'
+
+group = 'io.nats.java-nats-examples'
+version = '1.0-SNAPSHOT'
+
+description = "Chain Of Command Patter examples for NATS Java Client"
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/releases/"
+    }
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.10.0'
+}
