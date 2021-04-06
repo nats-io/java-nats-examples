@@ -4,8 +4,7 @@ sudo: required
 jdk:
 - openjdk8
 script:
-- "cd functional-examples && ./gradlew assemble"
-- "cd chain-of-command && ./gradlew assemble"
+- bash build.sh
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
