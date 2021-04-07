@@ -1,10 +1,10 @@
-dist: trusty
+dist: xenial
 language: java
 sudo: required
 jdk:
-- oraclejdk8
+- openjdk8
 script:
-- "./gradlew assemble"
+- bash build.sh
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
