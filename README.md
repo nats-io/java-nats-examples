@@ -22,6 +22,10 @@ The starters projects are provided to give you a jump start to adding the NATS J
 * starter-gradle-kotlin for gradle users who like the Kotlin DSL
 * starter-maven for maven users
 
+### Hello World
+
+Some examples that create streams, publish and subscribe.
+
 ### Functional Examples
 
 The functional examples demonstrate one feature at a time.
