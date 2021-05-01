@@ -1,0 +1,64 @@
+name: All Examples Build Verification
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited, reopened]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  examples-build-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+      - name: Setup GO
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.3
+      - name: Install Nats Server
+        uses: scottf/install-nats-io-server-ubuntu@v1
+      - name: Check out Java client code
+        uses: actions/checkout@v2
+        with:
+          repository: nats-io/nats.java
+      - name: Chain of Command
+        run: |
+          pushd chain-of-command
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Functional Examples
+        run: |
+          pushd functional-examples
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Hello World
+        run: |
+          pushd hello-world
+          chmod +x gradlew
+          ./gradlew test
+          popd
+      - name: Starter Gradle Groovy
+        run: |
+          pushd starter-gradle-groovy
+          chmod +x gradlew
+          ./gradlew test
+          popd
+      - name: Starter Gradle Kotlin
+        run: |
+          pushd starter-gradle-kotlin
+          chmod +x gradlew
+          ./gradlew test
+          popd
+      - name: Starter Maven
+        run: |
+          pushd starter-maven
+          mvn test
+          popd
