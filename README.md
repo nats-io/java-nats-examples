@@ -41,3 +41,8 @@ The "request style" knows if the request was received, so it could handle the ca
 ### Kotlin
 
 As a side note for Kotlin users, there is a small example in the [kotlin-nats-examples](https://github.com/nats-io/kotlin-nats-examples) project.
+
+## License
+
+Unless otherwise noted, the NATS source files are distributed
+under the Apache Version 2.0 license found in the LICENSE file.
