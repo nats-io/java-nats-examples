@@ -11,7 +11,7 @@ import java.util.List;
 import static io.nats.client.support.JsonUtils.printFormatted;
 
 /*
-Wildcard Subject Example using the NATS client for Java
+Demonstrate various ways to get onsumer info
  */
 public class ConsumerInfoVarious
 {
