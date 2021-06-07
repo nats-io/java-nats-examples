@@ -66,6 +66,11 @@ public class ConsumerInfoVarious
             for (ConsumerInfo ci : list) {
                 printFormatted(ci);
             }
+
+            Message m = sub1.nextMessage(Duration.ofSeconds(1));
+            m.ack();
+            System.out.println("\nCONSUMER 1 MESSAGE META DATA");
+            printFormatted(m.metaData());
         }
         catch (Exception e) {
             System.err.println(e);
