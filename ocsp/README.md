@@ -19,7 +19,7 @@ The caveat here is that these properties apply to every single SSLContext runnin
 These properties are checked at runtime, each time a TLS handshake is made, so it cannot be turned on
 to create an `SSLContext` then turned off. If it is turned off, revocation checking will not happen. 
 
-The example `getVmWideContext()` shows how to make a Vm-Wide SSLContext. See the [OCSP Example Class](main/java/io/nats/ocsp/OcspExample.java)
+The example `getVmWideContext()` shows how to make a Vm-Wide SSLContext. See the [OCSP Example Class](src/main/java/io/nats/ocsp/OcspExample.java)
 
 ### Siloed Approach
 
@@ -48,7 +48,7 @@ Find your configuration in this table to see if you have to set the System Prope
 Please be aware. There are a few examples on the internet that guided development example, in fact it is almost identical to those,
 but none of them set the `enableStatusRequestExtension` flag. As far as we can tell it simply does not work without setting the flag!
 
-The example `getSiloedContext()` shows how to make a siloed SSLContext that does revocation checking. See the [OCSP Example Class](main/java/io/nats/ocsp/OcspExample.java)
+The example `getSiloedContext()` shows how to make a siloed SSLContext that does revocation checking. See the [OCSP Example Class](src/main/java/io/nats/ocsp/OcspExample.java)
 
 ## Licenses
 
