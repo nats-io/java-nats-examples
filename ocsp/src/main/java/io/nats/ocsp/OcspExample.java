@@ -111,7 +111,7 @@ public class OcspExample
     }
 
     // ----------------------------------------------------------------------------------------------------
-    // Cert Utilities - Leverages
+    // Cert Utilities
     // ----------------------------------------------------------------------------------------------------
     public static Path ocspClientCertPath() {
         return getOcspCertFilePath(OCSP_CLIENT_CERT);
