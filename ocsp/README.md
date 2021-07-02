@@ -31,7 +31,7 @@ Consider 3 different types of connections.
 2. OCSP with Revocation checking (OCSP W/REV)
 3. OCSP with no Revocation checking (OCSP NO REV)
 
-It appears that setting the System Properties does not affect STD-TLS certificate handshakes.
+It appears that setting the System Properties does not affect Standard TLS certificate handshakes.
 Find your configuration in this table to see if you have to set the System Properties.
 
 | Standard TLS | OCSP W/REV | OCSP NO REV | `enableStatusRequestExtension` | `checkRevocation` |
