@@ -132,6 +132,7 @@ public class OcspExample
         return new File(classLoader.getResource(spec).getFile()).toPath();
     }
 
+    // PUBLIC VERSION From Hakky54/sslcontext-kickstart code
     public static List<X509Certificate> loadCertificates(Path... certificatePaths) {
         List<X509Certificate> certificates = loadCertificate(certificatePath -> {
             try {
@@ -143,6 +144,7 @@ public class OcspExample
         return certificates;
     }
 
+    // From Hakky54/sslcontext-kickstart code
     private static <T> List<X509Certificate> loadCertificate(Function<T, InputStream> resourceMapper, T[] resources) {
         List<X509Certificate> certificates = new ArrayList<>();
         for (T resource : resources) {
@@ -156,11 +158,13 @@ public class OcspExample
         return Collections.unmodifiableList(certificates);
     }
 
+    // From Hakky54/sslcontext-kickstart code
     private static List<X509Certificate> parseCertificate(InputStream certificateStream) {
         String content = IOUtils.getContent(certificateStream);
         return parseCertificate(content);
     }
 
+    // From Hakky54/sslcontext-kickstart code
     private static List<X509Certificate> parseCertificate(String certContent) {
         try {
             Reader stringReader = new StringReader(certContent);
@@ -193,5 +197,4 @@ public class OcspExample
             throw new CertificateParseException(e);
         }
     }
-
 }
