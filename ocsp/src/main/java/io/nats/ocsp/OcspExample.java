@@ -5,7 +5,9 @@ import io.nats.client.Nats;
 import io.nats.client.Options;
 import nl.altindag.ssl.exception.CertificateParseException;
 import nl.altindag.ssl.exception.GenericIOException;
+import nl.altindag.ssl.util.CertificateUtils;
 import nl.altindag.ssl.util.IOUtils;
+import nl.altindag.ssl.util.KeyStoreUtils;
 import nl.altindag.ssl.util.PemUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -78,13 +80,7 @@ public class OcspExample
         // that pem file. You likely will have to figure out how to load your own certificates
         // Then add the certificates to a Key Store. You will likely have a different way to make or
         // load your own Key Store
-        List<X509Certificate> certificates = loadCertificates(ocspCaCertPath());
-        KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-        keyStore.load(null, KEY_STORE_PASSWORD.toCharArray());
-        for (X509Certificate certificate : certificates) {
-            String alias = certificate.getSubjectX500Principal().getName();
-            keyStore.setCertificateEntry(alias, certificate);
-        }
+        KeyStore keyStore = KeyStoreUtils.createTrustStore(CertificateUtils.loadCertificate(ocspCaCertPath()));
 
         // The PKIXRevocationChecker is the class that does the work of checking the revocation
         CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX");
