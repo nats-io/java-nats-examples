@@ -43,6 +43,12 @@ jobs:
           chmod +x gradlew
           ./gradlew test
           popd
+      - name: OCSP
+        run: |
+          pushd ocsp
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
       - name: Starter Gradle Groovy
         run: |
           pushd starter-gradle-groovy
