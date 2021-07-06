@@ -2,7 +2,7 @@
 
 # OCSP Stapling SSLContext
 
-OCSP Stapling is supported in Java since JDK 8. There is an excellent document from Oracle which describes it in detail.
+OCSP Stapling has been supported in Java since JDK 8. There is an excellent document from Oracle which describes it in detail.
 
 [Client-Driven OCSP and OCSP Stapling](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/ocsp.html)
 
