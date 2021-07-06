@@ -3,47 +3,47 @@ package io.nats.ocsp;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
-import nl.altindag.ssl.exception.CertificateParseException;
-import nl.altindag.ssl.exception.GenericIOException;
 import nl.altindag.ssl.util.CertificateUtils;
-import nl.altindag.ssl.util.IOUtils;
 import nl.altindag.ssl.util.KeyStoreUtils;
 import nl.altindag.ssl.util.PemUtils;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.X509TrustedCertificateBlock;
 
 import javax.net.ssl.*;
-import java.io.*;
-import java.nio.file.Files;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.*;
+import java.security.cert.Certificate;
 import java.security.cert.*;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.function.Function;
 
 public class OcspExample
 {
-    private static final String KEY_STORE_PASSWORD = "kspassword";
-    private static final String KEYSTORE_TYPE = "PKCS12";
-    private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
-    private static final JcaX509CertificateConverter CERTIFICATE_CONVERTER = new JcaX509CertificateConverter().setProvider(BOUNCY_CASTLE_PROVIDER);
+
+    public static final String OCSP_SERVER_URI = "tls://localhost:4222";
+    public static final String STD_TLS_SERVER_URI = "tls://localhost:60991";
 
     public static void main(String[] args) throws Exception {
-        connect(getVmWideContext());
-        connect(getSiloedContext());
+        connect(createStandardContext(), STD_TLS_SERVER_URI);
+        connect(createVmWideOcspCheckRevocationContext(), OCSP_SERVER_URI);
+        connect(createSiloedContextCheckRevocation(), OCSP_SERVER_URI);
+        connect(createVmWideOcspDontCheckRevocationContext(), OCSP_SERVER_URI);
     }
 
-    public static SSLContext getVmWideContext() throws NoSuchAlgorithmException, KeyManagementException {
+    public static SSLContext createVmWideOcspCheckRevocationContext() throws NoSuchAlgorithmException, KeyManagementException {
+        return createVmWideOcspContext(true);
+    }
+
+    public static SSLContext createVmWideOcspDontCheckRevocationContext() throws NoSuchAlgorithmException, KeyManagementException {
+        return createVmWideOcspContext(false);
+    }
+
+    public static SSLContext createVmWideOcspContext(boolean checkRevocation) throws NoSuchAlgorithmException, KeyManagementException {
         // enableStatusRequestExtension and checkRevocation are turned on
         System.setProperty("jdk.tls.client.enableStatusRequestExtension", "true");
-        System.setProperty("com.sun.net.ssl.checkRevocation", "true");
+        System.setProperty("com.sun.net.ssl.checkRevocation", checkRevocation ? "true" : "false");
 
         // The example client cert and key are in pem files. This PemUtils makes a Key Manager from them.
         // You likely will have to figure out how to make your own Key Manager
@@ -62,12 +62,12 @@ public class OcspExample
         return sslContext;
     }
 
-    public static SSLContext getSiloedContext()
-            throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException, KeyManagementException
+    public static SSLContext createSiloedContextCheckRevocation()
+            throws KeyStoreException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, KeyManagementException
     {
-        // enableStatusRequestExtension is turned on but checkRevocation is not otherwise it
+        // enableStatusRequestExtension is turned on but checkRevocation is not, otherwise it
         // would affect the entire system. This example builds a siloed SSLContext that
-        // does not need that system wide setting.
+        // does not need the checkRevocation system wide setting.
         System.setProperty("jdk.tls.client.enableStatusRequestExtension", "true");
         System.setProperty("com.sun.net.ssl.checkRevocation", "false");
 
@@ -76,11 +76,12 @@ public class OcspExample
         X509ExtendedKeyManager keyManager =
                 PemUtils.loadIdentityMaterial(ocspClientCertPath(), ocspClientKeyPath());
 
-        // The example ca cert and key is in a pem file. loadCertificates loads the certificates from
-        // that pem file. You likely will have to figure out how to load your own certificates
-        // Then add the certificates to a Key Store. You will likely have a different way to make or
-        // load your own Key Store
-        KeyStore keyStore = KeyStoreUtils.createTrustStore(CertificateUtils.loadCertificate(ocspCaCertPath()));
+        // The example ca cert is in a pem file. loadCertificate loads the certificate from
+        // that pem file. Then add the certificates to a Key Store.
+        // You likely will have to figure out how to load your own certificates and/or
+        // have a different way to make or load your own Key Store
+        List<Certificate> certificates = CertificateUtils.loadCertificate(ocspCaCertPath());
+        KeyStore keyStore = KeyStoreUtils.createTrustStore(certificates);
 
         // The PKIXRevocationChecker is the class that does the work of checking the revocation
         CertPathBuilder cpb = CertPathBuilder.getInstance("PKIX");
@@ -105,12 +106,25 @@ public class OcspExample
         return sslContext;
     }
 
+    public static SSLContext createStandardContext() throws NoSuchAlgorithmException, KeyManagementException, CertificateException, KeyStoreException, IOException, UnrecoverableKeyException {
+        KeyManagerFactory keyMgrFactory = KeyManagerFactory.getInstance("SunX509");
+        keyMgrFactory.init(standardKeyStore(), password());
+
+        TrustManagerFactory trustMgrFactory = TrustManagerFactory.getInstance("SunX509");
+        trustMgrFactory.init(standardTruststore());
+
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
+        sslContext.init(keyMgrFactory.getKeyManagers(), trustMgrFactory.getTrustManagers(), new SecureRandom());
+
+        return sslContext;
+    }
+
     // ----------------------------------------------------------------------------------------------------
     // Try to connect to the server
     // ----------------------------------------------------------------------------------------------------
-    public static void connect(SSLContext sslContext) {
+    public static void connect(SSLContext sslContext, String uri) {
         Options options = new Options.Builder()
-                .server("tls://localhost:4222")
+                .server(uri)
                 .maxReconnects(0)
                 .sslContext(sslContext)
                 .build();
@@ -125,93 +139,46 @@ public class OcspExample
     }
 
     // ----------------------------------------------------------------------------------------------------
-    // Cert Utilities - These files are specific to the server being run by the developer of the example.
-    //                  You will need your own way to load certs, and you may already have a Key Store.
+    // Cert / Store Utilities
+    //     These files are specific to the server being run by the developer of the example.
+    //     You will need your own way to load certs / stores.
     // ----------------------------------------------------------------------------------------------------
-    private static final String OCSP_CLIENT_CERT = "client-cert.pem";
-    private static final String OCSP_CLIENT_KEY = "client-key.pem";
-    private static final String OCSP_CA_CERT = "ca-cert.pem";
 
     private static Path ocspClientCertPath() {
-        return getOcspCertFilePath(OCSP_CLIENT_CERT);
+        return getFile("ocsp-client-cert.pem").toPath();
     }
 
     private static Path ocspClientKeyPath() {
-        return getOcspCertFilePath(OCSP_CLIENT_KEY);
+        return getFile("ocsp-client-key.pem").toPath();
     }
 
     private static Path ocspCaCertPath() {
-        return getOcspCertFilePath(OCSP_CA_CERT);
+        return getFile("ocsp-ca-cert.pem").toPath();
     }
 
-    private static Path getOcspCertFilePath(String fileName) {
+    private static File getFile(String fileName) {
         ClassLoader classLoader = OcspExample.class.getClassLoader();
-        String spec = "nats-server/test/configs/certs/ocsp/" + fileName;
         //noinspection ConstantConditions
-        return new File(classLoader.getResource(spec).getFile()).toPath();
+        return new File(classLoader.getResource(fileName).getFile());
     }
 
-    // ----------------------------------------------------------------------------------------------------
-    // Modified or copied Hakky54/sslcontext-kickstart code due to private scope access
-    // ----------------------------------------------------------------------------------------------------
-    private static List<X509Certificate> loadCertificates(Path... certificatePaths) {
-        return loadCertificate(certificatePath -> {
-            try {
-                return Files.newInputStream(certificatePath, StandardOpenOption.READ);
-            } catch (IOException exception) {
-                throw new GenericIOException(exception);
-            }
-        }, certificatePaths);
+    private static KeyStore standardTruststore() throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+        return loadKeystore("std-truststore.jks");
     }
 
-    private static <T> List<X509Certificate> loadCertificate(Function<T, InputStream> resourceMapper, T[] resources) {
-        List<X509Certificate> certificates = new ArrayList<>();
-        for (T resource : resources) {
-            try(InputStream certificateStream = resourceMapper.apply(resource)) {
-                certificates.addAll(parseCertificate(certificateStream));
-            } catch (Exception e) {
-                throw new GenericIOException(e);
-            }
+    private static KeyStore standardKeyStore() throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+        return loadKeystore("std-keystore.jks");
+    }
+
+    private static KeyStore loadKeystore(String file) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
+        KeyStore store = KeyStore.getInstance("JKS");
+        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(getFile(file)))) {
+            store.load(in, password());
         }
-
-        return Collections.unmodifiableList(certificates);
+        return store;
     }
 
-    private static List<X509Certificate> parseCertificate(InputStream certificateStream) {
-        String content = IOUtils.getContent(certificateStream);
-        return parseCertificate(content);
-    }
-
-    private static List<X509Certificate> parseCertificate(String certContent) {
-        try {
-            Reader stringReader = new StringReader(certContent);
-            PEMParser pemParser = new PEMParser(stringReader);
-            List<X509Certificate> certificates = new ArrayList<>();
-
-            Object object = pemParser.readObject();
-            while (object != null) {
-                if (object instanceof X509CertificateHolder) {
-                    X509Certificate certificate = CERTIFICATE_CONVERTER.getCertificate((X509CertificateHolder) object);
-                    certificates.add(certificate);
-                } else if (object instanceof X509TrustedCertificateBlock) {
-                    X509CertificateHolder certificateHolder = ((X509TrustedCertificateBlock) object).getCertificateHolder();
-                    X509Certificate certificate = CERTIFICATE_CONVERTER.getCertificate(certificateHolder);
-                    certificates.add(certificate);
-                }
-
-                object = pemParser.readObject();
-            }
-
-            pemParser.close();
-            stringReader.close();
-
-            if (certificates.isEmpty()) {
-                throw new CertificateParseException("Received an unsupported certificate type");
-            }
-
-            return certificates;
-        } catch (IOException | CertificateException e) {
-            throw new CertificateParseException(e);
-        }
+    private static char[] password() {
+        return "password".toCharArray();
     }
 }
