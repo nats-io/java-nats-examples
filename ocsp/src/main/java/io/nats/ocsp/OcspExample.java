@@ -1,8 +1,6 @@
 package io.nats.ocsp;
 
-import io.nats.client.Connection;
-import io.nats.client.Nats;
-import io.nats.client.Options;
+import io.nats.client.*;
 import nl.altindag.ssl.util.CertificateUtils;
 import nl.altindag.ssl.util.KeyStoreUtils;
 import nl.altindag.ssl.util.PemUtils;
@@ -26,10 +24,10 @@ public class OcspExample
     public static final String STD_TLS_SERVER_URI = "tls://localhost:60991";
 
     public static void main(String[] args) throws Exception {
-        connect(createStandardContext(), STD_TLS_SERVER_URI);
+//        connect(createStandardContext(), STD_TLS_SERVER_URI);
         connect(createVmWideOcspCheckRevocationContext(), OCSP_SERVER_URI);
-        connect(createSiloedContextCheckRevocation(), OCSP_SERVER_URI);
-        connect(createVmWideOcspDontCheckRevocationContext(), OCSP_SERVER_URI);
+//        connect(createSiloedContextCheckRevocation(), OCSP_SERVER_URI);
+//        connect(createVmWideOcspDontCheckRevocationContext(), OCSP_SERVER_URI);
     }
 
     public static SSLContext createVmWideOcspCheckRevocationContext() throws NoSuchAlgorithmException, KeyManagementException {
@@ -123,10 +121,28 @@ public class OcspExample
     // Try to connect to the server
     // ----------------------------------------------------------------------------------------------------
     public static void connect(SSLContext sslContext, String uri) {
+        ErrorListener el = new ErrorListener() {
+            @Override
+            public void errorOccurred(Connection conn, String error) {
+
+            }
+
+            @Override
+            public void exceptionOccurred(Connection conn, Exception exp) {
+                exp.printStackTrace();
+            }
+
+            @Override
+            public void slowConsumerDetected(Connection conn, Consumer consumer) {
+
+            }
+        };
+
         Options options = new Options.Builder()
                 .server(uri)
                 .maxReconnects(0)
                 .sslContext(sslContext)
+                .errorListener(el)
                 .build();
 
         try (Connection nc = Nats.connect(options)) {
