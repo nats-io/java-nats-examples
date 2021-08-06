@@ -3,7 +3,6 @@ package io.nats.ft;
 import io.nats.client.*;
 import io.nats.client.api.AckPolicy;
 import io.nats.client.api.ConsumerConfiguration;
-import io.nats.client.api.ConsumerInfo;
 import io.nats.client.api.DeliverPolicy;
 
 import java.io.File;
@@ -11,13 +10,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-import static io.nats.ft.Constants.*;
+import static io.nats.ft.Constants.GZIP;
+import static io.nats.ft.Constants.PART_SUBJECT_PREFIX;
 
 public class Downloader
 {
+    static int MAX_DOWN_FAILS = 10;
+
     public static void download(Connection nc, FileMeta fm, File outputDir) throws IOException, InterruptedException, JetStreamApiException, NoSuchAlgorithmException {
         JetStream js = nc.jetStream();
         JetStreamManagement jsm = nc.jetStreamManagement();
@@ -26,9 +27,9 @@ public class Downloader
         Digester partDigester = new Digester(fm.getDigestAlgorithm());
 
         JetStreamSubscription sub = makeSub(js, fm, 1);
-        printConsumerDebug(jsm);
+        Debug.downConsumer(jsm);
 
-        int fails = 10;
+        int fails = MAX_DOWN_FAILS;
         long totalBytes = 0;
         long totalParts = 0;
 
@@ -78,7 +79,7 @@ public class Downloader
 
                     // debug printing here
                     if (expecting == 1 || error) {
-                        printPartDebug(expecting, expectingAdjustment, m, pm, ematch, pmatch, dmatch);
+                        Debug.downPart(expecting, expectingAdjustment, m, pm, ematch, pmatch, dmatch, partBytes);
                     }
 
                     // if there is an error, terminate the subscription
@@ -97,7 +98,8 @@ public class Downloader
                         // make a new subscription
                         sub = makeSub(js, fm, expecting);
                         flush(nc);
-                        printConsumerDebug(jsm);
+                        Debug.downConsumer(jsm);
+
 
                         // reset counters
                         expectingAdjustment = expecting - 1;
@@ -125,7 +127,7 @@ public class Downloader
             }
             out.flush();
         }
-        printFileDebug(fm, fileDigester, totalBytes, totalParts);
+        Debug.downFile(fm, fileDigester, totalBytes, totalParts);
     }
 
     private static boolean checkFlowControl(Connection nc, Message m) {
@@ -144,24 +146,6 @@ public class Downloader
         }
     }
 
-    private static void printFileDebug(FileMeta fm, Digester fileDigester, long totalBytes, long totalParts) {
-        System.out.println("File: Di-" + fm.getDigestValue().equals(fileDigester.getDigestValue()) + " " + totalParts + " " + totalBytes + "\n    " + fm);
-    }
-
-    private static void printConsumerDebug(JetStreamManagement jsm) throws IOException, JetStreamApiException {
-        List<ConsumerInfo> cis = jsm.getConsumers(PART_STREAM_NAME);
-        System.out.println("Consumer: " + cis.get(cis.size() - 1));
-    }
-
-    private static void printPartDebug(long expecting, long expectingAdjustment, Message m, PartMeta pm, boolean ematch, boolean pmatch, Boolean dmatch) {
-        System.out.println("Part: E-" + ematch + " P-" + pmatch + " D-" + dmatch + "\n    " + pm +
-                "\n    Expecting " + expecting + "/" + (expecting + expectingAdjustment) + " Got "+ m.metaData().consumerSequence());
-//                    for (int x = 0; x < 20; x++) {
-//                        System.out.printf("%02x ", payload[x]);
-//                    }
-//                    System.out.println();
-    }
-
     private static JetStreamSubscription makeSub(JetStream js, FileMeta fm, long startSeq) throws IOException, JetStreamApiException {
         ConsumerConfiguration cc = ConsumerConfiguration.builder()
                 .ackPolicy(AckPolicy.None)
@@ -169,7 +153,7 @@ public class Downloader
                 .startSequence(startSeq)
                 .flowControl(true)
                 .build();
-        System.out.println("\nSub: " + cc.toString());
+        Debug.downSubConfig(cc);
         PushSubscribeOptions pso = PushSubscribeOptions.builder().configuration(cc).build();
         return js.subscribe(PART_SUBJECT_PREFIX + fm.getId() + ".*", pso);
     }

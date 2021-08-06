@@ -17,7 +17,9 @@ public class Uploader
     public static void upload(Connection nc, int partSize, File f, String description, String contentType, String digestAlgorithm, boolean gzip) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
         Zipper zipper = gzip ? new Zipper() : null;
         
-        JetStreamOptions jso = JetStreamOptions.builder().build();
+        JetStreamOptions jso = JetStreamOptions.builder()
+//                .publishNoAck(true)
+                .build();
         JetStream js = nc.jetStream(jso);
 
         long osLen = checkFile(f);
@@ -79,7 +81,7 @@ public class Uploader
     }
 
     private static void publishPart(JetStream js, FileMeta fm, long partNumber, PartMeta pm, byte[] payload) throws IOException, JetStreamApiException {
-//        printPub(fm, pm, payload);
+        Debug.pubPart(fm, pm, payload);
         String messageSubject = Constants.PART_SUBJECT_PREFIX + fm.getId() + "." + partNumber;
         js.publish(NatsMessage.builder()
                 .subject(messageSubject)
@@ -88,18 +90,8 @@ public class Uploader
                 .build());
     }
 
-    private static void printPub(FileMeta fm, PartMeta pm, byte[] payload) {
-        if (pm.getPartNumber() < 5) {
-            System.out.println("Publishing Part: " + fm.getName() + " " + pm);
-            for (int x = 0; x < 20; x++) {
-                System.out.printf("%02x ", payload[x]);
-            }
-            System.out.println();
-        }
-    }
-
     private static void publishFileMeta(JetStream js, FileMeta fm) throws IOException, JetStreamApiException {
-        System.out.println("Publishing File: " + fm);
+        Debug.pubFile(fm);
         String messageSubject = Constants.FILE_NAME_SUBJECT_PREFIX + fm.getId();
         js.publish(NatsMessage.builder()
                 .subject(messageSubject)

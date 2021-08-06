@@ -28,6 +28,8 @@ public class Main
     final String inputDesc;
 
     public Main(int partSize, long size, boolean text) {
+        Downloader.MAX_DOWN_FAILS = 20;
+
         this.partSize = partSize;
         this.text = text;
         this.size = size;

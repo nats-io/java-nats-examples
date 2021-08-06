@@ -24,9 +24,10 @@ public interface Constants
 
     String DIGEST_ALGORITHM = "SHA-256";
 
-    String INPUT_PATH = "C:\\temp\\file-transfer-in\\";
-    String OUTPUT_DIR = "C:\\temp\\file-transfer-out\\";
-    String TEXT_SEED_FILE = "C:\\temp\\file-transfer.txt";
+    String INPUT_PATH = "C:\\temp\\file-transfer\\in\\";
+    String OUTPUT_DIR = "C:\\temp\\file-transfer\\out\\";
+    String TEXT_SEED_FILE = "C:\\temp\\file-transfer\\text-seed.txt";
+    String DEBUG_DIR = "C:\\temp\\file-transfer\\";
 
     // ----------------------------------------------------------------------------------------------------
     // General
