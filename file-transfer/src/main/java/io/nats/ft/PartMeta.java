@@ -7,7 +7,7 @@ import java.util.List;
 
 import static io.nats.ft.Meta.Field.*;
 
-public class PartMeta extends Meta<PartMeta>
+public class PartMeta extends Meta
 {
     private String fileId;
     private long partNumber;
@@ -16,7 +16,7 @@ public class PartMeta extends Meta<PartMeta>
     private long encodedLength;
 
     public PartMeta(FileMeta fm, long partNumber) {
-        id = fm.getId() + "-" + partNumber;
+        id = fm.getId() + "." + partNumber;
         this.partNumber = partNumber;
         start = -1;
         encodedLength = -1;
@@ -38,7 +38,7 @@ public class PartMeta extends Meta<PartMeta>
         put(h, ID, id);
         put(h, FILE_ID, fileId);
         put(h, PART_NUMBER, partNumber);
-        put(h, START, start);
+        put0(h, START, start);
         put(h, LENGTH, length);
         put(h, ENCODED_LENGTH, encodedLength);
         put(h, CONTENT_ENCODING, contentEncoding);
@@ -46,11 +46,6 @@ public class PartMeta extends Meta<PartMeta>
             put(h, DIGEST, getDigest());
         }
         return h;
-    }
-
-    @Override
-    protected PartMeta getThis() {
-        return this;
     }
 
     public String getFileId() {
@@ -73,29 +68,19 @@ public class PartMeta extends Meta<PartMeta>
         return contentEncoding;
     }
 
-    public PartMeta fileUuid(String fileUuid) {
-        this.fileId = fileUuid;
-        return this;
-    }
-
-    public PartMeta partNumber(long partNumber) {
-        this.partNumber = partNumber;
-        return this;
-    }
-
     public PartMeta start(long start) {
         this.start = start;
         return this;
     }
 
-    public PartMeta encodedLength(long encodedLength) {
-        this.encodedLength = encodedLength;
+    public PartMeta length(long length) {
+        this.length = length;
         return this;
     }
 
-    public PartMeta contentEncoding(String contentEncoding) {
+    public void encoded(String contentEncoding, long encodedLength) {
         this.contentEncoding = contentEncoding;
-        return this;
+        this.encodedLength = encodedLength;
     }
 
     private void put(Headers h, Field key, String s) {
@@ -106,6 +91,12 @@ public class PartMeta extends Meta<PartMeta>
 
     private void put(Headers h, Field key, long n) {
         if (n > 0) {
+            h.put(key.headerKey, Long.toString(n));
+        }
+    }
+
+    private void put0(Headers h, Field key, long n) {
+        if (n >= 0) {
             h.put(key.headerKey, Long.toString(n));
         }
     }
@@ -136,8 +127,21 @@ public class PartMeta extends Meta<PartMeta>
         return JsonUtils.endJson(sb).toString();
     }
 
+    public String toSummaryJson() {
+        StringBuilder sb = JsonUtils.beginJson();
+        JsonUtils.addField(sb, "#", partNumber);
+        JsonUtils.addField(sb, START.jsonKey, start);
+        JsonUtils.addField(sb, LENGTH.jsonKey, length);
+        JsonUtils.addField(sb, ENCODED_LENGTH.jsonKey, encodedLength);
+        return JsonUtils.endJson(sb).toString();
+    }
+
     @Override
     public String toString() {
         return "PartMeta" + toJson();
+    }
+
+    public String toSummaryString() {
+        return "PartMeta" + toSummaryJson();
     }
 }

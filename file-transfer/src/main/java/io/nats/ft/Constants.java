@@ -22,6 +22,8 @@ public interface Constants
     String FILE_NAME_STREAM = "KV_" + Constants.FILE_NAME_BUCKET;
     String FILE_NAME_STREAM_SUBJECT = FILE_NAME_SUBJECT_PREFIX + "*";
 
+    boolean GRANULAR_SUBJECT = false;
+
     String DIGEST_ALGORITHM = "SHA-256";
 
     String INPUT_PATH = "C:\\temp\\file-transfer\\in\\";

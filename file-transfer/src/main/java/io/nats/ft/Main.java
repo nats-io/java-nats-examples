@@ -4,6 +4,7 @@ import io.nats.client.*;
 import io.nats.client.api.AckPolicy;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.StreamConfiguration;
+import io.nats.client.api.StreamInfo;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,8 +29,6 @@ public class Main
     final String inputDesc;
 
     public Main(int partSize, long size, boolean text) {
-        Downloader.MAX_DOWN_FAILS = 20;
-
         this.partSize = partSize;
         this.text = text;
         this.size = size;
@@ -39,12 +38,13 @@ public class Main
     }
 
     public static void main(String[] args) throws Exception {
-        Main m = new Main(1024 * 8, 100_000, true);
+        Downloader.MAX_DOWN_FAILS = 20;
+        Main m = new Main(1024 * 8, 10_000_000_000L, false);
 
-        try (Connection nc = Nats.connect(Constants.SERVER)) {
+        try (Connection nc = Nats.connect(SERVER)) {
             setupStream(nc);
             up(nc, m);
-            clearOutput(); down(nc, m);
+            clearOutput(); Debug.message(); down(nc, m);
 //            list(nc, m);
         }
         catch (Exception e) {
@@ -56,8 +56,7 @@ public class Main
         Uploader.upload(nc, m.partSize, m.inputFile, m.inputDesc,
                 m.text ? TEXT_PLAIN : APPLICATION_OCTET_STREAM, // contentType
                 DIGEST_ALGORITHM, // digest algorithm
-                false
-                // m.text // gzip text files. binary files in my test actually gzip larger!
+                m.text // gzip text files. binary files in my test actually gzip larger!
         );
     }
 
@@ -69,6 +68,7 @@ public class Main
     private static void list(Connection nc, Main m) throws JetStreamApiException, InterruptedException, IOException {
         List<FileMeta> list = listFiles(nc);
         FileMeta fm = getFile(list, m.inputName);
+        Debug.write("Looked Up File: " + fm);
         listParts(nc, fm.getId());
     }
 
@@ -81,9 +81,13 @@ public class Main
                                 .build())
                 .build();
         JetStreamSubscription sub = js.subscribe(PART_SUBJECT_PREFIX + uuid + ".*", pso);
+        Debug.consumer(sub);
         Message m = sub.nextMessage(Duration.ofSeconds(1));
         while (m != null) {
-            System.out.println(m.getSubject() + "\n    " + new PartMeta(m.getHeaders()) + "\n    " + m.metaData());
+            Debug.write(m.getSubject());
+            Debug.write(Debug.INDENT + new PartMeta(m.getHeaders()));
+            Debug.write(Debug.INDENT + m.metaData());
+            Debug.payloadBytes("Listed Data: ", true, m.getData());
             m = sub.nextMessage(Duration.ofSeconds(1));
         }
     }
@@ -114,14 +118,36 @@ public class Main
         return list;
     }
 
+    public static StreamInfo getStreamInfo(JetStreamManagement jsm, String streamName) throws IOException, JetStreamApiException {
+        try {
+            return jsm.getStreamInfo(streamName);
+        }
+        catch (JetStreamApiException jsae) {
+            if (jsae.getErrorCode() == 404) {
+                return null;
+            }
+            throw jsae;
+        }
+    }
+
     private static void setupStream(Connection nc) throws IOException, JetStreamApiException {
 
         JetStreamManagement jsm = nc.jetStreamManagement();
 
+        // delete if exists
+        StreamInfo si = getStreamInfo(jsm, FILE_NAME_STREAM);
+        if (si != null) {
+            jsm.deleteStream(FILE_NAME_STREAM);
+        }
+        si = getStreamInfo(jsm, PART_STREAM_NAME);
+        if (si != null) {
+            jsm.deleteStream(PART_STREAM_NAME);
+        }
+
         // build the parts stream
         StreamConfiguration streamConfig = StreamConfiguration.builder()
-                .name(Constants.PART_STREAM_NAME)
-                .subjects(Constants.PART_STREAM_SUBJECT)
+                .name(PART_STREAM_NAME)
+                .subjects(PART_STREAM_SUBJECT)
                 .storageType(ST)
                 .build();
 
@@ -130,8 +156,8 @@ public class Main
 
         // build the file kv stream
         StreamConfiguration scBucket = StreamConfiguration.builder()
-                .name(Constants.FILE_NAME_STREAM)
-                .subjects(Constants.FILE_NAME_STREAM_SUBJECT)
+                .name(FILE_NAME_STREAM)
+                .subjects(FILE_NAME_STREAM_SUBJECT)
                 .storageType(ST)
                 .build();
 

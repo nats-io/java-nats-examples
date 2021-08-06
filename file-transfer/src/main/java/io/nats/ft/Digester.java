@@ -35,6 +35,22 @@ public class Digester {
         return this;
     }
 
+    public Digester reset(String input) {
+        return reset().update(input);
+    }
+
+    public Digester reset(long input) {
+        return reset().update(input);
+    }
+
+    public Digester reset(byte[] input) {
+        return reset().update(input);
+    }
+
+    public Digester reset(byte[] input, int offset, int len) {
+        return reset().update(input, offset, len);
+    }
+
     public String getDigestValue() {
         byte[] bytes = digest.digest();
 

@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import static io.nats.ft.Constants.META_HEADER_PREFIX;
 
-public abstract class Meta<T>
+public abstract class Meta
 {
     enum Field {      // headerKey           jsonKey            prefixed  isNumber
         ID(              "id",               "id",              true,     false),
@@ -42,8 +42,6 @@ public abstract class Meta<T>
     protected String digestAlgorithm;
     protected String digestValue;
 
-    protected abstract T getThis();
-
     public String getId() {
         return id;
     }
@@ -60,19 +58,9 @@ public abstract class Meta<T>
         return digestValue;
     }
 
-    public T length(long length) {
-        this.length = length;
-        return getThis();
-    }
-
-    public T digestAlgorithm(String digestAlgorithm) {
+    public void digest(String digestAlgorithm, String digestValue) {
         this.digestAlgorithm = digestAlgorithm;
-        return getThis();
-    }
-
-    public T digestValue(String digestValue) {
         this.digestValue = digestValue;
-        return getThis();
     }
 
     public String getDigest() {

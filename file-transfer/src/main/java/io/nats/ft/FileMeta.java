@@ -6,7 +6,7 @@ import java.security.NoSuchAlgorithmException;
 
 import static io.nats.ft.Meta.Field.*;
 
-public class FileMeta extends Meta<FileMeta>
+public class FileMeta extends Meta
 {
     private String name;
     private String description;
@@ -59,11 +59,6 @@ public class FileMeta extends Meta<FileMeta>
         return JsonUtils.endJson(sb).toString();
     }
 
-    @Override
-    protected FileMeta getThis() {
-        return this;
-    }
-
     public String getName() {
         return name;
     }
@@ -96,18 +91,8 @@ public class FileMeta extends Meta<FileMeta>
         return fileDate;
     }
 
-    public FileMeta name(String name) {
-        this.name = name;
-        return this;
-    }
-
     public FileMeta description(String description) {
         this.description = description;
-        return this;
-    }
-
-    public FileMeta contentType(String contentType) {
-        this.contentType = contentType;
         return this;
     }
 
@@ -123,11 +108,6 @@ public class FileMeta extends Meta<FileMeta>
 
     public FileMeta lastPartSize(long lastPartSize) {
         this.lastPartSize = lastPartSize;
-        return this;
-    }
-
-    public FileMeta fileDate(long fileDate) {
-        this.fileDate = fileDate;
         return this;
     }
 

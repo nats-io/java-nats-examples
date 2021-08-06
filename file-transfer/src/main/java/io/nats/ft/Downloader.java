@@ -12,14 +12,14 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
-import static io.nats.ft.Constants.GZIP;
-import static io.nats.ft.Constants.PART_SUBJECT_PREFIX;
+import static io.nats.ft.Constants.*;
 
 public class Downloader
 {
     static int MAX_DOWN_FAILS = 10;
 
     public static void download(Connection nc, FileMeta fm, File outputDir) throws IOException, InterruptedException, JetStreamApiException, NoSuchAlgorithmException {
+        Debug.message("CONSUMING " + fm);
         JetStream js = nc.jetStream();
         JetStreamManagement jsm = nc.jetStreamManagement();
 
@@ -27,7 +27,7 @@ public class Downloader
         Digester partDigester = new Digester(fm.getDigestAlgorithm());
 
         JetStreamSubscription sub = makeSub(js, fm, 1);
-        Debug.downConsumer(jsm);
+        Debug.consumer(sub);
 
         int fails = MAX_DOWN_FAILS;
         long totalBytes = 0;
@@ -71,7 +71,7 @@ public class Downloader
                         }
 
                         // figure it's digest and see if it matches
-                        partDigester.reset().update(partBytes);
+                        partDigester.reset(partBytes);
                         dmatch = pm.getDigestValue().equals(partDigester.getDigestValue());
 
                         error = !dmatch;
@@ -79,7 +79,10 @@ public class Downloader
 
                     // debug printing here
                     if (expecting == 1 || error) {
-                        Debug.downPart(expecting, expectingAdjustment, m, pm, ematch, pmatch, dmatch, partBytes);
+                        Debug.conPartFull(expecting, expectingAdjustment, m, pm, ematch, pmatch, dmatch);
+                    }
+                    else {
+                        Debug.conPartSummary(expecting, expectingAdjustment, m);
                     }
 
                     // if there is an error, terminate the subscription
@@ -98,7 +101,7 @@ public class Downloader
                         // make a new subscription
                         sub = makeSub(js, fm, expecting);
                         flush(nc);
-                        Debug.downConsumer(jsm);
+                        Debug.consumer(sub);
 
 
                         // reset counters
@@ -127,7 +130,9 @@ public class Downloader
             }
             out.flush();
         }
-        Debug.downFile(fm, fileDigester, totalBytes, totalParts);
+
+        Debug.message();
+        Debug.conFile(fm, fileDigester, totalBytes, totalParts);
     }
 
     private static boolean checkFlowControl(Connection nc, Message m) {
@@ -153,8 +158,8 @@ public class Downloader
                 .startSequence(startSeq)
                 .flowControl(true)
                 .build();
-        Debug.downSubConfig(cc);
+        Debug.subConfig(cc);
         PushSubscribeOptions pso = PushSubscribeOptions.builder().configuration(cc).build();
-        return js.subscribe(PART_SUBJECT_PREFIX + fm.getId() + ".*", pso);
+        return js.subscribe(PART_SUBJECT_PREFIX + fm.getId() + (GRANULAR_SUBJECT ? ".*" : ""), pso);
     }
 }

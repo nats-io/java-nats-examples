@@ -12,13 +12,16 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
+import static io.nats.ft.Constants.*;
+
 public class Uploader
 {
     public static void upload(Connection nc, int partSize, File f, String description, String contentType, String digestAlgorithm, boolean gzip) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+        Debug.message("PUBLISHING " + f.getName() + ", " + description + ", " + contentType + (gzip ? ", gzip" : ""));
         Zipper zipper = gzip ? new Zipper() : null;
         
         JetStreamOptions jso = JetStreamOptions.builder()
-//                .publishNoAck(true)
+                .publishNoAck(true)
                 .build();
         JetStream js = nc.jetStream(jso);
 
@@ -26,7 +29,7 @@ public class Uploader
         Digester fileDigester = new Digester(digestAlgorithm);
         Digester partDigester = new Digester(digestAlgorithm);
 
-        // initialize the FileMeta, we need it's id for each part
+        // initialize the FileMeta
         FileMeta fm = createFileMeta(f, partSize, osLen, description, contentType, digestAlgorithm);
 
         // working with partSize number of bytes each time.
@@ -42,22 +45,23 @@ public class Uploader
                 // track total bytes just to make sure
                 redLen += red;
 
+                // initialize the PartMeta
                 PartMeta pm = new PartMeta(fm, ++partNumber)
                         .start((partNumber-1) * partSize)
-                        .length(red)
-                        .digestAlgorithm(digestAlgorithm);
+                        .length(red);
 
                 // the payload is all bytes or red bytes depending
-                byte[] payload = red == partSize ? buffer : Arrays.copyOfRange(buffer, 0, red);
+//                byte[] payload = red == partSize ? buffer : Arrays.copyOfRange(buffer, 0, red);
+                byte[] payload = Arrays.copyOfRange(buffer, 0, red);
 
                 // digest the actual bytes
                 fileDigester.update(payload);
-                pm.digestValue(partDigester.reset().update(payload).getDigestValue());
+                pm.digest(digestAlgorithm, partDigester.reset(payload).getDigestValue());
 
                 // if asked to compress, update the payload
                 if (gzip) {
                     payload = zipper.zip(payload);
-                    pm.encodedLength(payload.length).contentEncoding(Constants.GZIP);
+                    pm.encoded(GZIP, payload.length);
                 }
 
                 // publish the payload
@@ -74,15 +78,17 @@ public class Uploader
         }
 
         // update the FileMeta with the digest value
-        fm.digestValue(fileDigester.getDigestValue());
+        fm.digest(digestAlgorithm, fileDigester.getDigestValue());
 
         // publish the FileMeta
         publishFileMeta(js, fm);
     }
 
     private static void publishPart(JetStream js, FileMeta fm, long partNumber, PartMeta pm, byte[] payload) throws IOException, JetStreamApiException {
-        Debug.pubPart(fm, pm, payload);
-        String messageSubject = Constants.PART_SUBJECT_PREFIX + fm.getId() + "." + partNumber;
+        Debug.pubPart(fm, pm, payload, pm.getPartNumber() > 1);
+        String messageSubject = GRANULAR_SUBJECT
+                ? PART_SUBJECT_PREFIX + fm.getId() + "." + partNumber
+                : PART_SUBJECT_PREFIX + fm.getId();
         js.publish(NatsMessage.builder()
                 .subject(messageSubject)
                 .data(payload)
@@ -91,8 +97,9 @@ public class Uploader
     }
 
     private static void publishFileMeta(JetStream js, FileMeta fm) throws IOException, JetStreamApiException {
+        Debug.message();
         Debug.pubFile(fm);
-        String messageSubject = Constants.FILE_NAME_SUBJECT_PREFIX + fm.getId();
+        String messageSubject = FILE_NAME_SUBJECT_PREFIX + fm.getId();
         js.publish(NatsMessage.builder()
                 .subject(messageSubject)
                 .data(fm.toJson())
@@ -127,7 +134,6 @@ public class Uploader
                 .description(description)
                 .parts(parts)
                 .partSize(partSize)
-                .lastPartSize(lastPartSize)
-                .digestAlgorithm(digestAlgorithm);
+                .lastPartSize(lastPartSize);
     }
 }
