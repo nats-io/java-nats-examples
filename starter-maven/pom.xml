@@ -30,6 +30,15 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
+    <repository>
+      <id>snapshot</id>
+      <name>oss.sonatype.org Snapshots</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
   </repositories>
 
   <dependencyManagement>
@@ -48,7 +57,7 @@
     <dependency>
       <groupId>io.nats</groupId>
       <artifactId>jnats</artifactId>
-      <version>2.11.4</version>
+      <version>2.11.6-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
