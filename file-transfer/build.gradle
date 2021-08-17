@@ -21,7 +21,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.11.5'
+    implementation 'io.nats:jnats:2.11.6-SNAPSHOT'
 }
 
 test {

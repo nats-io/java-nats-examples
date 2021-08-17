@@ -8,11 +8,12 @@ import java.io.OutputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class Zipper {
+public class GZipper {
     private final ByteArrayBuilder bab;
     private final OutputStream out;
+    private GZIPOutputStream zipOut;
 
-    public Zipper() {
+    public GZipper() throws IOException {
         bab = new ByteArrayBuilder();
         out = new OutputStream() {
             @Override
@@ -30,32 +31,49 @@ public class Zipper {
                 bab.append(b, off, len);
             }
         };
+        clear();
     }
 
-    public byte[] zip(byte[] bytes) throws IOException {
-        return zip(bytes, 0, bytes.length);
-    }
-
-    public byte[] zip(byte[] bytes, int off, int len) throws IOException {
+    public GZipper clear() throws IOException {
         bab.clear();
-        GZIPOutputStream zip = new GZIPOutputStream(out);
-        zip.write(bytes, off, len);
-        zip.flush();
-        zip.finish();
+        zipOut = new GZIPOutputStream(out);
+        return this;
+    }
+
+    public byte[] finish() throws IOException {
+        zipOut.flush();
+        zipOut.finish();
         return bab.toByteArray();
     }
 
+    public GZipper zip(byte[] bytes) throws IOException {
+        return zip(bytes, 0, bytes.length);
+    }
+
+    public GZipper zip(byte[] bytes, int off, int len) throws IOException {
+        zipOut.write(bytes, off, len);
+        return this;
+    }
+
     public static byte[] unzip(byte[] bytes) throws IOException {
-        ByteArrayBuilder bab = new ByteArrayBuilder(bytes.length * 2);
+        return unzip(bytes, 1024, bytes.length * 2);
+    }
+
+    public static byte[] unzip(byte[] bytes, int projectedUnzippedSize) throws IOException {
+        return unzip(bytes, 1024, projectedUnzippedSize);
+    }
+
+    public static byte[] unzip(byte[] bytes, int readBlockSize, int projectedUnzippedSize) throws IOException {
+        ByteArrayBuilder bab = new ByteArrayBuilder(projectedUnzippedSize);
         GZIPInputStream in = new GZIPInputStream(new ByteArrayInputStream(bytes));
-        byte[] buffer = new byte[1024];
-        int red = in.read(buffer, 0, 1024);
+        byte[] buffer = new byte[readBlockSize];
+        int red = in.read(buffer, 0, readBlockSize);
         while (red > 0) {
             // track what we got from the unzip
             bab.append(buffer, 0, red);
 
             // read more if we got a full read last time, otherwise, that's the last of the bytes
-            red = red == 1024 ? in.read(buffer, 0, 1024) : -1;
+            red = red == readBlockSize ? in.read(buffer, 0, readBlockSize) : -1;
         }
         return bab.toByteArray();
     }

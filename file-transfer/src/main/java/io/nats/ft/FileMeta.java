@@ -2,6 +2,7 @@ package io.nats.ft;
 
 import io.nats.client.support.JsonUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 
 import static io.nats.ft.Meta.Field.*;
@@ -27,6 +28,10 @@ public class FileMeta extends Meta
         this.contentType = contentType;
         this.length = length;
         this.fileDate = fileDate;
+    }
+
+    public FileMeta(byte[] raw) {
+        this(new String(raw, StandardCharsets.UTF_8));
     }
 
     public FileMeta(String json) {

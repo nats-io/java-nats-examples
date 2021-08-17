@@ -13,16 +13,11 @@ public interface Constants
 
     String META_HEADER_PREFIX = "io.nats.file.";
 
-    String PART_STREAM_NAME = "file-transfer-parts";
+    String PART_STREAM_NAME = "parts";
     String PART_SUBJECT_PREFIX = "part.";
     String PART_STREAM_SUBJECT = PART_SUBJECT_PREFIX + ">";
 
-    String FILE_NAME_BUCKET = "file-transfer-files";
-    String FILE_NAME_SUBJECT_PREFIX = "$KV." + Constants.FILE_NAME_BUCKET + ".";
-    String FILE_NAME_STREAM = "KV_" + Constants.FILE_NAME_BUCKET;
-    String FILE_NAME_STREAM_SUBJECT = FILE_NAME_SUBJECT_PREFIX + "*";
-
-    boolean GRANULAR_SUBJECT = false;
+    String FILES_BUCKET = "files";
 
     String DIGEST_ALGORITHM = "SHA-256";
 

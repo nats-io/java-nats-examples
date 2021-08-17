@@ -12,16 +12,16 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
-import static io.nats.ft.Constants.*;
+import static io.nats.ft.Constants.GZIP;
+import static io.nats.ft.Constants.PART_SUBJECT_PREFIX;
 
 public class Downloader
 {
     static int MAX_DOWN_FAILS = 10;
 
     public static void download(Connection nc, FileMeta fm, File outputDir) throws IOException, InterruptedException, JetStreamApiException, NoSuchAlgorithmException {
-        Debug.message("CONSUMING " + fm);
+        Debug.info("CONSUMING " + fm);
         JetStream js = nc.jetStream();
-        JetStreamManagement jsm = nc.jetStreamManagement();
 
         Digester fileDigester = new Digester(fm.getDigestAlgorithm());
         Digester partDigester = new Digester(fm.getDigestAlgorithm());
@@ -67,7 +67,7 @@ public class Downloader
 
                         // if it was zipped, unzip it
                         if (GZIP.equals(pm.getContentEncoding())) {
-                            partBytes = Zipper.unzip(partBytes);
+                            partBytes = GZipper.unzip(partBytes);
                         }
 
                         // figure it's digest and see if it matches
@@ -131,7 +131,7 @@ public class Downloader
             out.flush();
         }
 
-        Debug.message();
+        Debug.info();
         Debug.conFile(fm, fileDigester, totalBytes, totalParts);
     }
 
@@ -160,6 +160,6 @@ public class Downloader
                 .build();
         Debug.subConfig(cc);
         PushSubscribeOptions pso = PushSubscribeOptions.builder().configuration(cc).build();
-        return js.subscribe(PART_SUBJECT_PREFIX + fm.getId() + (GRANULAR_SUBJECT ? ".*" : ""), pso);
+        return js.subscribe(PART_SUBJECT_PREFIX + fm.getId(), pso);
     }
 }

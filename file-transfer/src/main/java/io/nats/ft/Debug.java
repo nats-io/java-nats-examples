@@ -64,7 +64,7 @@ public class Debug
         }
     }
 
-    public static void message(String... strings) {
+    public static void info(String... strings) {
         if (DEBUG()) {
             write(strings);
         }
