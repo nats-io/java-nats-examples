@@ -18,7 +18,7 @@ public class FileMeta extends Meta
     private long fileDate;
 
     public FileMeta(String name, String contentType, long length, long fileDate) throws NoSuchAlgorithmException {
-        id = new Digester("SHA-256")
+        id = new Digester()
                 .update(name)
                 .update(contentType)
                 .update(length)
@@ -94,6 +94,24 @@ public class FileMeta extends Meta
 
     public long getFileDate() {
         return fileDate;
+    }
+
+    public String getKvKey() {
+        return getKvKey(name);
+    }
+
+    public static String getKvKey(String name) {
+        StringBuilder sb = new StringBuilder();
+        for (int x = 0; x < name.length(); x++) {
+            char c = name.charAt(x);
+            if (c < 33 || c > 126 || c == '.' || c == '*' || c == '>') {
+                sb.append('-');
+            }
+            else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     public FileMeta description(String description) {

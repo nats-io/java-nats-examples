@@ -9,29 +9,26 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-import static io.nats.ft.Constants.*;
-
-public class Uploader
-{
-    public static void upload(Connection nc, int partSize, File f, String description, String contentType, String digestAlgorithm, boolean gzip) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
+public class Uploader {
+    public static void upload(Connection conn, File f, String description, String contentType, boolean gzip) throws IOException, JetStreamApiException, NoSuchAlgorithmException {
         Debug.info("PUBLISHING " + f.getName() + ", " + description + ", " + contentType + (gzip ? ", gzip" : ""));
         GZipper gzipper = gzip ? new GZipper() : null;
 
-        KeyValue kv = nc.keyValue(FILES_BUCKET);
+        KeyValue kv = conn.keyValue(Constants.FILES_BUCKET);
         JetStreamOptions jso = JetStreamOptions.builder()
                 .publishNoAck(true)
                 .build();
-        JetStream js = nc.jetStream(jso);
+        JetStream js = conn.jetStream(jso);
 
         long osLen = checkFile(f);
-        Digester fileDigester = new Digester(digestAlgorithm);
-        Digester partDigester = new Digester(digestAlgorithm);
+        Digester fileDigester = new Digester();
+        Digester partDigester = new Digester();
 
         // initialize the FileMeta
-        FileMeta fm = createFileMeta(f, partSize, osLen, description, contentType, digestAlgorithm);
+        FileMeta fm = createFileMeta(f, osLen, description, contentType);
 
         // working with partSize number of bytes each time.
-        byte[] buffer = new byte[partSize];
+        byte[] buffer = new byte[Constants.PART_SIZE];
 
         long redLen = 0; // track total bytes read to make sure
         long partNumber = 0; // actual part numbers will start at 1
@@ -45,7 +42,7 @@ public class Uploader
 
                 // initialize the PartMeta
                 PartMeta pm = new PartMeta(fm, ++partNumber)
-                        .start((partNumber-1) * partSize)
+                        .start((partNumber-1) * Constants.PART_SIZE)
                         .length(red);
 
                 // the payload is all bytes or red bytes depending
@@ -53,19 +50,19 @@ public class Uploader
 
                 // digest the actual bytes
                 fileDigester.update(payload);
-                pm.digest(digestAlgorithm, partDigester.reset(payload).getDigestValue());
+                pm.digest(partDigester.reset(payload).getDigestValue());
 
                 // if asked to compress, update the payload
                 if (gzip) {
                     payload = gzipper.clear().zip(payload).finish();
-                    pm.encoded(GZIP, payload.length);
+                    pm.encoded(Constants.GZIP, payload.length);
                 }
 
                 // publish the payload
-                publishPart(js, fm, partNumber, pm, payload);
+                publishPart(js, fm, pm, payload);
 
                 // read more if we got a full read last time, otherwise, that's the last of the bytes
-                red = red == partSize ? in.read(buffer) : -1;
+                red = red == Constants.PART_SIZE ? in.read(buffer) : -1;
             }
         }
 
@@ -75,15 +72,15 @@ public class Uploader
         }
 
         // update the FileMeta with the digest value
-        fm.digest(digestAlgorithm, fileDigester.getDigestValue());
+        fm.digest(fileDigester.getDigestValue());
 
         // publish the FileMeta
         publishFileMeta(kv, fm);
     }
 
-    private static void publishPart(JetStream js, FileMeta fm, long partNumber, PartMeta pm, byte[] payload) throws IOException, JetStreamApiException {
+    private static void publishPart(JetStream js, FileMeta fm, PartMeta pm, byte[] payload) throws IOException, JetStreamApiException {
         Debug.pubPart(fm, pm, payload, pm.getPartNumber() > 1);
-        String messageSubject = PART_SUBJECT_PREFIX + fm.getId();
+        String messageSubject = Constants.PART_SUBJECT_PREFIX + fm.getId();
         js.publish(NatsMessage.builder()
                 .subject(messageSubject)
                 .data(payload)
@@ -94,7 +91,7 @@ public class Uploader
     private static void publishFileMeta(KeyValue kv, FileMeta fm) throws IOException, JetStreamApiException {
         Debug.info();
         Debug.pubFile(fm);
-        kv.put(fm.getName(), fm.toJson());
+        kv.put(fm.getKvKey(), fm.toJson());
     }
 
     private static long checkFile(File f) throws IOException {
@@ -111,11 +108,11 @@ public class Uploader
         return len;
     }
 
-    private static FileMeta createFileMeta(File f, int partSize, long length, String description, String contentType, String digestAlgorithm) throws NoSuchAlgorithmException {
-        long parts = length / partSize;
-        long lastPartSize = length - (parts * partSize);
+    private static FileMeta createFileMeta(File f, long length, String description, String contentType) throws NoSuchAlgorithmException {
+        long parts = length / Constants.PART_SIZE;
+        long lastPartSize = length - (parts * Constants.PART_SIZE);
         if (lastPartSize == 0) {
-            lastPartSize = partSize;
+            lastPartSize = Constants.PART_SIZE;
         }
         else {
             parts++; // there is one part that isn't full size
@@ -124,7 +121,7 @@ public class Uploader
         return new FileMeta(f.getName(), contentType, length, f.lastModified())
                 .description(description)
                 .parts(parts)
-                .partSize(partSize)
+                .partSize(Constants.PART_SIZE)
                 .lastPartSize(lastPartSize);
     }
 }

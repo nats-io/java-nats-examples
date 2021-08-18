@@ -11,8 +11,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static io.nats.ft.Constants.DEBUG_DIR;
-
 public class Debug
 {
     public static final byte[] NEWLINE = "\r\n".getBytes();
@@ -40,8 +38,7 @@ public class Debug
     public static void write(String... strings) {
         if (FILE && out == null) {
             try {
-//                out = new FileOutputStream(DEBUG_DIR + "debug-" + System.currentTimeMillis() + ".log");
-                out = new FileOutputStream(DEBUG_DIR + "debug.log");
+                out = new FileOutputStream(Constants.DEBUG_OUTPUT_DIR + "debug.log");
             } catch (FileNotFoundException e) {
                 System.exit(-1);
             }
@@ -97,6 +94,7 @@ public class Debug
                     sb.append((char) payload[x]);
                 }
             }
+            sb.append(" ...");
             write(sb.toString());
         }
     }

@@ -4,7 +4,7 @@ import io.nats.client.support.JsonUtils;
 
 import java.util.regex.Pattern;
 
-import static io.nats.ft.Constants.META_HEADER_PREFIX;
+import static io.nats.ft.Constants.PART_META_HEADER_PREFIX;
 
 public abstract class Meta
 {
@@ -30,7 +30,7 @@ public abstract class Meta
         final Pattern jsonRe;
 
         Field(String headerKey, String jsonKey, boolean prefixed, boolean isNumber) {
-            this.headerKey = (prefixed ? META_HEADER_PREFIX : "") + headerKey;
+            this.headerKey = (prefixed ? PART_META_HEADER_PREFIX : "") + headerKey;
             this.jsonKey = jsonKey;
             jsonRe = isNumber ? JsonUtils.number_pattern(jsonKey) : JsonUtils.string_pattern(jsonKey);
         }
@@ -58,8 +58,8 @@ public abstract class Meta
         return digestValue;
     }
 
-    public void digest(String digestAlgorithm, String digestValue) {
-        this.digestAlgorithm = digestAlgorithm;
+    public void digest(String digestValue) {
+        this.digestAlgorithm = Constants.DIGEST_ALGORITHM;
         this.digestValue = digestValue;
     }
 

@@ -17,19 +17,17 @@ import static io.nats.ft.Constants.PART_SUBJECT_PREFIX;
 
 public class Downloader
 {
-    static int MAX_DOWN_FAILS = 10;
-
-    public static void download(Connection nc, FileMeta fm, File outputDir) throws IOException, InterruptedException, JetStreamApiException, NoSuchAlgorithmException {
+    public static void download(Connection conn, FileMeta fm, File outputDir) throws IOException, InterruptedException, JetStreamApiException, NoSuchAlgorithmException {
         Debug.info("CONSUMING " + fm);
-        JetStream js = nc.jetStream();
+        JetStream js = conn.jetStream();
 
-        Digester fileDigester = new Digester(fm.getDigestAlgorithm());
-        Digester partDigester = new Digester(fm.getDigestAlgorithm());
+        Digester fileDigester = new Digester();
+        Digester partDigester = new Digester();
 
         JetStreamSubscription sub = makeSub(js, fm, 1);
         Debug.consumer(sub);
 
-        int fails = MAX_DOWN_FAILS;
+        int fails = Constants.MAX_DOWN_FAILS;
         long totalBytes = 0;
         long totalParts = 0;
 
@@ -41,7 +39,7 @@ public class Downloader
                 // on big files with many messages, the server is going to get ahead of the client
                 // and will send flow control messages. Check for and handle them.
                 // If it's not flow control then it's a data message.
-                if (checkFlowControl(nc, m)) {
+                if (checkFlowControl(conn, m)) {
 
                     // reconstitute the PartMeta from the headers
                     PartMeta pm = new PartMeta(m.getHeaders());
@@ -91,7 +89,7 @@ public class Downloader
                         // terminate the message instead of acking and unsubscribe
                         m.term();
                         sub.unsubscribe();
-                        flush(nc);
+                        flush(conn);
 
                         // don't fail indefinitely
                         if (--fails == 0) {
@@ -100,7 +98,7 @@ public class Downloader
 
                         // make a new subscription
                         sub = makeSub(js, fm, expecting);
-                        flush(nc);
+                        flush(conn);
                         Debug.consumer(sub);
 
 
@@ -135,17 +133,17 @@ public class Downloader
         Debug.conFile(fm, fileDigester, totalBytes, totalParts);
     }
 
-    private static boolean checkFlowControl(Connection nc, Message m) {
+    private static boolean checkFlowControl(Connection conn, Message m) {
         if (m.isStatusMessage() && m.getStatus().isFlowControl()) {
-            nc.publish(m.getReplyTo(), null);
+            conn.publish(m.getReplyTo(), null);
             return false;
         }
         return true;
     }
 
-    private static void flush(Connection nc) throws InterruptedException {
+    private static void flush(Connection conn) throws InterruptedException {
         try {
-            nc.flush(Duration.ofSeconds(1));
+            conn.flush(Duration.ofSeconds(1));
         } catch (TimeoutException e) {
             // e.printStackTrace();
         }

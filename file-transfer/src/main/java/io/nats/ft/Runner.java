@@ -12,91 +12,66 @@ import java.time.Duration;
 import java.util.Random;
 
 import static io.nats.ft.Constants.*;
+import static io.nats.ft.FileMeta.getKvKey;
 
-@SuppressWarnings("SameParameterValue")
 public class Runner
 {
-    static final int DEFAULT_PART_SIZE = 1024 * 8;
-
-    static class Input {
-        final int partSize;
-        final boolean textNotBinary;
-        final long size;
-        final String inputName;
-        final File inputFile;
-        final String inputDesc;
-
-        public Input(long size, boolean textNotBinary) {
-            this(size, textNotBinary, DEFAULT_PART_SIZE);
-        }
-
-        public Input(long size, boolean textNotBinary, int partSize) {
-            this.partSize = partSize;
-            this.textNotBinary = textNotBinary;
-            this.size = size;
-            inputName = textNotBinary ? "text-" + size + ".txt" : "binary-" + size + ".dat";
-            inputFile = new File(INPUT_PATH + inputName);
-            inputDesc = "" + size + " bytes " + (textNotBinary ? "text file" : "binary file");
-        }
-    }
-
     public static void main(String[] args) throws Exception {
-        Downloader.MAX_DOWN_FAILS = 20;
+
         Input[] inputs = new Input[] {
-                new Input(1_000, true),           // 1K, text
-                new Input(10_000, true),          // 10K, text
-                new Input(100_000, true),         // 100K, text
-                new Input(1_000_000, true),       // 1Mb, text
-                new Input(10_000_000, true),      // 10Mb, text
-                new Input(100_000_000, true),     // 100Mb, text
-                new Input(1_000_000_000, true),   // 1Gb, text
-                new Input(10_000_000_000L, true), // 10Gb, text
-                new Input(1_000, false),           // 1K, binary
-                new Input(10_000, false),          // 10K, binary
-                new Input(100_000, false),         // 100K, binary
-                new Input(1_000_000, false),       // 1Mb, binary
-                new Input(10_000_000, false),      // 10Mb, binary
-                new Input(100_000_000, false),     // 100Mb, binary
-                new Input(1_000_000_000, false),   // 1Gb, binary
-                new Input(10_000_000_000L, false), // 10Gb, binary
+//                new Input(1_000, true),           // 1K, text
+//                new Input(10_000, true),          // 10K, text
+//                new Input(100_000, true),         // 100K, text
+//                new Input(1_000_000, true),       // 1Mb, text
+//                new Input(10_000_000, true),      // 10Mb, text
+//                new Input(100_000_000, true),     // 100Mb, text
+//                new Input(1_000_000_000, true),   // 1Gb, text
+//                new Input(10_000_000_000L, true), // 10Gb, text
+//                new Input(1_000, false),           // 1K, binary
+//                new Input(10_000, false),          // 10K, binary
+//                new Input(100_000, false),         // 100K, binary
+//                new Input(1_000_000, false),       // 1Mb, binary
+//                new Input(10_000_000, false),      // 10Mb, binary
+//                new Input(100_000_000, false),     // 100Mb, binary
+//                new Input(1_000_000_000, false),   // 1Gb, binary
+//                new Input(10_000_000_000L, false), // 10Gb, binary
         };
 
-//        generateFiles(sizes);
+//        generateFiles(inputs);
 
-        try (Connection nc = Nats.connect(SERVER)) {
-//            setupStream(nc);
-//            upload(nc, inputs);
-//            download(nc, inputs);
-//            listFilesAkaBucketKeys(nc);
-//            listParts(nc, inputs);
+        try (Connection conn = Nats.connect(SERVER)) {
+//            setup(conn);
+//            upload(conn, inputs);
+//            download(conn, inputs);
+//            listParts(conn, inputs);
+//            listFilesAkaBucketKeys(conn);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void upload(Connection nc, Input[] inputs) throws JetStreamApiException, NoSuchAlgorithmException, IOException {
+    private static void upload(Connection conn, Input[] inputs) throws JetStreamApiException, NoSuchAlgorithmException, IOException {
         for (Input input : inputs) {
-            Uploader.upload(nc, input.partSize, input.inputFile, input.inputDesc,
+            Uploader.upload(conn, input.inputFile, input.inputDesc,
                     input.textNotBinary ? TEXT_PLAIN : APPLICATION_OCTET_STREAM, // contentType
-                    DIGEST_ALGORITHM, // digest algorithm
                     input.textNotBinary // gzip text files. binary files in my test actually gzip larger!
             );
         }
     }
 
-    private static void download(Connection nc, Input[] inputs) throws JetStreamApiException, InterruptedException, IOException, NoSuchAlgorithmException {
+    private static void download(Connection conn, Input[] inputs) throws JetStreamApiException, InterruptedException, IOException, NoSuchAlgorithmException {
         clearOutput();
         for (Input input : inputs) {
-            Downloader.download(nc, getFileMeta(nc, input), new File(OUTPUT_DIR));
+            Downloader.download(conn, getFileMeta(conn, input), new File(OUTPUT_DIR));
         }
     }
 
-    private static void listParts(Connection nc, Input[] inputs) throws JetStreamApiException, InterruptedException, IOException {
+    private static void listParts(Connection conn, Input[] inputs) throws JetStreamApiException, InterruptedException, IOException {
         for (Input main : inputs) {
-            FileMeta fm = getFileMeta(nc, main);
+            FileMeta fm = getFileMeta(conn, main);
             Debug.write("Looked Up File: " + fm);
-            JetStream js = nc.jetStream();
+            JetStream js = conn.jetStream();
             PushSubscribeOptions pso = PushSubscribeOptions.builder()
                     .configuration(
                             ConsumerConfiguration.builder()
@@ -116,12 +91,12 @@ public class Runner
         }
     }
 
-    private static FileMeta getFileMeta(Connection nc, Input main) throws IOException, JetStreamApiException {
-        return new FileMeta(nc.keyValue(FILES_BUCKET).getValue(main.inputName));
+    private static FileMeta getFileMeta(Connection conn, Input main) throws IOException, JetStreamApiException {
+        return new FileMeta(conn.keyValue(FILES_BUCKET).getValue(getKvKey(main.inputName)));
     }
 
-    private static void listFilesAkaBucketKeys(Connection nc) throws IOException, JetStreamApiException, InterruptedException {
-        for (String k : nc.keyValueManagement().keys(FILES_BUCKET)) {
+    private static void listFilesAkaBucketKeys(Connection conn) throws IOException, JetStreamApiException, InterruptedException {
+        for (String k : conn.keyValueManagement().keys(FILES_BUCKET)) {
             System.out.println(k);
         }
     }
@@ -138,10 +113,10 @@ public class Runner
         }
     }
 
-    private static void setupStream(Connection nc) throws IOException, JetStreamApiException {
+    private static void setup(Connection conn) throws IOException, JetStreamApiException {
 
-        KeyValueManagement kvm = nc.keyValueManagement();
-        JetStreamManagement jsm = nc.jetStreamManagement();
+        KeyValueManagement kvm = conn.keyValueManagement();
+        JetStreamManagement jsm = conn.jetStreamManagement();
 
         // delete bucket if exists
         try {
@@ -182,14 +157,18 @@ public class Runner
     // ----------------------------------------------------------------------------------------------------
     // Data File Generation and not file transfer relevant
     // ----------------------------------------------------------------------------------------------------
-    private static void generateFiles(long[] sizes) throws IOException {
+    private static void generateFiles(Input[] inputs) throws IOException {
         Random r = new Random();
         byte[] textBytes = Files.readAllBytes(new File(TEXT_SEED_FILE).toPath());
 
         try {
-            for (long bytes : sizes) {
-                generateText(bytes, textBytes);
-                generateBinaryFile(bytes, r);
+            for (Input input : inputs) {
+                if (input.textNotBinary) {
+                    generateText(input.size, textBytes);
+                }
+                else {
+                    generateBinaryFile(input.size, r);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -197,7 +176,7 @@ public class Runner
     }
 
     private static void generateBinaryFile(long bytes, Random r) throws IOException {
-        String filespec = INPUT_PATH + "binary-" + bytes + ".dat";
+        String filespec = DATA_INPUT_DIR + "binary-" + bytes + ".dat";
         try (FileOutputStream out = new FileOutputStream(filespec)) {
             long left = bytes;
             byte[] buf = new byte[1024];
@@ -214,7 +193,7 @@ public class Runner
     }
 
     private static void generateText(long bytes, byte[] textBytes) throws IOException {
-        String filespec = INPUT_PATH + "text-" + bytes + ".txt";
+        String filespec = DATA_INPUT_DIR + "text-" + bytes + ".txt";
         try (FileOutputStream out = new FileOutputStream(filespec)) {
             int tbPtr = -1024;
             long left = bytes;

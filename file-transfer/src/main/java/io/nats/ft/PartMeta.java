@@ -129,7 +129,7 @@ public class PartMeta extends Meta
 
     public String toSummaryJson() {
         StringBuilder sb = JsonUtils.beginJson();
-        JsonUtils.addField(sb, "#", partNumber);
+        JsonUtils.addField(sb, PART_NUMBER.jsonKey, partNumber);
         JsonUtils.addField(sb, START.jsonKey, start);
         JsonUtils.addField(sb, LENGTH.jsonKey, length);
         JsonUtils.addField(sb, ENCODED_LENGTH.jsonKey, encodedLength);

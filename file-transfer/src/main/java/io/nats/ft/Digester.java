@@ -7,8 +7,8 @@ import java.security.NoSuchAlgorithmException;
 public class Digester {
     private final MessageDigest digest;
 
-    public Digester(String algorithm) throws NoSuchAlgorithmException {
-        this.digest = MessageDigest.getInstance(algorithm);
+    public Digester() throws NoSuchAlgorithmException {
+        this.digest = MessageDigest.getInstance(Constants.DIGEST_ALGORITHM);
     }
 
     public Digester update(String input) {
