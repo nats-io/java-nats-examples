@@ -22,11 +22,13 @@ public class MultiReplyOneReq
 
         @Override
         public void run() {
-            Subscription sub = nc.subscribe("request-for-worker");
+            Subscription sub = nc.subscribe("workers.partition42.*");
             try {
-                Message m = sub.nextMessage(10000); // a long wait here which is simulating listening forever
+                Message msg = sub.nextMessage(5000); // a long wait here is simulating listening forever
                 System.out.println("Worker " + id + " responding.");
-                nc.publish(m.getReplyTo(), ("Response from worker " + id).getBytes());
+
+                // The requester put a reply-to when it published, so we know where to respond to.
+                nc.publish(msg.getReplyTo(), ("Response from worker " + id).getBytes());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -50,10 +52,10 @@ public class MultiReplyOneReq
                     msg.getSubject());
                 latch.countDown();
             });
-            d.subscribe("worker-responses");
+            d.subscribe("responses.partition42");
 
             // publish the primary message
-            nc.publish("request-for-worker", "worker-responses", "this is the data".getBytes());
+            nc.publish("workers.partition42.uniqueId999", "responses.partition42", "this is the data".getBytes());
 
             // the latch will stop waiting once there are 5 messages or 5 seconds
             latch.await(5, TimeUnit.SECONDS);
