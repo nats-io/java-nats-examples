@@ -92,11 +92,11 @@ public class Runner
     }
 
     private static FileMeta getFileMeta(Connection conn, Input main) throws IOException, JetStreamApiException {
-        return new FileMeta(conn.keyValue(FILES_BUCKET).getValue(getKvKey(main.inputName)));
+        return new FileMeta(conn.keyValue(FILES_BUCKET).get(getKvKey(main.inputName)).getValueAsString());
     }
 
     private static void listFilesAkaBucketKeys(Connection conn) throws IOException, JetStreamApiException, InterruptedException {
-        for (String k : conn.keyValueManagement().keys(FILES_BUCKET)) {
+        for (String k : conn.keyValue(FILES_BUCKET).keys()) {
             System.out.println(k);
         }
     }
@@ -120,7 +120,7 @@ public class Runner
 
         // delete bucket if exists
         try {
-            kvm.deleteBucket(FILES_BUCKET);
+            kvm.delete(FILES_BUCKET);
         }
         catch (JetStreamApiException e) {
             // 10059 means the bucket does not exist, which is fine. Other errors are bad.
@@ -130,12 +130,12 @@ public class Runner
         }
 
         // create the file kv bucket
-        BucketConfiguration bc = BucketConfiguration.builder()
+        KeyValueConfiguration kvc = KeyValueConfiguration.builder()
                 .name(FILES_BUCKET)
-                .maxHistory(5)
+                .maxHistoryPerKey(5)
                 .storageType(ST)
                 .build();
-        kvm.createBucket(bc);
+        kvm.create(kvc);
 
         // delete stream if exists
         StreamInfo si = getStreamInfo(jsm, PART_STREAM_NAME);

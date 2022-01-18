@@ -7,9 +7,12 @@ description = "Chain Of Command Pattern examples for NATS Java Client"
 
 repositories {
     jcenter()
+    mavenLocal()
     mavenCentral()
+    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.11.4'
+    implementation 'io.nats:jnats:2.13.2'
 }

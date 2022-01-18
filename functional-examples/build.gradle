@@ -6,16 +6,14 @@ version = '1.0-SNAPSHOT'
 description = "Functional examples for NATS Java Client"
 
 repositories {
+    jcenter()
+    mavenLocal()
     mavenCentral()
-    maven {
-        url "https://oss.sonatype.org/content/repositories/releases/"
-    }
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots/"
-    }
+    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.11.4'
+    implementation 'io.nats:jnats:2.13.2'
     implementation 'com.google.code.gson:gson:2.8.5'
 }

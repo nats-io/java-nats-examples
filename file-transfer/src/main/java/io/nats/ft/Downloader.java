@@ -154,7 +154,7 @@ public class Downloader
                 .ackPolicy(AckPolicy.None)
                 .deliverPolicy(DeliverPolicy.ByStartSequence)
                 .startSequence(startSeq)
-                .flowControl(true)
+                .flowControl(5000)
                 .build();
         Debug.subConfig(cc);
         PushSubscribeOptions pso = PushSubscribeOptions.builder().configuration(cc).build();

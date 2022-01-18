@@ -32,7 +32,7 @@ public abstract class Meta
         Field(String headerKey, String jsonKey, boolean prefixed, boolean isNumber) {
             this.headerKey = (prefixed ? PART_META_HEADER_PREFIX : "") + headerKey;
             this.jsonKey = jsonKey;
-            jsonRe = isNumber ? JsonUtils.number_pattern(jsonKey) : JsonUtils.string_pattern(jsonKey);
+            jsonRe = isNumber ? JsonUtils.integer_pattern(jsonKey) : JsonUtils.string_pattern(jsonKey);
         }
     }
 
