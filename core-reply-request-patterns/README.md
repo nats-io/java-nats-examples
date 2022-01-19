@@ -1,11 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Multiple Replies for 1 Request
+# Core Reply Request Patterns
 
-Using core nats, have multiple subscribers reply to a request. 
-
-The built-in [reply] request only passes the first response to the requestor. 
-This will help you build a requestor that can get multiple responses.
+Using core nats, there are multiple ways to do reply request. 
 
 ## License
 
