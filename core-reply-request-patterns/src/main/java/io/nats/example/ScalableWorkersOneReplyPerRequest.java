@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /*
-The ability to scale workers by queing for one request
+The ability to scale workers by queueing for one request
  */
 public class ScalableWorkersOneReplyPerRequest
 {
