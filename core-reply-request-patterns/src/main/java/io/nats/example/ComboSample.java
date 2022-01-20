@@ -22,7 +22,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /*
-Multiple example sof both types of workers.
+Multiple example of both types of workers.
  */
 public class ComboSample
 {
