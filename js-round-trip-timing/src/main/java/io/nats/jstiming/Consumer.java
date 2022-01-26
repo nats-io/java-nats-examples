@@ -30,6 +30,7 @@ public class Consumer implements AutoCloseable {
 
     private final Connection conn;
     private final JetStream js;
+    private final String queue;
     private final long maxAckPending;
     private final int ackInterval;
     private final int reportInterval;
@@ -37,8 +38,9 @@ public class Consumer implements AutoCloseable {
     private Dispatcher d;
     private JetStreamSubscription sub;
 
-    public Consumer(Connection conn, long maxAckPending, int ackInterval, int reportInterval) throws IOException, JetStreamApiException {
+    public Consumer(Connection conn, String queue, long maxAckPending, int ackInterval, int reportInterval) throws IOException, JetStreamApiException {
         this.conn = conn;
+        this.queue = queue;
         this.maxAckPending = maxAckPending > 0 ? maxAckPending : -1;
         this.ackInterval = ackInterval;
         this.reportInterval = reportInterval;
@@ -85,6 +87,7 @@ public class Consumer implements AutoCloseable {
             .ackPolicy(ap)
             .maxAckPending(maxAckPending)
             .flowControl(10000)
+            .deliverGroup(queue)
             .buildPushSubscribeOptions();
         sub = js.subscribe(JsTimingExample.SUBJECT, d, mh, false, pso);
     }
