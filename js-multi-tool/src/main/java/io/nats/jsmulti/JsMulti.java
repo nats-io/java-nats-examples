@@ -32,7 +32,7 @@ import static io.nats.jsmulti.Utils.*;
  public class JsMulti {
 
     public static void main(String[] args) throws Exception {
-        run(args);
+        run(new Arguments(args));
     }
 
     public static List<List<Stats>> run(String[] args) throws Exception {
@@ -40,6 +40,7 @@ import static io.nats.jsmulti.Utils.*;
     }
 
     public static List<List<Stats>> run(Arguments a) throws Exception {
+        System.out.println(a);
         Runner aRunner = getRunner(a, a.action);
         Runner lRunner = a.latencyAction == null ? null : getRunner(a, a.latencyAction);
         if (a.connShared) {
@@ -331,11 +332,9 @@ import static io.nats.jsmulti.Utils.*;
     // ----------------------------------------------------------------------------------------------------
     // Runners
     // ----------------------------------------------------------------------------------------------------
-    interface Runner {
-        void run(Connection nc, JetStream js, Stats stats, int id) throws Exception;
-    }
 
-    private static List<List<Stats>> runShared(Arguments a, Runner runner, Runner lrunner) throws Exception {
+
+     private static List<List<Stats>> runShared(Arguments a, Runner runner, Runner lrunner) throws Exception {
         List<List<Stats>> results = new ArrayList<>();
         List<Stats> statsList = new ArrayList<>();
         results.add(statsList);

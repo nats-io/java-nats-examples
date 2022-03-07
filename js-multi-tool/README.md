@@ -10,17 +10,22 @@ Administration and server related benchmarking of NATS should prefer the [NATS C
 
 ### Running from the Command Line
 
-Change into the nats.java directory, and then using gradle, build the source:
+#### Maven exec
+You can use the maven exec plugin...
 
 ```shell
-gradle build -x test
-``` 
+mvn exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a pubSync -s nats://localhost:4222 -u sub -m 10_000"
+```
 
-Once the code is built, you can run the multi tool by adding the libraries to your java classpath
-or the java command line, with the fully qualified name of the JsMulti program, the required parameters and the optional parameters.
+#### Direct Java
+
+Making some assumptions that you have a copy of the Java Nats Client (jnats) in your maven repo, since you needed it to build this project, 
+you can simply run java with the correct classpath, which includes the location of classes folder as compiled and the location of the jar file.
+
+At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-java -cp build/libs/jnats-2.13.4.jar:build/libs/jnats-2.13.4-examples.jar io.nats.examples.jsmulti.JsMulti <configuration options>
+java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.13.2\jnats-2.13.2.jar io.nats.jsmulti.JsMulti -a pubSync -s nats://localhost:4222 -u sub -m 10_000
 ```
 
 ### Running from an IDE
