@@ -1,15 +1,17 @@
-package io.nats.jsmulti;
+package io.nats.jsmulti.shared;
 
 import io.nats.client.Message;
+import io.nats.jsmulti.settings.Action;
 
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 
-import static io.nats.jsmulti.Utils.HDR_PUB_TIME;
+import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
 
 public class Stats {
+
     public static final long HUMAN_BYTES_BASE = 1024;
     public static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
     public static final String ZEROS = "000000000";
@@ -35,12 +37,12 @@ public class Stats {
     public long now;
 
     // Misc
-    public String hlabel = "";
+    public String hdrLabel = "";
 
     public Stats() {}
 
-    public Stats(String hlabel) {
-        this.hlabel = hlabel == null ? "" : hlabel;
+    public Stats(Action action) {
+        this.hdrLabel = action.getLabel();
     }
 
     public void start() {
@@ -51,6 +53,16 @@ public class Stats {
         elapsed += System.nanoTime() - now;
     }
 
+    public long hold() {
+        return System.nanoTime() - now;
+    }
+
+    public void acceptHold(long hold) {
+        if (hold > 0) {
+            elapsed += hold;
+        }
+    }
+
     public void count(long bytes) {
         messageCount++;
         this.bytes += bytes;
@@ -58,12 +70,10 @@ public class Stats {
 
     public void stopAndCount(long bytes) {
         elapsed += System.nanoTime() - now;
-        messageCount++;
-        this.bytes += bytes;
+        count(bytes);
     }
 
-    public void stopAndCount(Message m) {
-        elapsed += System.nanoTime() - now;
+    public void count(Message m) {
         long mReceived = System.currentTimeMillis();
         messageCount++;
         this.bytes += m.getData().length;
@@ -75,6 +85,11 @@ public class Stats {
             messageServerToReceiverElapsed += elapsedLatency(messageStampTime, mReceived);
             messageFullElapsed += elapsedLatency(messagePubTime, mReceived);
         }
+    }
+
+    public void stopAndCount(Message m) {
+        elapsed += System.nanoTime() - now;
+        count(m);
     }
 
     private double elapsedLatency(double startMs, double stopMs) {
@@ -95,7 +110,7 @@ public class Stats {
         double bytesPerSecond = 1e9 * (stats.bytes) / (stats.elapsed);
         if (header) {
             out.println("\n" + REPORT_SEP_LINE);
-            out.printf(REPORT_LINE_HEADER, stats.hlabel);
+            out.printf(REPORT_LINE_HEADER, stats.hdrLabel);
             out.println(REPORT_SEP_LINE);
         }
         out.printf(REPORT_LINE_FORMAT, tlabel,
@@ -134,7 +149,7 @@ public class Stats {
     }
 
     public static Stats total(List<Stats> statList) {
-        Stats total = new Stats("");
+        Stats total = new Stats();
         for (Stats stats : statList) {
             total.elapsed = Math.max(total.elapsed, stats.elapsed);
             total.messageCount += stats.messageCount;

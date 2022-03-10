@@ -1,4 +1,4 @@
- // Copyright 2021-2022 The NATS Authors
+// Copyright 2021-2022 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -18,7 +18,13 @@ import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
+import io.nats.jsmulti.internal.Context;
+import io.nats.jsmulti.internal.Publisher;
+import io.nats.jsmulti.internal.Runner;
+import io.nats.jsmulti.shared.OptionsFactory;
+import io.nats.jsmulti.shared.Stats;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -27,133 +33,145 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static io.nats.jsmulti.Utils.*;
+import static io.nats.jsmulti.shared.Utils.*;
 
- public class JsMulti {
+public class JsMulti {
 
     public static void main(String[] args) throws Exception {
-        run(new Arguments(args));
+        run(new Context(args), false, true);
     }
 
-    public static List<List<Stats>> run(String[] args) throws Exception {
-        return run(new Arguments(args));
+    public static List<Stats> run(String[] args) throws Exception {
+        return run(new Context(args), false, true);
     }
 
-    public static List<List<Stats>> run(Arguments a) throws Exception {
-        System.out.println(a);
-        Runner aRunner = getRunner(a, a.action);
-        Runner lRunner = a.latencyAction == null ? null : getRunner(a, a.latencyAction);
-        if (a.connShared) {
-            return runShared(a, aRunner, lRunner);
+    public static List<Stats> run(Context ctx) throws Exception {
+        return run(ctx, false, true);
+    }
+
+    public static List<Stats> run(Context ctx, boolean printArgs, boolean reportWhenDone) throws Exception {
+        if (printArgs) {
+            System.out.println(ctx);
         }
-        return runIndividual(a, aRunner, lRunner);
+
+        Runner runner = getRunner(ctx);
+        List<Stats> statsList = ctx.connShared ? runShared(ctx, runner) : runIndividual(ctx, runner);
+
+        if (reportWhenDone) {
+            Stats.report(statsList);
+        }
+        return statsList;
     }
 
-    private static Runner getRunner(Arguments a, String action) {
-        String label = a.connShared ? "Shared" : "Individual";
+    private static Runner getRunner(Context ctx) {
         try {
-            switch (action) {
+            switch (ctx.action) {
                 case PUB_SYNC:
-                    return (nc, js, stats, id) -> pubSync(a, js, stats, "pubSync" + label + " " + id);
+                    return (nc, stats, id) -> pubSync(ctx, nc, stats, getLabel(ctx, id));
                 case PUB_ASYNC:
-                    return (nc, js, stats, id) -> pubAsync(a, js, stats, "pubAsync" + label + " " + id);
+                    return (nc, stats, id) -> pubAsync(ctx, nc, stats, getLabel(ctx, id));
                 case PUB_CORE:
-                    return (nc, js, stats, id) -> pubCore(a, nc, stats, "pubCore" + label + " " + id);
+                    return (nc, stats, id) -> pubCore(ctx, nc, stats, getLabel(ctx, id));
                 case SUB_PUSH:
-                    return (nc, js, stats, id) -> subPush(a, js, stats, false, "subPush" + label + " " + id);
+                    return (nc, stats, id) -> subPush(ctx, nc, stats, false, getLabel(ctx, id));
                 case SUB_PULL:
-                    return (nc, js, stats, id) -> subPull(a, js, stats, id, "subPullS" + label + " " + id);
+                    return (nc, stats, id) -> subPull(ctx, nc, stats, id, getLabel(ctx, id));
                 case SUB_QUEUE:
-                    if (a.threads > 1) {
-                        return (nc, js, stats, id) -> subPush(a, js, stats, true, "subPush" + label + "Queue " + id);
+                    if (ctx.threads > 1) {
+                        return (nc, stats, id) -> subPush(ctx, nc, stats, true, getLabel(ctx, id));
                     }
                     break;
                 case SUB_PULL_QUEUE:
-                    if (a.threads > 1) {
-                        return (nc, js, stats, id) -> subPull(a, js, stats, 0, "subPull" + label + "Queue " + id);
+                    if (ctx.threads > 1) {
+                        return (nc, stats, id) -> subPull(ctx, nc, stats, id, getLabel(ctx, id));
                     }
                     break;
             }
-            System.out.println("Invalid Action");
-            System.exit(-1);
+            throw new Exception("Invalid Action");
         }
         catch (Exception e) {
-            //noinspection ThrowablePrintedToSystemOut
-            System.out.println(e);
             e.printStackTrace();
             System.exit(-1);
+            return null;
         }
-        return null;
     }
 
-    private static NatsMessage buildLatencyMessage(Arguments a, byte[] p) {
+    private static String getLabel(Context ctx, int id) {
+        return ctx.action + (ctx.connShared ? "Shared " : "Individual ") + id;
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // Publish
+    // ----------------------------------------------------------------------------------------------------
+    private static NatsMessage buildLatencyMessage(Context ctx, byte[] p) {
         return NatsMessage.builder()
-            .subject(a.subject)
+            .subject(ctx.subject)
             .data(p)
             .headers(new Headers().put(HDR_PUB_TIME, "" + System.currentTimeMillis()))
             .build();
     }
 
-    private static void pubSync(Arguments a, final JetStream js, Stats stats, String label) throws Exception {
-        if (a.latencyTracking) {
-            _pub(a, stats, label, (p) -> js.publish(buildLatencyMessage(a, p)));
+    private static void pubSync(Context ctx, Connection nc, Stats stats, String label) throws Exception {
+        final JetStream js = nc.jetStream();
+        if (ctx.latencyFlag) {
+            _pub(ctx, stats, label, (p) -> js.publish(buildLatencyMessage(ctx, p)));
         }
         else {
-            _pub(a, stats, label, (p) -> js.publish(a.subject, p));
+            _pub(ctx, stats, label, (p) -> js.publish(ctx.subject, p));
         }
     }
 
-    private static void pubCore(Arguments a, final Connection nc, Stats stats, String label) throws Exception {
-        if (a.latencyTracking) {
-            _pub(a, stats, label, (p) -> {
-                nc.publish(buildLatencyMessage(a, p));
-                return null;
-            });
-        }
-        else {
-            _pub(a, stats, label, (p) -> {
-                nc.publish(a.subject, p);
-                return null;
-            });
-        }
+    private static void pubCore(Context ctx, final Connection nc, Stats stats, String label) throws Exception {
+        _pub(ctx, stats, label, ctx.latencyFlag
+            ? (p) -> { nc.publish(buildLatencyMessage(ctx, p)); return null; }
+            : (p) -> { nc.publish(ctx.subject, p); return null; } );
     }
 
-    private static void _pub(Arguments a, Stats stats, String label, Publisher<PublishAck> p) throws Exception {
-        for (int x = 1; x <= a.perThread(); x++) {
-            jitter(a, false);
-            byte[] payload = a.getPayload();
+    private static void _pub(Context ctx, Stats stats, String label, Publisher<PublishAck> p) throws Exception {
+        int retriesAvailable = ctx.maxPubRetries;
+        int x = 1;
+        while (x <= ctx.perThread()) {
+            jitter(ctx);
+            byte[] payload = ctx.getPayload();
             stats.start();
-            p.publish(payload);
-            stats.stopAndCount(a.payloadSize);
-            reportMaybe(a, x, label, "completed publishing");
+            try {
+                p.publish(payload);
+                stats.stopAndCount(ctx.payloadSize);
+                reportMaybe(ctx, x++, label, "Published");
+            }
+            catch (IOException ioe) {
+                if (!isRegularTimeout(ioe) || --retriesAvailable == 0) { throw ioe; }
+            }
         }
-        System.out.println(label + ": completed publishing");
+        report(x, label, "Completed Publishing");
     }
 
-    private static void pubAsync(final Arguments a, final JetStream js, Stats stats, String label) throws Exception {
+    private static void pubAsync(final Context ctx, Connection nc, Stats stats, String label) throws Exception {
+        JetStream js = nc.jetStream();
         Publisher<CompletableFuture<PublishAck>> publisher;
-        if (a.latencyAction == null) {
-            publisher = (p) -> js.publishAsync(a.subject, p);
+        if (ctx.latencyFlag) {
+            publisher = (p) -> js.publishAsync(ctx.subject, p);
         }
         else {
-            publisher = (p) -> js.publishAsync(buildLatencyMessage(a, p));
+            publisher = (p) -> js.publishAsync(buildLatencyMessage(ctx, p));
         }
 
         List<CompletableFuture<PublishAck>> futures = new ArrayList<>();
         int r = 0;
-        for (int x = 1; x <= a.perThread(); x++) {
-            if (++r >= a.roundSize) {
+        int x = 1;
+        for (; x <= ctx.perThread(); x++) {
+            if (++r >= ctx.roundSize) {
                 processFutures(futures, stats);
                 r = 0;
             }
-            jitter(a, false);
-            byte[] payload = a.getPayload();
+            jitter(ctx);
+            byte[] payload = ctx.getPayload();
             stats.start();
             futures.add(publisher.publish(payload));
-            stats.stopAndCount(a.payloadSize);
-            reportMaybe(a, x, label, "completed publishing");
+            stats.stopAndCount(ctx.payloadSize);
+            reportMaybe(ctx, x, label, "Published");
         }
-        System.out.println(label + " completed publishing");
+        report(x, label, "Completed Publishing");
     }
 
     private static void processFutures(List<CompletableFuture<PublishAck>> futures, Stats stats) {
@@ -167,67 +185,145 @@ import static io.nats.jsmulti.Utils.*;
         stats.stop();
     }
 
-    private static void subPush(Arguments a, JetStream js, Stats stats, boolean q, String label) throws Exception {
+    // ----------------------------------------------------------------------------------------------------
+    // Push
+    // ----------------------------------------------------------------------------------------------------
+    private static void subPush(Context ctx, Connection nc, Stats stats, boolean q, String label) throws Exception {
+        JetStream js = nc.jetStream();
         ConsumerConfiguration cc = ConsumerConfiguration.builder()
-                .ackPolicy(a.ackPolicy)
-                .build();
+            .ackPolicy(ctx.ackPolicy)
+            .build();
         PushSubscribeOptions pso = PushSubscribeOptions.builder()
-                .configuration(cc)
-                .durable(q ? a.queueDurable : null)
-                .build();
+            .configuration(cc)
+            .durable(q ? ctx.queueDurable : null)
+            .build();
         JetStreamSubscription sub;
         if (q) {
             // if we don't do this, multiple threads will try to make the same consumer because
-            // when they start, the consumer does not exist. So force them do it one at a time.
-            synchronized (a.queueName) {
-                sub = js.subscribe(a.subject, a.queueName, pso);
+            // when they start, the consumer does not exist. So force them do it one at ctx time.
+            synchronized (ctx.queueName) {
+                sub = js.subscribe(ctx.subject, ctx.queueName, pso);
             }
         }
         else {
-            sub = js.subscribe(a.subject, pso);
+            sub = js.subscribe(ctx.subject, pso);
         }
-        int misses = 0;
+
         int x = 0;
         List<Message> ackList = new ArrayList<>();
-        while (x < a.perThread()) {
-            jitter(a, true);
+        while (x < ctx.perThread()) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
             if (m == null) {
-                if (++misses > MISS_THRESHOLD) {
-                    break;
-                }
                 continue;
             }
             stats.stopAndCount(m);
-            ackMaybe(a, stats, ackList, m);
-            reportMaybe(a, ++x, label, "messages read");
+            ackMaybe(ctx, stats, ackList, m);
+            reportMaybe(ctx, ++x, label, "Messages Read");
         }
-        ackEm(a, stats, ackList, 1);
-        System.out.println(label + ": finished messages read " + Stats.format(x));
+        ackEm(ctx, stats, ackList, 1);
+        report(x, label, "Finished Reading Messages");
     }
 
-    private static void ackMaybe(Arguments a, Stats stats, List<Message> ackList, Message m) {
-        if (a.ackFrequency < 2) {
+    // ----------------------------------------------------------------------------------------------------
+    // Pull
+    // ----------------------------------------------------------------------------------------------------
+    private static void subPull(Context ctx, Connection nc, Stats stats, int durableId, String label) throws Exception {
+        String durable = ctx.getPullDurable(durableId);
+        log("DURABLE " + durable);
+        PullSubscribeOptions pso = ConsumerConfiguration.builder().durable(durable).ackPolicy(ctx.ackPolicy).buildPullSubscribeOptions();
+        JetStream js = nc.jetStream();
+        JetStreamSubscription sub = js.subscribe(ctx.subject, pso);
+        if (ctx.pullTypeIterate) {
+            _subPullIterate(ctx, stats, label, sub);
+        }
+        else {
+            _subPullFetch(ctx, stats, label, sub);
+        }
+    }
+
+    private static void _subPullFetch(Context ctx, Stats stats, String label, JetStreamSubscription sub) {
+        int rcvd = 0;
+        long hold = -1;
+        List<Message> ackList = new ArrayList<>();
+        while (ctx.subscribeCounter.get() < ctx.messageCount) {
+            if (rcvd > 0) {
+                stats.acceptHold(hold);
+            }
+            stats.start();
+            List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
+            hold = stats.hold();
+            for (Message m : list) {
+                stats.count(m);
+                ctx.subscribeCounter.incrementAndGet();
+                ackMaybe(ctx, stats, ackList, m);
+                reportMaybe(ctx, ++rcvd, label, "Messages Read");
+            }
+            if (rcvd == 0) {
+                log("Waiting for first message.");
+            }
+        }
+        stats.acceptHold(hold);
+        ackEm(ctx, stats, ackList, 1);
+        report(rcvd, label, "Finished Reading Messages");
+    }
+
+    private static void _subPullIterate(Context ctx, Stats stats, String label, JetStreamSubscription sub) {
+        int rcvd = 0;
+        long hold = -1;
+        List<Message> ackList = new ArrayList<>();
+        while (ctx.subscribeCounter.get() < ctx.messageCount) {
+            if (rcvd > 0) {
+                stats.acceptHold(hold);
+            }
+            stats.start();
+            Iterator<Message> iter = sub.iterate(ctx.batchSize, Duration.ofMillis(500));
+            hold = stats.hold();
+            while (iter.hasNext()) {
+                Message m = iter.next();
+                stats.count(m);
+                ctx.subscribeCounter.incrementAndGet();
+                ackMaybe(ctx, stats, ackList, m);
+                report(rcvd + 1, label, "-----");
+                reportMaybe(ctx, ++rcvd, label, "Messages Read");
+            }
+            if (rcvd == 0) {
+                log("Waiting for first message.");
+            }
+        }
+        stats.acceptHold(hold);
+        ackEm(ctx, stats, ackList, 1);
+        report(rcvd, label, "Finished Reading Messages");
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------------------------------------
+    private static boolean isRegularTimeout(IOException ioe) {
+        return ioe.getMessage().equals("Timeout or no response waiting for NATS JetStream server");
+    }
+
+    private static void ackMaybe(Context ctx, Stats stats, List<Message> ackList, Message m) {
+        if (ctx.ackFrequency < 2) {
             stats.start();
             m.ack();
             stats.stop();
         }
         else {
-            switch (a.ackPolicy) {
+            switch (ctx.ackPolicy) {
                 case Explicit:
                 case All:
                     ackList.add(m);
                     break;
             }
-            ackEm(a, stats, ackList, a.ackFrequency);
+            ackEm(ctx, stats, ackList, ctx.ackFrequency);
         }
     }
 
-    private static void ackEm(Arguments a, Stats stats, List<Message> ackList, int thresh) {
+    private static void ackEm(Context ctx, Stats stats, List<Message> ackList, int thresh) {
         if (ackList.size() >= thresh) {
             stats.start();
-            switch (a.ackPolicy) {
+            switch (ctx.ackPolicy) {
                 case Explicit:
                     for (Message m : ackList) {
                         m.ack();
@@ -242,82 +338,32 @@ import static io.nats.jsmulti.Utils.*;
         }
     }
 
-    private static void subPull(Arguments a, JetStream js, Stats stats, int durableId, String label) throws Exception {
-        ConsumerConfiguration cc = ConsumerConfiguration.builder()
-                .ackPolicy(a.ackPolicy)
-                .build();
-        PullSubscribeOptions pso = PullSubscribeOptions.builder().durable(uniqueEnough() + durableId).configuration(cc).build();
-        JetStreamSubscription sub = js.subscribe(a.subject, pso);
+    private static void report(int x, String label, String message) {
+        log(label + ": " + message + " " + Stats.format(x));
+    }
 
-        if (a.pullTypeIterate) {
-            subPullIterate(a, stats, label, sub);
-        }
-        else {
-            subPullFetch(a, stats, label, sub);
+    private static void reportMaybe(Context ctx, int x, String label, String message) {
+        if (x % ctx.reportFrequency == 0) {
+            report(x, label, message);
         }
     }
 
-    private static void subPullIterate(Arguments a, Stats stats, String label, JetStreamSubscription sub) {
-        int x = 0;
-        List<Message> ackList = new ArrayList<>();
-        while (x < a.perThread()) {
-            jitter(a, true);
-            stats.start();
-            Iterator<Message> iter = sub.iterate(a.batchSize, Duration.ofSeconds(1));
-            stats.stop();
-            Message m;
-            while (iter.hasNext()) {
-                stats.start();
-                m = iter.next();
-                stats.stopAndCount(m.getData().length);
-                ackMaybe(a, stats, ackList, m);
-                reportMaybe(a, ++x, label, "messages read");
-            }
-        }
-        ackEm(a, stats, ackList, 1);
-        System.out.println(label + ": finished messages read " + Stats.format(x));
-    }
-
-    private static void subPullFetch(Arguments a, Stats stats, String label, JetStreamSubscription sub) {
-        int x = 0;
-        List<Message> ackList = new ArrayList<>();
-        while (x < a.perThread()) {
-            jitter(a, true);
-            stats.start();
-            List<Message> list = sub.fetch(a.batchSize, Duration.ofSeconds(1));
-            stats.stop();
-            for (Message m : list) {
-                ackMaybe(a, stats, ackList, m);
-                reportMaybe(a, ++x, label, "messages read");
-            }
-        }
-        ackEm(a, stats, ackList, 1);
-        System.out.println(label + ": finished messages read " + Stats.format(x));
-    }
-
-    private static void reportMaybe(Arguments a, int x, String label, String message) {
-        if (x % a.reportFrequency == 0) {
-            System.out.println(label + ": " + message + " " + x);
+    private static void jitter(Context ctx) {
+        if (ctx.jitter > 0) {
+            sleep(ThreadLocalRandom.current().nextLong(ctx.jitter));
         }
     }
 
-    private static void jitter(Arguments a, boolean forSub) {
-        long jitter = forSub && a.latencyAction != null ? a.latencyJitter : a.jitter;
-        if (jitter > 0) {
-            sleep(ThreadLocalRandom.current().nextLong(jitter));
-        }
-    }
-
-    private static Connection connect(Arguments a) throws Exception {
+    private static Connection connect(Context ctx) throws Exception {
         Options options;
-        if (a.optionsFactoryClassName == null) {
-            options = createOptions(a.server);
+        if (ctx.optionsFactoryClassName == null) {
+            options = defaultOptions(ctx.server);
         }
         else {
-            Class<?> c = Class.forName(a.optionsFactoryClassName);
+            Class<?> c = Class.forName(ctx.optionsFactoryClassName);
             Constructor<?> cons = c.getConstructor();
             OptionsFactory of = (OptionsFactory)cons.newInstance();
-            options = of.getOptions(a);
+            options = of.getOptions();
         }
         Connection nc = Nats.connect(options);
         for (long x = 0; x < 100; x++) { // waits up to 10 seconds (100 * 100 = 10000) millis to be connected
@@ -332,106 +378,50 @@ import static io.nats.jsmulti.Utils.*;
     // ----------------------------------------------------------------------------------------------------
     // Runners
     // ----------------------------------------------------------------------------------------------------
-
-
-     private static List<List<Stats>> runShared(Arguments a, Runner runner, Runner lrunner) throws Exception {
-        List<List<Stats>> results = new ArrayList<>();
+    private static List<Stats> runShared(Context ctx, Runner runner) throws Exception {
         List<Stats> statsList = new ArrayList<>();
-        results.add(statsList);
-        List<Stats> lStatsList = null;
-
-        try (Connection nc = connect(a)) {
-            final JetStream js = nc.jetStream();
-            List<Thread> lthreads = new ArrayList<>();
-            if (lrunner != null) {
-                lStatsList = new ArrayList<>();
-                _runShared(a, lrunner, nc, js, lthreads, lStatsList, a.latencyAction);
-                for (Thread t : lthreads) { t.start(); }
-                sleep(500);
-            }
+        try (Connection nc = connect(ctx)) {
             List<Thread> threads = new ArrayList<>();
-            _runShared(a, runner, nc, js, threads, statsList, a.action);
+            for (int x = 0; x < ctx.threads; x++) {
+                final int id = x + 1;
+                final Stats stats = new Stats(ctx.action);
+                statsList.add(stats);
+                Thread t = new Thread(() -> {
+                    try {
+                        runner.run(nc, stats, id);
+                    } catch (Exception e) {
+                        logEx(e);
+                    }
+                }, ctx.action.getLabel() + id);
+                threads.add(t);
+            }
             for (Thread t : threads) { t.start(); }
             for (Thread t : threads) { t.join(); }
-            for (Thread t : lthreads) { t.join(); }
         }
-
-        Stats.report(statsList);
-        if (lStatsList != null) {
-            Stats.report(lStatsList);
-            results.add(lStatsList);
-        }
-
-        return results;
+        return statsList;
     }
 
-    private static void _runShared(Arguments a, Runner runner, Connection nc, JetStream js, List<Thread> threads, List<Stats> statsList, String hlabel) {
-        for (int x = 0; x < a.threads; x++) {
-            final int id = x + 1;
-            final Stats stats = new Stats(hlabel);
-            Thread t = new Thread(() -> {
-                try {
-                    runner.run(nc, js, stats, id);
-                } catch (Exception e) {
-                    System.out.println("\n Error in thread " + id);
-                    e.printStackTrace();
-                }
-            });
-            if (statsList != null) {
-                statsList.add(stats);
-            }
-            threads.add(t);
-        }
-    }
-
-    private static List<List<Stats>> runIndividual(Arguments a, Runner runner, Runner lrunner) throws Exception {
-        List<List<Stats>> results = new ArrayList<>();
+    private static List<Stats> runIndividual(Context ctx, Runner runner) throws Exception {
         List<Stats> statsList = new ArrayList<>();
-        results.add(statsList);
-        List<Stats> lStatsList = null;
-
-        List<Thread> lthreads = new ArrayList<>();
-        if (lrunner != null) {
-            lStatsList = new ArrayList<>();
-            _runIndividual(a, lrunner, lthreads, lStatsList, a.latencyAction);
-            for (Thread t : lthreads) { t.start(); }
-            sleep(500);
-        }
-
         List<Thread> threads = new ArrayList<>();
-        _runIndividual(a, runner, threads, statsList, a.action);
 
-        for (Thread t : threads) {t.start(); }
-        for (Thread t : threads) { t.join(); }
-        for (Thread t : lthreads) { t.join(); }
-
-
-        Stats.report(statsList);
-        if (lStatsList != null) {
-            Stats.report(lStatsList);
-            results.add(lStatsList);
-        }
-
-        return results;
-    }
-
-    private static void _runIndividual(Arguments a, Runner runner, List<Thread> threads, List<Stats> statsList, String hlabel) {
-        for (int x = 0; x < a.threads; x++) {
+        for (int x = 0; x < ctx.threads; x++) {
             final int id = x + 1;
-            final Stats stats = new Stats(hlabel);
+            final Stats stats = new Stats(ctx.action);
+            statsList.add(stats);
             Thread t = new Thread(() -> {
-                try (Connection nc = connect(a)) {
-                    runner.run(nc, nc.jetStream(), stats, id);
+                try (Connection nc = connect(ctx)) {
+                    log("runIndividual " + nc);
+                    runner.run(nc, stats, id);
                 } catch (Exception e) {
-                    System.out.println("\n Error in thread " + id);
-                    e.printStackTrace();
+                    logEx(e);
                 }
-            });
-
-            if (statsList != null) {
-                statsList.add(stats);
-            }
+            }, ctx.action.getLabel() + id);
             threads.add(t);
         }
+        for (Thread t : threads) { t.start(); }
+        for (Thread t : threads) { t.join(); }
+
+        return statsList;
     }
 }

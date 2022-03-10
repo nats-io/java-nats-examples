@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io.nats.jsmulti;
+package io.nats.jsmulti.shared;
 
 public class Usage {
 
@@ -24,8 +24,7 @@ public class Usage {
     }
 
     public static final String USAGE =
-        "\nUsage: java -cp build/libs/jnats-2.13.4.jar:build/libs/jnats-2.13.4-examples.jar \\"
-            + "\n       io.nats.examples.jsmulti.JsMulti configurations\n"
+        "\nUsage: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [configuration options]"
             + "\n---------------------------------------------------------------------------------------"
             + "\nConfiguration Options"
             + "\n---------------------------------------------------------------------------------------"
@@ -41,12 +40,14 @@ public class Usage {
             + "\n                    Requires 2 or more threads"
             + "\n---------------------------------------------------------------------------------------"
             + "\n-s server url (string), optional, defaults to nats://localhost:4222"
-            + "\n-of options factory class name. Takes precedence over -s."
+            + "\n-of options factory class name. Class with no op constructor that implements OptionsFactory"
+            + "\n    Takes precedence over -s."
             + "\n-rf report frequency (number) how often to print progress, defaults to 1000 messages."
             + "\n    <= 0 for no reporting. Reporting time is excluded from timings"
+            + "\n-lf latency flag. Needed when publishing to test latency. See examples."
             + "\n---------------------------------------------------------------------------------------"
             + "\n-u subject (string), required for publishing or subscribing"
-            + "\n-m message count (number) for publishing or subscribing, defaults to 1 million"
+            + "\n-m message count (number) required > 1, used with both publishing or subscribing, defaults to 100_000"
             + "\n-d threads (number) for publishing or subscribing, defaults to 1"
             + "\n-n connection strategy (shared|individual) when threading, whether to share"
             + "\n     the connection, defaults to shared"
@@ -65,6 +66,8 @@ public class Usage {
             + "\n      Ack policy must be explicit."
             + "\n-bs batch size (number) for subPull/subPullQueue, defaults to 10, maximum 256"
             + "\n---------------------------------------------------------------------------------------"
+            + "\n All text constants are case insensitive, i.e. "
+            + "\n  action, connection strategy, ack policy, pull type"
             + "\nInput numbers can be formatted for easier viewing. For instance, ten thousand"
             + "\n  can be any of these: 10000 10,000 10.000 10_000"
             + "\nUse tls:// or opentls:// in the server url to require tls, via the Default SSLContext"

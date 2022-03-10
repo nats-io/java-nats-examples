@@ -25,7 +25,7 @@ you can simply run java with the correct classpath, which includes the location 
 At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.13.2\jnats-2.13.2.jar io.nats.jsmulti.JsMulti -a pubSync -s nats://localhost:4222 -u sub -m 10_000
+java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.14.0\jnats-2.14.0.jar io.nats.jsmulti.JsMulti -a pubSync -s nats://localhost:4222 -u sub -m 10_000
 ```
 
 ### Running from an IDE
@@ -68,8 +68,6 @@ Arguments a = ArgumentBuilder.pubCore("subject-name") ... .build();
 Arguments a = ArgumentBuilder.subPush("subject-name") ... .build();
 Arguments a = ArgumentBuilder.subQueue("subject-name") ... .build();
 Arguments a = ArgumentBuilder.subPull("subject-name") ... .build();
-Arguments a = ArgumentBuilder.subPull("subject-name") ... .build();
-Arguments a = ArgumentBuilder.subPullQueue("subject-name") ... .build();
 ```
 
 You could build your own custom class to run from the command line:
