@@ -20,9 +20,13 @@ import io.nats.jsmulti.shared.Usage;
 
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.nats.jsmulti.settings.ArgumentBuilder.*;
+import static io.nats.jsmulti.settings.ArgumentBuilder.INDIVIDUAL;
+import static io.nats.jsmulti.settings.ArgumentBuilder.SHARED;
 import static io.nats.jsmulti.shared.Utils.uniqueEnough;
 
 public class Context {
@@ -42,44 +46,51 @@ public class Context {
     public final long jitter;
     public final int payloadSize;
     public final int roundSize;
-    public final boolean pullTypeIterate;
+//    public final boolean pullTypeIterate;
     public final AckPolicy ackPolicy;
-    public final int ackFrequency;
+    public final int ackAllFrequency;
     public final int batchSize;
 
-    public final String queueDurable = "qd" + uniqueEnough();
-    public final String queueName = "qn" + uniqueEnough();
+    public final String queueName = "qn-" + uniqueEnough();
+    public final String queueDurable = "qd-" + uniqueEnough();
+
     public final int maxPubRetries = 10;
 
     // ----------------------------------------------------------------------------------------------------
-    // state
+    // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
-    public final AtomicLong subscribeCounter = new AtomicLong();
+    private final int[] perThread;
+    private final byte[] payload; // private and with getter in case I want to do more with payload later
+    private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
 
-    // ----------------------------------------------------------------------------------------------------
-    // macros
-    // ----------------------------------------------------------------------------------------------------
-    private byte[] _payload;
     public byte[] getPayload() {
-        if (_payload == null) {
-            _payload = new byte[payloadSize];
-        }
-        return _payload;
+        return payload;
     }
 
-    public int perThread() {
-        return messageCount / threads;
-    }
-
-    private String pullDurable;
+    private String _pullDurable;
     public String getPullDurable(int durableId) {
-        if (action.isPull() && action.isQueue()) {
-            return uniqueEnough() + durableId;
+        // is a queue, use the same durable
+        if (action.isQueue()) {
+            if (_pullDurable == null) {
+                _pullDurable = "qd" + uniqueEnough();
+            }
+            return _pullDurable;
         }
-        if (pullDurable == null) {
-            pullDurable = uniqueEnough() + 0;
-        }
-        return pullDurable;
+
+        // not a queue, each durable is unique
+        return "qd" + uniqueEnough() + durableId;
+    }
+
+    public int getPubCount(int id) {
+        return perThread[id-1]; // ids start at 1
+    }
+
+    public AtomicLong getSubscribeCounter(String key) {
+        return subscribeCounters.computeIfAbsent(key, k -> new AtomicLong());
+    }
+
+    public String getLabel(int id) {
+        return action + (connShared ? "Shared" : "Individual") + id;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -120,9 +131,9 @@ public class Context {
         append(sb, "round size", "r", roundSize, action.isPubAction() && action.isPubSync());
 
         append(sb, "ack policy", "kp", ackPolicy, action.isSubAction());
-        append(sb, "ack frequency", "kf", ackFrequency, action.isSubAction());
+        append(sb, "ack all frequency", "kf", ackAllFrequency, action.isSubAction());
 
-        append(sb, "pull type", "pt", pullTypeIterate ? ITERATE : FETCH, action.isPull());
+//        append(sb, "pull type", "pt", pullTypeIterate ? ITERATE : FETCH, action.isPull());
         append(sb, "batch size", "b", batchSize, action.isPull());
 
         return sb.toString();
@@ -148,9 +159,9 @@ public class Context {
         long _jitter = 0;
         int _payloadSize = 128;
         int _roundSize = 100;
-        boolean _pullTypeIterate = false;
+//        boolean _pullTypeIterate = false;
         AckPolicy _ackPolicy = AckPolicy.Explicit;
-        int _ackFrequency = 1;
+        int _ackAllFrequency = 1;
         int _batchSize = 10;
 
         if (args != null && args.length > 0) {
@@ -204,11 +215,11 @@ public class Context {
                             }
                             break;
                         case "-kf":
-                            _ackFrequency = asNumber("ack frequency", args[++x], 256);
+                            _ackAllFrequency = asNumber("ack frequency", args[++x], 256);
                             break;
-                        case "-pt":
-                            _pullTypeIterate = bool("pull type", args[++x], ITERATE, FETCH);
-                            break;
+//                        case "-pt":
+//                            _pullTypeIterate = bool("pull type", args[++x], ITERATE, FETCH);
+//                            break;
                         case "-rf":
                             _reportFrequency = asNumber("report frequency", args[++x], -2);
                             break;
@@ -233,6 +244,10 @@ public class Context {
             error("Queue subscribing requires multiple threads!");
         }
 
+        if (_action.isPull()) {
+            // TODO IF MUST LIMIT PULL ACK POLICY
+        }
+
         if (_optionsFactoryClassName == null && !_server.equals(Options.DEFAULT_URL)) {
             try {
                 new Options.Builder().build().createURIForServer(_server);
@@ -253,10 +268,25 @@ public class Context {
         jitter = _jitter;
         payloadSize = _payloadSize;
         roundSize = _roundSize;
-        pullTypeIterate = _pullTypeIterate;
+//        pullTypeIterate = _pullTypeIterate;
         ackPolicy = _ackPolicy;
-        ackFrequency = _ackFrequency;
+        ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
+
+        payload = new byte[payloadSize];
+
+        int total = 0;
+        perThread = new int[threads];
+        for (int x = 0; x < threads; x++) {
+            perThread[x] = messageCount / threads;
+            total += perThread[x];
+        }
+
+        int ix = 0;
+        while (total < messageCount) {
+            perThread[ix++]++;
+            total++;
+        }
     }
 
     private static void error(String errMsg) {

@@ -6,22 +6,29 @@ import io.nats.jsmulti.settings.ArgumentBuilder;
 
 public class Consumer {
 
+    static final String STREAM = "strm";
     static final String SUBJECT = "sub";
     static final String SERVER = "nats://localhost:4222";
 
+    static final boolean latencyRun = true;
+
     public static void main(String[] args) throws Exception {
+        // latency run, the consumer code sets up the stream
+        if (latencyRun) {
+            StreamUtils.setupStream(STREAM, SUBJECT, SERVER);
+        }
+
         JsMulti.run(
             ArgumentBuilder.builder()
                 .server(SERVER)
                 .subject(SUBJECT)
                 .action(Action.SUB_PULL_QUEUE)
-                .threads(3)
 //                .action(Action.SUB_PULL)
-                .pullType(ArgumentBuilder.FETCH)
+                .threads(3)
                 .individualConnection() // versus shared
                 .reportFrequency(10000) // report every 10K
                 .jitter(0) // > 0 means use jitter
-                .messageCount(1_000_000)
+                .messageCount(100_000)
                 .print()
                 .build());
     }

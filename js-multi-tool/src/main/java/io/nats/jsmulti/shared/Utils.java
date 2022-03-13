@@ -33,7 +33,7 @@ public abstract class Utils {
     }
 
     public static String uniqueEnough() {
-        String hex = Long.toHexString(System.currentTimeMillis()).substring(6);
+        String hex = Long.toHexString(System.nanoTime()).substring(8);
         StringBuilder sb = new StringBuilder();
         for (int x = 0; x < hex.length(); x++) {
             char c = hex.charAt(x);
@@ -63,5 +63,4 @@ public abstract class Utils {
     public static String format(Object s) {
         return System.currentTimeMillis() + " [" + Thread.currentThread().getName() + "] " + s.toString();
     }
-
 }

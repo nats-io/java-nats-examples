@@ -14,6 +14,7 @@
 package io.nats.jsmulti;
 
 import io.nats.client.*;
+import io.nats.client.api.AckPolicy;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
@@ -28,14 +29,16 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nats.jsmulti.shared.Utils.*;
 
 public class JsMulti {
+
+    private static final int ACK_WAIT_SECONDS = 120;
 
     public static void main(String[] args) throws Exception {
         run(new Context(args), false, true);
@@ -67,23 +70,23 @@ public class JsMulti {
         try {
             switch (ctx.action) {
                 case PUB_SYNC:
-                    return (nc, stats, id) -> pubSync(ctx, nc, stats, getLabel(ctx, id));
+                    return (nc, stats, id) -> pubSync(ctx, nc, stats, id);
                 case PUB_ASYNC:
-                    return (nc, stats, id) -> pubAsync(ctx, nc, stats, getLabel(ctx, id));
+                    return (nc, stats, id) -> pubAsync(ctx, nc, stats, id);
                 case PUB_CORE:
-                    return (nc, stats, id) -> pubCore(ctx, nc, stats, getLabel(ctx, id));
+                    return (nc, stats, id) -> pubCore(ctx, nc, stats, id);
                 case SUB_PUSH:
-                    return (nc, stats, id) -> subPush(ctx, nc, stats, false, getLabel(ctx, id));
+                    return (nc, stats, id) -> subPush(ctx, nc, stats, id);
                 case SUB_PULL:
-                    return (nc, stats, id) -> subPull(ctx, nc, stats, id, getLabel(ctx, id));
+                    return (nc, stats, id) -> subPull(ctx, nc, stats, id);
                 case SUB_QUEUE:
                     if (ctx.threads > 1) {
-                        return (nc, stats, id) -> subPush(ctx, nc, stats, true, getLabel(ctx, id));
+                        return (nc, stats, id) -> subPush(ctx, nc, stats, id);
                     }
                     break;
                 case SUB_PULL_QUEUE:
                     if (ctx.threads > 1) {
-                        return (nc, stats, id) -> subPull(ctx, nc, stats, id, getLabel(ctx, id));
+                        return (nc, stats, id) -> subPull(ctx, nc, stats, id);
                     }
                     break;
             }
@@ -94,10 +97,6 @@ public class JsMulti {
             System.exit(-1);
             return null;
         }
-    }
-
-    private static String getLabel(Context ctx, int id) {
-        return ctx.action + (ctx.connShared ? "Shared " : "Individual ") + id;
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -111,42 +110,43 @@ public class JsMulti {
             .build();
     }
 
-    private static void pubSync(Context ctx, Connection nc, Stats stats, String label) throws Exception {
+    private static void pubSync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         final JetStream js = nc.jetStream();
         if (ctx.latencyFlag) {
-            _pub(ctx, stats, label, (p) -> js.publish(buildLatencyMessage(ctx, p)));
+            _pub(ctx, stats, id, (p) -> js.publish(buildLatencyMessage(ctx, p)));
         }
         else {
-            _pub(ctx, stats, label, (p) -> js.publish(ctx.subject, p));
+            _pub(ctx, stats, id, (p) -> js.publish(ctx.subject, p));
         }
     }
 
-    private static void pubCore(Context ctx, final Connection nc, Stats stats, String label) throws Exception {
-        _pub(ctx, stats, label, ctx.latencyFlag
+    private static void pubCore(Context ctx, final Connection nc, Stats stats, int id) throws Exception {
+        _pub(ctx, stats, id, ctx.latencyFlag
             ? (p) -> { nc.publish(buildLatencyMessage(ctx, p)); return null; }
             : (p) -> { nc.publish(ctx.subject, p); return null; } );
     }
 
-    private static void _pub(Context ctx, Stats stats, String label, Publisher<PublishAck> p) throws Exception {
+    private static void _pub(Context ctx, Stats stats, int id, Publisher<PublishAck> p) throws Exception {
         int retriesAvailable = ctx.maxPubRetries;
-        int x = 1;
-        while (x <= ctx.perThread()) {
+        int pubTarget = ctx.getPubCount(id);
+        int published = 0;
+        while (published < pubTarget) {
             jitter(ctx);
             byte[] payload = ctx.getPayload();
             stats.start();
             try {
                 p.publish(payload);
                 stats.stopAndCount(ctx.payloadSize);
-                reportMaybe(ctx, x++, label, "Published");
+                reportMaybe(ctx, ++published, "Published");
             }
             catch (IOException ioe) {
                 if (!isRegularTimeout(ioe) || --retriesAvailable == 0) { throw ioe; }
             }
         }
-        report(x, label, "Completed Publishing");
+        report(published, "Completed Publishing");
     }
 
-    private static void pubAsync(final Context ctx, Connection nc, Stats stats, String label) throws Exception {
+    private static void pubAsync(final Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream();
         Publisher<CompletableFuture<PublishAck>> publisher;
         if (ctx.latencyFlag) {
@@ -157,21 +157,21 @@ public class JsMulti {
         }
 
         List<CompletableFuture<PublishAck>> futures = new ArrayList<>();
-        int r = 0;
-        int x = 1;
-        for (; x <= ctx.perThread(); x++) {
-            if (++r >= ctx.roundSize) {
+        int roundCount = 0;
+        int pubTarget = ctx.getPubCount(id);
+        int published = 0;
+        while (published < pubTarget) {
+            if (++roundCount >= ctx.roundSize) {
                 processFutures(futures, stats);
-                r = 0;
+                roundCount = 0;
             }
             jitter(ctx);
-            byte[] payload = ctx.getPayload();
             stats.start();
-            futures.add(publisher.publish(payload));
+            futures.add(publisher.publish(ctx.getPayload()));
             stats.stopAndCount(ctx.payloadSize);
-            reportMaybe(ctx, x, label, "Published");
+            reportMaybe(ctx, ++published, "Published");
         }
-        report(x, label, "Completed Publishing");
+        report(published, "Completed Publishing");
     }
 
     private static void processFutures(List<CompletableFuture<PublishAck>> futures, Stats stats) {
@@ -188,163 +188,150 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     // Push
     // ----------------------------------------------------------------------------------------------------
-    private static void subPush(Context ctx, Connection nc, Stats stats, boolean q, String label) throws Exception {
+    private static void subPush(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream();
-        ConsumerConfiguration cc = ConsumerConfiguration.builder()
-            .ackPolicy(ctx.ackPolicy)
-            .build();
-        PushSubscribeOptions pso = PushSubscribeOptions.builder()
-            .configuration(cc)
-            .durable(q ? ctx.queueDurable : null)
-            .build();
         JetStreamSubscription sub;
-        if (q) {
+        String durable;
+        if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at ctx time.
+            durable = ctx.queueDurable;
             synchronized (ctx.queueName) {
-                sub = js.subscribe(ctx.subject, ctx.queueName, pso);
+                sub = js.subscribe(ctx.subject, ctx.queueName,
+                    ConsumerConfiguration.builder()
+                        .ackPolicy(ctx.ackPolicy)
+                        .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
+                        .durable(durable)
+                        .deliverGroup(ctx.queueName)
+                            .buildPushSubscribeOptions());
             }
         }
         else {
-            sub = js.subscribe(ctx.subject, pso);
+            durable = ctx.queueDurable; // need this for counter key
+            sub = js.subscribe(ctx.subject,
+                ConsumerConfiguration.builder()
+                    .ackPolicy(ctx.ackPolicy)
+                    .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
+                        .buildPushSubscribeOptions());
         }
 
-        int x = 0;
-        List<Message> ackList = new ArrayList<>();
-        while (x < ctx.perThread()) {
+        int rcvd = 0;
+        Message lastUnAcked = null;
+        int unAckedCount = 0;
+        AtomicLong counter = ctx.getSubscribeCounter(durable);
+        while (counter.get() < ctx.messageCount) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
+            long hold = stats.elapsed();
+            long received = System.currentTimeMillis();
             if (m == null) {
-                continue;
+                acceptHoldIfReceivedAny(stats, rcvd, hold);
             }
-            stats.stopAndCount(m);
-            ackMaybe(ctx, stats, ackList, m);
-            reportMaybe(ctx, ++x, label, "Messages Read");
+            else {
+                stats.acceptHold(hold);
+                stats.count(m, received);
+                counter.incrementAndGet();
+                if ( (lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null ) {
+                    unAckedCount = 0;
+                }
+                reportMaybe(ctx, ++rcvd, "Messages Read");
+            }
         }
-        ackEm(ctx, stats, ackList, 1);
-        report(x, label, "Finished Reading Messages");
+        if (lastUnAcked != null) {
+            _ack(stats, lastUnAcked);
+        }
+        report(rcvd, "Finished Reading Messages");
     }
 
     // ----------------------------------------------------------------------------------------------------
     // Pull
     // ----------------------------------------------------------------------------------------------------
-    private static void subPull(Context ctx, Connection nc, Stats stats, int durableId, String label) throws Exception {
-        String durable = ctx.getPullDurable(durableId);
-        log("DURABLE " + durable);
-        PullSubscribeOptions pso = ConsumerConfiguration.builder().durable(durable).ackPolicy(ctx.ackPolicy).buildPullSubscribeOptions();
+    private static void subPull(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream();
-        JetStreamSubscription sub = js.subscribe(ctx.subject, pso);
-        if (ctx.pullTypeIterate) {
-            _subPullIterate(ctx, stats, label, sub);
-        }
-        else {
-            _subPullFetch(ctx, stats, label, sub);
-        }
+
+        String durable = ctx.getPullDurable(id);
+        JetStreamSubscription sub = js.subscribe(ctx.subject,
+            ConsumerConfiguration.builder()
+                .ackPolicy(ctx.ackPolicy)
+                .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
+                .durable(durable)
+                    .buildPullSubscribeOptions());
+
+        _subPullFetch(ctx, stats, sub, durable);
     }
 
-    private static void _subPullFetch(Context ctx, Stats stats, String label, JetStreamSubscription sub) {
+    private static void _subPullFetch(Context ctx, Stats stats, JetStreamSubscription sub, String counterKey) {
         int rcvd = 0;
-        long hold = -1;
-        List<Message> ackList = new ArrayList<>();
-        while (ctx.subscribeCounter.get() < ctx.messageCount) {
-            if (rcvd > 0) {
-                stats.acceptHold(hold);
-            }
+        Message lastUnAcked = null;
+        int unAckedCount = 0;
+        AtomicLong counter = ctx.getSubscribeCounter(counterKey);
+        while (counter.get() < ctx.messageCount) {
             stats.start();
             List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
-            hold = stats.hold();
+            long hold = stats.elapsed();
+            long received = System.currentTimeMillis();
             for (Message m : list) {
-                stats.count(m);
-                ctx.subscribeCounter.incrementAndGet();
-                ackMaybe(ctx, stats, ackList, m);
-                reportMaybe(ctx, ++rcvd, label, "Messages Read");
+                stats.count(m, received);
+                counter.incrementAndGet();
+                if ( (lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null ) {
+                    unAckedCount = 0;
+                }
+                reportMaybe(ctx, ++rcvd, "Messages Read");
             }
-            if (rcvd == 0) {
-                log("Waiting for first message.");
-            }
+            acceptHoldIfReceivedAny(stats, rcvd, hold);
         }
-        stats.acceptHold(hold);
-        ackEm(ctx, stats, ackList, 1);
-        report(rcvd, label, "Finished Reading Messages");
-    }
-
-    private static void _subPullIterate(Context ctx, Stats stats, String label, JetStreamSubscription sub) {
-        int rcvd = 0;
-        long hold = -1;
-        List<Message> ackList = new ArrayList<>();
-        while (ctx.subscribeCounter.get() < ctx.messageCount) {
-            if (rcvd > 0) {
-                stats.acceptHold(hold);
-            }
-            stats.start();
-            Iterator<Message> iter = sub.iterate(ctx.batchSize, Duration.ofMillis(500));
-            hold = stats.hold();
-            while (iter.hasNext()) {
-                Message m = iter.next();
-                stats.count(m);
-                ctx.subscribeCounter.incrementAndGet();
-                ackMaybe(ctx, stats, ackList, m);
-                report(rcvd + 1, label, "-----");
-                reportMaybe(ctx, ++rcvd, label, "Messages Read");
-            }
-            if (rcvd == 0) {
-                log("Waiting for first message.");
-            }
+        if (lastUnAcked != null) {
+            _ack(stats, lastUnAcked);
         }
-        stats.acceptHold(hold);
-        ackEm(ctx, stats, ackList, 1);
-        report(rcvd, label, "Finished Reading Messages");
+        report(rcvd, "Finished Reading Messages");
     }
 
     // ----------------------------------------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------------------------------------
+    private static void acceptHoldIfReceivedAny(Stats stats, int rcvd, long hold) {
+        if (rcvd == 0) {
+            log("Waiting for first message.");
+        }
+        else {
+            // not the first message so we count waiting time
+            stats.acceptHold(hold);
+        }
+    }
+
     private static boolean isRegularTimeout(IOException ioe) {
         return ioe.getMessage().equals("Timeout or no response waiting for NATS JetStream server");
     }
 
-    private static void ackMaybe(Context ctx, Stats stats, List<Message> ackList, Message m) {
-        if (ctx.ackFrequency < 2) {
-            stats.start();
-            m.ack();
-            stats.stop();
+    private static Message ackMaybe(Context ctx, Stats stats, Message m, int unAckedCount) {
+        if (ctx.ackPolicy == AckPolicy.Explicit || ctx.ackAllFrequency < 2) {
+            _ack(stats, m);
+            return null;
         }
-        else {
-            switch (ctx.ackPolicy) {
-                case Explicit:
-                case All:
-                    ackList.add(m);
-                    break;
+        if (ctx.ackPolicy == AckPolicy.All) {
+            if (unAckedCount >= ctx.ackAllFrequency) {
+                _ack(stats, m);
+                return null;
             }
-            ackEm(ctx, stats, ackList, ctx.ackFrequency);
+            return m;
         }
+        // AckPolicy.None
+        return null;
     }
 
-    private static void ackEm(Context ctx, Stats stats, List<Message> ackList, int thresh) {
-        if (ackList.size() >= thresh) {
-            stats.start();
-            switch (ctx.ackPolicy) {
-                case Explicit:
-                    for (Message m : ackList) {
-                        m.ack();
-                    }
-                    break;
-                case All:
-                    ackList.get(ackList.size() - 1).ack();
-                    break;
-            }
-            stats.stop();
-            ackList.clear();
-        }
+    private static void _ack(Stats stats, Message m) {
+        stats.start();
+        m.ack();
+        stats.stop();
     }
 
-    private static void report(int x, String label, String message) {
-        log(label + ": " + message + " " + Stats.format(x));
+    private static void report(int x, String message) {
+        log(message + " " + Stats.format(x));
     }
 
-    private static void reportMaybe(Context ctx, int x, String label, String message) {
+    private static void reportMaybe(Context ctx, int x, String message) {
         if (x % ctx.reportFrequency == 0) {
-            report(x, label, message);
+            report(x, message);
         }
     }
 
@@ -392,7 +379,7 @@ public class JsMulti {
                     } catch (Exception e) {
                         logEx(e);
                     }
-                }, ctx.action.getLabel() + id);
+                }, ctx.getLabel(id));
                 threads.add(t);
             }
             for (Thread t : threads) { t.start(); }
@@ -411,12 +398,11 @@ public class JsMulti {
             statsList.add(stats);
             Thread t = new Thread(() -> {
                 try (Connection nc = connect(ctx)) {
-                    log("runIndividual " + nc);
                     runner.run(nc, stats, id);
                 } catch (Exception e) {
                     logEx(e);
                 }
-            }, ctx.action.getLabel() + id);
+            }, ctx.getLabel(id));
             threads.add(t);
         }
         for (Thread t : threads) { t.start(); }

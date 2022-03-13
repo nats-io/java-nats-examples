@@ -30,7 +30,7 @@ public enum Action {
     private final boolean pull;
     private final boolean queue;
 
-    private Action(String label, boolean sync) {
+    Action(String label, boolean sync) {
         this.label = label;
         this.pubAction = true;
         this.pubSync = sync;
@@ -40,7 +40,7 @@ public enum Action {
         this.queue = false;
     }
 
-    private Action(String label, boolean push, boolean queue) {
+    Action(String label, boolean push, boolean queue) {
         this.label = label;
         this.pubAction = false;
         this.pubSync = false;

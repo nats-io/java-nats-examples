@@ -6,22 +6,25 @@ import io.nats.client.api.StreamConfiguration;
 import io.nats.jsmulti.shared.Utils;
 
 import java.io.IOException;
-
-import static io.nats.client.support.JsonUtils.getFormatted;
+import java.util.List;
 
 public class StreamUtils {
 
     public static void main(String[] args) throws Exception {
-        setup("strm", "sub", "nats://localhost:4222");
+        setupStream("strm", "sub", "nats://localhost:4222");
     }
 
-    public static void setup(String stream, String subject, String server) throws InterruptedException, IOException, JetStreamApiException {
+    public static void setupStream(String stream, String subject, String server) throws InterruptedException, IOException, JetStreamApiException {
         Options options = Utils.defaultOptions(server);
         try (Connection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             try {
                 jsm.purgeStream(stream);
-                System.out.println("PURGED\n" + getFormatted(jsm.getStreamInfo(stream)));
+                List<String> cons = jsm.getConsumerNames(stream);
+                for (String c : cons) {
+                    jsm.deleteConsumer(stream, c);
+                }
+                System.out.println("PURGED: " + jsm.getStreamInfo(stream));
             }
             catch (JetStreamApiException j) {
                 StreamConfiguration streamConfig = StreamConfiguration.builder()
@@ -29,7 +32,7 @@ public class StreamUtils {
                     .subjects(subject)
                     .storageType(StorageType.Memory)
                     .build();
-                System.out.println("CREATED\n" + getFormatted(jsm.addStream(streamConfig)));
+                System.out.println("CREATED: " + jsm.addStream(streamConfig));
             }
         }
     }

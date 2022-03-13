@@ -59,7 +59,7 @@ public class Usage {
             + "\n-rs round size (number) for pubAsync, default to 100, maximum 1000"
             + "\n---------------------------------------------------------------------------------------"
             + "\n-kp ack policy (explicit|none|all) for subscriptions, defaults to explicit"
-            + "\n-kf ack frequency (number), applies to ack policy all, ack after kf messages"
+            + "\n-kf ack all frequency (number), applies to ack policy all, ack after kf messages"
             + "\n      defaults to 1, maximum 256"
             + "\n---------------------------------------------------------------------------------------"
             + "\n-pt pull type (fetch|iterate), fetch all first, or iterate, defaults to iterate."

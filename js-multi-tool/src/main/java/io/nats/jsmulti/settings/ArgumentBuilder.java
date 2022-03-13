@@ -27,7 +27,6 @@ public class ArgumentBuilder {
 
     public static final String INDIVIDUAL = "individual";
     public static final String SHARED = "shared";
-    public static final String ITERATE = "iterate";
     public static final String FETCH = "fetch";
 
     private final List<String> args = new ArrayList<>();
@@ -80,6 +79,10 @@ public class ArgumentBuilder {
 
     public ArgumentBuilder latencyFlag() {
         return add("lf");
+    }
+
+    public ArgumentBuilder latencyFlag(boolean lf) {
+        return lf ? add("lf") : this;
     }
 
     public ArgumentBuilder optionsFactory(String optionsFactoryClassName) {
@@ -149,25 +152,17 @@ public class ArgumentBuilder {
         return add("rs", roundSize);
     }
 
-    public ArgumentBuilder pullType(String pullType) {
-        return add("pt", pullType);
-    }
-
-    public ArgumentBuilder iterate() {
-        return pullType(ITERATE);
-    }
-
-    public ArgumentBuilder iterate(boolean iterate) {
-        return pullType(iterate ? ITERATE : FETCH);
-    }
-
-    public ArgumentBuilder fetch() {
-        return pullType(FETCH);
-    }
-
-    public ArgumentBuilder fetch(boolean fetch) {
-        return pullType(fetch ? FETCH : ITERATE);
-    }
+//    public ArgumentBuilder pullType(String pullType) {
+//        return add("pt", pullType);
+//    }
+//
+//    public ArgumentBuilder fetch() {
+//        return pullType(FETCH);
+//    }
+//
+//    public ArgumentBuilder fetch(boolean fetch) {
+//        return pullType(fetch ? FETCH : ITERATE);
+//    }
 
     public ArgumentBuilder ackPolicy(AckPolicy ackPolicy) {
         return add("kp", ackPolicy);

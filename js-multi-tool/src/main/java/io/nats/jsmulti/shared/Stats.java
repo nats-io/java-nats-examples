@@ -20,9 +20,10 @@ public class Stats {
     public static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
     public static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
 
-    public static final String LREPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
-    public static final String LREPORT_LINE_HEADER = "| Latency         |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |";
-    public static final String LREPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
+    public static final String LREPORT_SEP_LINE     = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
+    public static final String LREPORT_LINE_HEADER1 = "|                 |         Server - Publish                    |        Received - Server                    |        Receive - Publish                    |";
+    public static final String LREPORT_LINE_HEADER2 = "| Latency         |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |";
+    public static final String LREPORT_LINE_FORMAT  = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
 
     public double elapsed = 0;
     public double bytes = 0;
@@ -33,11 +34,11 @@ public class Stats {
     public double messageServerToReceiverElapsed = 0;
     public double messageFullElapsed = 0;
 
-    // timer keeping
-    public long now;
-
     // Misc
     public String hdrLabel = "";
+
+    // Time keeping
+    public long nanoNow;
 
     public Stats() {}
 
@@ -46,15 +47,15 @@ public class Stats {
     }
 
     public void start() {
-        now = System.nanoTime();
+        nanoNow = System.nanoTime();
     }
 
     public void stop() {
-        elapsed += System.nanoTime() - now;
+        elapsed += System.nanoTime() - nanoNow;
     }
 
-    public long hold() {
-        return System.nanoTime() - now;
+    public long elapsed() {
+        return System.nanoTime() - nanoNow;
     }
 
     public void acceptHold(long hold) {
@@ -69,12 +70,11 @@ public class Stats {
     }
 
     public void stopAndCount(long bytes) {
-        elapsed += System.nanoTime() - now;
+        elapsed += System.nanoTime() - nanoNow;
         count(bytes);
     }
 
-    public void count(Message m) {
-        long mReceived = System.currentTimeMillis();
+    public void count(Message m, long mReceived) {
         messageCount++;
         this.bytes += m.getData().length;
         String hPubTime = m.getHeaders().getFirst(HDR_PUB_TIME);
@@ -85,11 +85,6 @@ public class Stats {
             messageServerToReceiverElapsed += elapsedLatency(messageStampTime, mReceived);
             messageFullElapsed += elapsedLatency(messagePubTime, mReceived);
         }
-    }
-
-    public void stopAndCount(Message m) {
-        elapsed += System.nanoTime() - now;
-        count(m);
     }
 
     private double elapsedLatency(double startMs, double stopMs) {
@@ -132,7 +127,8 @@ public class Stats {
         double totBps = 1e9 * (stats.bytes)/(stats.messageFullElapsed);
         if (header) {
             out.println("\n" + LREPORT_SEP_LINE);
-            out.println(LREPORT_LINE_HEADER);
+            out.println(LREPORT_LINE_HEADER1);
+            out.println(LREPORT_LINE_HEADER2);
             out.println(LREPORT_SEP_LINE);
         }
         out.printf(LREPORT_LINE_FORMAT, label,
