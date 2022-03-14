@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.nats.jsmulti.settings.ArgumentBuilder.INDIVIDUAL;
-import static io.nats.jsmulti.settings.ArgumentBuilder.SHARED;
+import static io.nats.jsmulti.settings.Arguments.INDIVIDUAL;
+import static io.nats.jsmulti.settings.Arguments.SHARED;
 import static io.nats.jsmulti.shared.Utils.uniqueEnough;
 
 public class Context {

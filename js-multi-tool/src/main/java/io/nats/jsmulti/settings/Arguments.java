@@ -23,7 +23,7 @@ import java.util.List;
 
 import static io.nats.jsmulti.settings.Action.*;
 
-public class ArgumentBuilder {
+public class Arguments {
 
     public static final String INDIVIDUAL = "individual";
     public static final String SHARED = "shared";
@@ -31,21 +31,21 @@ public class ArgumentBuilder {
 
     private final List<String> args = new ArrayList<>();
 
-    public static ArgumentBuilder builder() { return new ArgumentBuilder(); }
-    public static ArgumentBuilder builder(String subject) { return builder().subject(subject); }
-    public static ArgumentBuilder pubSync(String subject) { return builder().action(PUB_SYNC).subject(subject); }
-    public static ArgumentBuilder pubAsync(String subject) { return builder().action(PUB_ASYNC).subject(subject); }
-    public static ArgumentBuilder pubCore(String subject) { return builder().action(PUB_CORE).subject(subject); }
-    public static ArgumentBuilder subPush(String subject) { return builder().action(SUB_PUSH).subject(subject); }
-    public static ArgumentBuilder subQueue(String subject) { return builder().action(SUB_QUEUE).subject(subject); }
-    public static ArgumentBuilder subPull(String subject) { return builder().action(SUB_PULL).subject(subject); }
-    public static ArgumentBuilder subPullQueue(String subject) { return builder().action(SUB_PULL_QUEUE).subject(subject); }
+    public static Arguments builder() { return new Arguments(); }
+    public static Arguments builder(String subject) { return builder().subject(subject); }
+    public static Arguments pubSync(String subject) { return builder().action(PUB_SYNC).subject(subject); }
+    public static Arguments pubAsync(String subject) { return builder().action(PUB_ASYNC).subject(subject); }
+    public static Arguments pubCore(String subject) { return builder().action(PUB_CORE).subject(subject); }
+    public static Arguments subPush(String subject) { return builder().action(SUB_PUSH).subject(subject); }
+    public static Arguments subQueue(String subject) { return builder().action(SUB_QUEUE).subject(subject); }
+    public static Arguments subPull(String subject) { return builder().action(SUB_PULL).subject(subject); }
+    public static Arguments subPullQueue(String subject) { return builder().action(SUB_PULL_QUEUE).subject(subject); }
 
     public Context build() {
         return new Context(args.toArray(new String[0]));
     }
 
-    public ArgumentBuilder print(PrintStream ps) {
+    public Arguments printCommandLine(PrintStream ps) {
         for (String a : args) {
             ps.print(a + " ");
         }
@@ -53,102 +53,102 @@ public class ArgumentBuilder {
         return this;
     }
 
-    public ArgumentBuilder print() {
-        print(System.out);
+    public Arguments printCommandLine() {
+        printCommandLine(System.out);
         return this;
     }
 
-    private ArgumentBuilder add(String option) {
+    private Arguments add(String option) {
         args.add("-" + option);
         return this;
     }
 
-    private ArgumentBuilder add(String option, Object value) {
+    private Arguments add(String option, Object value) {
         args.add("-" + option);
         args.add(value.toString());
         return this;
     }
 
-    public ArgumentBuilder action(Action action) {
+    public Arguments action(Action action) {
         return add("a", action);
     }
 
-    public ArgumentBuilder server(String server) {
+    public Arguments server(String server) {
         return add("s", server);
     }
 
-    public ArgumentBuilder latencyFlag() {
+    public Arguments latencyFlag() {
         return add("lf");
     }
 
-    public ArgumentBuilder latencyFlag(boolean lf) {
+    public Arguments latencyFlag(boolean lf) {
         return lf ? add("lf") : this;
     }
 
-    public ArgumentBuilder optionsFactory(String optionsFactoryClassName) {
+    public Arguments optionsFactory(String optionsFactoryClassName) {
         return add("of", optionsFactoryClassName);
     }
 
-    public ArgumentBuilder reportFrequency(int reportFrequency) {
+    public Arguments reportFrequency(int reportFrequency) {
         return add("rf", reportFrequency);
     }
 
-    public ArgumentBuilder noReporting() {
+    public Arguments noReporting() {
         return add("rf", -1);
     }
 
-    public ArgumentBuilder memory() {
+    public Arguments memory() {
         return add("o", StorageType.Memory.toString());
     }
 
-    public ArgumentBuilder file() {
+    public Arguments file() {
         return add("o", StorageType.File);
     }
 
-    public ArgumentBuilder replicas(int replicas) {
+    public Arguments replicas(int replicas) {
         return add("c", replicas);
     }
 
-    public ArgumentBuilder subject(String subject) {
+    public Arguments subject(String subject) {
         if (subject == null) {
             return this;
         }
         return add("u", subject);
     }
 
-    public ArgumentBuilder messageCount(int messageCount) {
+    public Arguments messageCount(int messageCount) {
         return add("m", messageCount);
     }
 
-    public ArgumentBuilder threads(int threads) {
+    public Arguments threads(int threads) {
         return add("d", threads);
     }
 
-    public ArgumentBuilder connectionStrategy(String strategy) {
+    public Arguments connectionStrategy(String strategy) {
         return add("n", strategy);
     }
 
-    public ArgumentBuilder sharedConnection() {
+    public Arguments sharedConnection() {
         return connectionStrategy(SHARED);
     }
 
-    public ArgumentBuilder sharedConnection(boolean shared) {
+    public Arguments sharedConnection(boolean shared) {
         return connectionStrategy(shared ? SHARED : INDIVIDUAL);
     }
 
-    public ArgumentBuilder individualConnection() {
+    public Arguments individualConnection() {
         return connectionStrategy(INDIVIDUAL);
     }
 
-    public ArgumentBuilder jitter(long jitter) {
+    public Arguments jitter(long jitter) {
         return add("j", jitter);
     }
 
-    public ArgumentBuilder payloadSize(int payloadSize) {
+    public Arguments payloadSize(int payloadSize) {
         return add("ps", payloadSize);
     }
 
-    public ArgumentBuilder roundSize(int roundSize) {
+    public Arguments roundSize(int roundSize) {
         return add("rs", roundSize);
     }
 
@@ -164,27 +164,27 @@ public class ArgumentBuilder {
 //        return pullType(fetch ? FETCH : ITERATE);
 //    }
 
-    public ArgumentBuilder ackPolicy(AckPolicy ackPolicy) {
+    public Arguments ackPolicy(AckPolicy ackPolicy) {
         return add("kp", ackPolicy);
     }
 
-    public ArgumentBuilder ackExplicit() {
+    public Arguments ackExplicit() {
         return ackPolicy(AckPolicy.Explicit);
     }
 
-    public ArgumentBuilder ackNone() {
+    public Arguments ackNone() {
         return ackPolicy(AckPolicy.None);
     }
 
-    public ArgumentBuilder ackAll() {
+    public Arguments ackAll() {
         return ackPolicy(AckPolicy.All);
     }
 
-    public ArgumentBuilder ackFrequency(int ackFrequency) {
+    public Arguments ackFrequency(int ackFrequency) {
         return add("kf", ackFrequency);
     }
 
-    public ArgumentBuilder batchSize(int batchSize) {
+    public Arguments batchSize(int batchSize) {
         return add("bs", batchSize);
     }
 }
