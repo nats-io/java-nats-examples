@@ -27,7 +27,6 @@ public class Arguments {
 
     public static final String INDIVIDUAL = "individual";
     public static final String SHARED = "shared";
-    public static final String FETCH = "fetch";
 
     private final List<String> args = new ArrayList<>();
 
@@ -98,7 +97,7 @@ public class Arguments {
     }
 
     public Arguments memory() {
-        return add("o", StorageType.Memory.toString());
+        return add("o", StorageType.Memory);
     }
 
     public Arguments file() {
@@ -124,20 +123,16 @@ public class Arguments {
         return add("d", threads);
     }
 
-    public Arguments connectionStrategy(String strategy) {
-        return add("n", strategy);
+    public Arguments individualConnection() {
+        return add("n", INDIVIDUAL);
     }
 
     public Arguments sharedConnection() {
-        return connectionStrategy(SHARED);
+        return add("n", SHARED);
     }
 
     public Arguments sharedConnection(boolean shared) {
-        return connectionStrategy(shared ? SHARED : INDIVIDUAL);
-    }
-
-    public Arguments individualConnection() {
-        return connectionStrategy(INDIVIDUAL);
+        return add("n", shared ? SHARED : INDIVIDUAL);
     }
 
     public Arguments jitter(long jitter) {
@@ -151,18 +146,6 @@ public class Arguments {
     public Arguments roundSize(int roundSize) {
         return add("rs", roundSize);
     }
-
-//    public ArgumentBuilder pullType(String pullType) {
-//        return add("pt", pullType);
-//    }
-//
-//    public ArgumentBuilder fetch() {
-//        return pullType(FETCH);
-//    }
-//
-//    public ArgumentBuilder fetch(boolean fetch) {
-//        return pullType(fetch ? FETCH : ITERATE);
-//    }
 
     public Arguments ackPolicy(AckPolicy ackPolicy) {
         return add("kp", ackPolicy);

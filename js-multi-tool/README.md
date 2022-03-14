@@ -14,7 +14,7 @@ Administration and server related benchmarking of NATS should prefer the [NATS C
 You can use the maven exec plugin...
 
 ```shell
-mvn exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a pubSync -s nats://localhost:4222 -u sub -m 10_000"
+mvn exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
 ```
 
 #### Direct Java
@@ -25,14 +25,14 @@ you can simply run java with the correct classpath, which includes the location 
 At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.14.0\jnats-2.14.0.jar io.nats.jsmulti.JsMulti -a pubSync -s nats://localhost:4222 -u sub -m 10_000
+java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.14.0\jnats-2.14.0.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
 ```
 
 ### Running from an IDE
 
 The JsMulti program has a `main` method so it's easy enough to run from any ide.
 You can also call it from another program using the `public static void run(Arguments a)` method.
-We have provided an `ArgumentBuilder` class to help build configurations.
+We have provided an `Arguments` class to help build configurations.
 You could also use your IDE and build a runtime configuration that passes command line arguments.
 
 The examples below show both command line and builder examples.
@@ -46,13 +46,13 @@ to make it more readable. So these are all valid for 1 million `1000000`, `1,000
 
 `-a` The action to execute. Always required. One of the following (case ignored)
 
-* `pubSync` publish synchronously
-* `pubAsync` publish asynchronously
-* `pubCore` publish synchronously using the core api
-* `subPush` push subscribe read messages (synchronously)
-* `subQueue` push subscribe read messages with queue (synchronously)
-* `subPull` pull subscribe read messages (different durable if threaded)
-* `subPullQueue` pull subscribe read messages (all with same durable)
+* `PubSync` publish synchronously
+* `PubAsync` publish asynchronously
+* `PubCore` publish synchronously using the core api
+* `SubPush` push subscribe read messages (synchronously)
+* `SubQueue` push subscribe read messages with queue (synchronously)
+* `SubPull` pull subscribe read messages (different durable if threaded)
+* `SubPullQueue` pull subscribe read messages (all with same durable)
 
 #### Using the builder
 
@@ -62,12 +62,12 @@ You could use the builder and modify the `JsMulti` class or just create your own
 The actions all have smart builder creation methods...
 
 ```java
-Arguments a = ArgumentBuilder.pubSync("subject-name") ... .build();
-Arguments a = ArgumentBuilder.pubAsync("subject-name") ... .build();
-Arguments a = ArgumentBuilder.pubCore("subject-name") ... .build();
-Arguments a = ArgumentBuilder.subPush("subject-name") ... .build();
-Arguments a = ArgumentBuilder.subQueue("subject-name") ... .build();
-Arguments a = ArgumentBuilder.subPull("subject-name") ... .build();
+Context ctx = Arguments.pubSync("subject-name") ... .build();
+Context ctx = Arguments.pubAsync("subject-name") ... .build();
+Context ctx = Arguments.pubCore("subject-name") ... .build();
+Context ctx = Arguments.subPush("subject-name") ... .build();
+Context ctx = Arguments.subQueue("subject-name") ... .build();
+Context ctx = Arguments.subPull("subject-name") ... .build();
 ```
 
 You could build your own custom class to run from the command line:
@@ -75,7 +75,7 @@ You could build your own custom class to run from the command line:
 ```java
 public class MyMulti {
     public static void main(String[] args) throws Exception {
-        Arguments a = ArgumentBuilder.pubSync("subject-name") ... .build();
+        Context ctx = Arguments.pubSync("subject-name") ... .build();
         JsMulti.run(new Arguments(args));
     }
 }
@@ -94,7 +94,7 @@ _Command Line_
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder ... .server("nats://myhost:4444") ...
+Context ctx = Arguments ... .server("nats://myhost:4444") ...
 ```
 
 ### Options Factory Argument
@@ -108,7 +108,7 @@ Make sure this value is a fully qualified class name with package, i.e. `com.myc
 ```java
 public class MyOptionsFactory implements OptionsFactory {
     @Override
-    public Options getOptions(Arguments a) throws Exception {
+    public Options getOptions() throws Exception {
         return ... do work here
     }
 }
@@ -129,8 +129,8 @@ _Command Line_
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder ... .reportFrequency(5000) ...
-Arguments a = ArgumentBuilder ... .noReporting() ...
+Context ctx = Arguments ... .reportFrequency(5000) ...
+Context ctx = Arguments ... .noReporting() ...
 ```
 
 ## Publishing and Subscribing
@@ -219,13 +219,13 @@ Does not apply to Ack Policy `none`
 _Command Line_
 
 ```shell
-... JsMulti -a pubSync -u subject-name
+... JsMulti -a PubSync -u subject-name
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.pubSync("subject-name").build();
+Context ctx = Arguments.pubSync("subject-name").build();
 ```
 
 #### Synchronous processing of the acknowledgement
@@ -239,13 +239,13 @@ Arguments a = ArgumentBuilder.pubSync("subject-name").build();
 _Command Line_
 
 ```shell
-... JsMulti -a pubSync -u subject-name -d 5 -m 5_000_000 -p 256 -j 1000
+... JsMulti -a PubSync -u subject-name -d 5 -m 5_000_000 -p 256 -j 1000
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.pubSync("subject-name")
+Context ctx = Arguments.pubSync("subject-name")
     .messageCount(5_000_000)
     .threads(5)
     .jitter(1000)
@@ -264,21 +264,21 @@ Arguments a = ArgumentBuilder.pubSync("subject-name")
 _Command Line_
 
 ```shell
-... JsMulti -a pubAsync -u subject-name -m 2_000_000 -d 2 -p 512 -n shared
-... JsMulti -a pubAsync -u subject-name -m 2_000_000 -d 2 -p 512 -n individual
+... JsMulti -a PubAsync -u subject-name -m 2_000_000 -d 2 -p 512 -n shared
+... JsMulti -a PubAsync -u subject-name -m 2_000_000 -d 2 -p 512 -n individual
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.pubSync("subject-name")
+Context ctx = Arguments.pubSync("subject-name")
     .messageCount(2_000_000)
     .threads(2)
     .payloadSize(512)
     .sharedConnection()
     .build();
 
-Arguments a = ArgumentBuilder.pubSync("subject-name")
+Context ctx = Arguments.pubSync("subject-name")
     .messageCount(2_000_000)
     .threads(2)
     .payloadSize(512)
@@ -297,13 +297,13 @@ Arguments a = ArgumentBuilder.pubSync("subject-name")
 _Command Line_
 
 ```shell
-... JsMulti -a pubCore -u subject-name -m 2_000_000 -d 2 -p 512 -n individual
+... JsMulti -a PubCore -u subject-name -m 2_000_000 -d 2 -p 512 -n individual
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.pubCore("subject-name")
+Context ctx = Arguments.pubCore("subject-name")
     .messageCount(2_000_000)
     .threads(2)
     .payloadSize(512)
@@ -323,13 +323,13 @@ Arguments a = ArgumentBuilder.pubCore("subject-name")
 _Command Line_
 
 ```shell
-... JsMulti -a subPush -u subject-name
+... JsMulti -a SubPush -u subject-name
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.subPush("subject-name").build();
+Context ctx = Arguments.subPush("subject-name").build();
 ```
 
 #### Push subscribe with a Queue
@@ -344,13 +344,13 @@ Arguments a = ArgumentBuilder.subPush("subject-name").build();
 _Command Line_
 
 ```shell
-... JsMulti -a subQueue -u subject-name -d 2 -kp none
+... JsMulti -a SubQueue -u subject-name -d 2 -kp none
 ```
 
 _Builder_
 
 ```java
-Arguments a = ArgumentBuilder.subQueue("subject-name")
+Context ctx = Arguments.subQueue("subject-name")
     .threads(2)
     .ackNone()
     .build();
@@ -359,6 +359,10 @@ Arguments a = ArgumentBuilder.subQueue("subject-name")
 #### Pull subscribe
 
 #### Pull subscribe works like a queue
+
+```shell
+... JsMulti -u sub -a SubPullQueue -d 3 -n individual -rf 10000 -j 0 -m 100000
+```
 
 ### Latency Examples
 

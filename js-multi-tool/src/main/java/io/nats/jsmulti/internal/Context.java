@@ -46,14 +46,13 @@ public class Context {
     public final long jitter;
     public final int payloadSize;
     public final int roundSize;
-//    public final boolean pullTypeIterate;
     public final AckPolicy ackPolicy;
     public final int ackAllFrequency;
     public final int batchSize;
 
+    // once per context for now
     public final String queueName = "qn-" + uniqueEnough();
     public final String queueDurable = "qd-" + uniqueEnough();
-
     public final int maxPubRetries = 10;
 
     // ----------------------------------------------------------------------------------------------------
@@ -133,7 +132,6 @@ public class Context {
         append(sb, "ack policy", "kp", ackPolicy, action.isSubAction());
         append(sb, "ack all frequency", "kf", ackAllFrequency, action.isSubAction());
 
-//        append(sb, "pull type", "pt", pullTypeIterate ? ITERATE : FETCH, action.isPull());
         append(sb, "batch size", "b", batchSize, action.isPull());
 
         return sb.toString();
@@ -159,7 +157,6 @@ public class Context {
         long _jitter = 0;
         int _payloadSize = 128;
         int _roundSize = 100;
-//        boolean _pullTypeIterate = false;
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
         int _batchSize = 10;
@@ -217,9 +214,6 @@ public class Context {
                         case "-kf":
                             _ackAllFrequency = asNumber("ack frequency", args[++x], 256);
                             break;
-//                        case "-pt":
-//                            _pullTypeIterate = bool("pull type", args[++x], ITERATE, FETCH);
-//                            break;
                         case "-rf":
                             _reportFrequency = asNumber("report frequency", args[++x], -2);
                             break;
@@ -268,7 +262,6 @@ public class Context {
         jitter = _jitter;
         payloadSize = _payloadSize;
         roundSize = _roundSize;
-//        pullTypeIterate = _pullTypeIterate;
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
