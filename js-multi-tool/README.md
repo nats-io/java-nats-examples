@@ -143,7 +143,7 @@ Publishing and subscribing have some options in common.
 
 ### Optional Arguments
 
-`-m` message count (number) for publishing or subscribing, defaults to 1 million
+`-m` message count (number) for publishing or subscribing, defaults to 100,000
 
 `-d` threads (number) for publishing or subscribing, defaults to 1
 
@@ -161,7 +161,6 @@ time spent in jitter is excluded from timings
 ... JsMulti ... -u subject-name -m 2_000_000 -d 4 -n individual -j 1500 
 ```
 
-
 ### Publish Only Optional Arguments
 
 `-ps` payload size (number) for publishing, defaults to 128, maximum 1048576"
@@ -169,6 +168,8 @@ time spent in jitter is excluded from timings
 `-rs` round size (number) for pubAsync, default to 100, maximum 1000.
 Publishing asynchronously uses the "sawtooth" pattern. This means we publish a round of messages, collecting all the futures that receive the PublishAck
 until we reach the round size. At that point we process all the futures we have collected, then we start over until we have published all the messages. 
+
+`-lf` latency flag tells the publish to add information so the subscribe half of the run can calculate latency 
 
 ```shell
 ... JsMulti ... -ps 512 -rs 50 
@@ -355,49 +356,24 @@ Arguments a = ArgumentBuilder.subQueue("subject-name")
     .build();
 ```
 
-#### Pull subscribe iterate
+#### Pull subscribe
 
-* from 'subject-name'
-* 2 threads
-* 1 million messages (default)
-* iterate pull type (default)
-* batch size 20 (default is 100, max is 256)
+#### Pull subscribe works like a queue
 
-_Command Line_
+### Latency Examples
 
-```shell
-... JsMulti -a subPull -u subject-name -d 2 -bs 20
-```
+In order to test latency you must start a consumer run first, then start the publish with the latency flag.
+This means that 2 instances run at the same time.
 
-_Builder_
-
-```java
-Arguments a = ArgumentBuilder.subPull("subject-name")
-        .threads(2)
-        .batchSize(20)
-        .build();
-```
-
-#### Pull subscribe fetch
-
-* from 'subject-name'
-* 2 threads
-* 1 million messages (default)
-* fetch pull type
-* batch size 20 (default is 100, max is 256)
-
-_Command Line_
+Start the consumer first...
 
 ```shell
-... JsMulti -a subPull -u subject-name -d 2 -pt fetch -bs 20
+... JsMulti -u sub -a SubPullQueue -d 3 -n individual -rf 10000 -j 0 -m 100000
 ```
 
-_Builder_
+The start the producer...
 
-```java
-Arguments a = ArgumentBuilder.subPull("subject-name")
-    .threads(2)
-    .fetch()    
-    .batchSize(20)
-    .build();
+```shell
+... JsMulti -s nats://localhost:4222 -u sub -a PubSync -lf -d 3 -n individual -rf 10000 -j 0 -m 100000
 ```
+ 
