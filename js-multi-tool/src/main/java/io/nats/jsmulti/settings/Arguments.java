@@ -162,8 +162,8 @@ public class Arguments {
         return ackPolicy(AckPolicy.All);
     }
 
-    public Arguments ackFrequency(int ackFrequency) {
-        return add("kf", ackFrequency);
+    public Arguments ackAllFrequency(int ackAllFrequency) {
+        return add("kf", ackAllFrequency);
     }
 
     public Arguments batchSize(int batchSize) {
