@@ -12,33 +12,33 @@ import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
 
 public class Stats {
 
-    public static final long HUMAN_BYTES_BASE = 1024;
-    public static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
-    public static final String ZEROS = "000000000";
+    private static final long HUMAN_BYTES_BASE = 1024;
+    private static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
+    private static final String ZEROS = "000000000";
 
-    public static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
-    public static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
-    public static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
+    private static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
+    private static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
+    private static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
 
-    public static final String LREPORT_SEP_LINE     = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
-    public static final String LREPORT_LINE_HEADER1 = "|                 |         Server - Publish                    |        Received - Server                    |        Receive - Publish                    |";
-    public static final String LREPORT_LINE_HEADER2 = "| Latency         |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |";
-    public static final String LREPORT_LINE_FORMAT  = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
+    private static final String LREPORT_SEP_LINE     = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
+    private static final String LREPORT_LINE_HEADER1 = "|                 |         Server - Publish                    |        Received - Server                    |        Receive - Publish                    |";
+    private static final String LREPORT_LINE_HEADER2 = "| Latency         |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |                 msgs/sec |        bytes/sec |";
+    private static final String LREPORT_LINE_FORMAT  = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
 
-    public double elapsed = 0;
-    public double bytes = 0;
-    public int messageCount = 0;
+    private double elapsed = 0;
+    private double bytes = 0;
+    private int messageCount = 0;
 
     // latency
-    public double messagePubToServerTimeElapsed = 0;
-    public double messageServerToReceiverElapsed = 0;
-    public double messageFullElapsed = 0;
+    private double messagePubToServerTimeElapsed = 0;
+    private double messageServerToReceiverElapsed = 0;
+    private double messageFullElapsed = 0;
 
     // Misc
-    public String hdrLabel = "";
+    private String hdrLabel = "";
 
     // Time keeping
-    public long nanoNow;
+    private long nanoNow;
 
     public Stats() {}
 
