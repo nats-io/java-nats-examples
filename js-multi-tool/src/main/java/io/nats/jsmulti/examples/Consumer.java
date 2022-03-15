@@ -19,7 +19,7 @@ public class Consumer {
         }
 
         JsMulti.run(
-            Arguments.builder()
+            Arguments.instance()
                 .server(SERVER)
                 .subject(SUBJECT)
                 .action(Action.SUB_PULL_QUEUE)
@@ -29,7 +29,6 @@ public class Consumer {
                 .reportFrequency(10000) // report every 10K
                 .jitter(0) // > 0 means use jitter
                 .messageCount(100_000)
-                .printCommandLine()
-                .build());
+                .printCommandLine());
     }
 }

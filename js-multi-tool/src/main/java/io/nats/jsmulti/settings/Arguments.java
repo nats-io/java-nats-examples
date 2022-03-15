@@ -15,7 +15,6 @@ package io.nats.jsmulti.settings;
 
 import io.nats.client.api.AckPolicy;
 import io.nats.client.api.StorageType;
-import io.nats.jsmulti.internal.Context;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -30,19 +29,19 @@ public class Arguments {
 
     private final List<String> args = new ArrayList<>();
 
-    public static Arguments builder() { return new Arguments(); }
-    public static Arguments builder(String subject) { return builder().subject(subject); }
-    public static Arguments pubSync(String subject) { return builder().action(PUB_SYNC).subject(subject); }
-    public static Arguments pubAsync(String subject) { return builder().action(PUB_ASYNC).subject(subject); }
-    public static Arguments pubCore(String subject) { return builder().action(PUB_CORE).subject(subject); }
-    public static Arguments subPush(String subject) { return builder().action(SUB_PUSH).subject(subject); }
-    public static Arguments subQueue(String subject) { return builder().action(SUB_QUEUE).subject(subject); }
-    public static Arguments subPull(String subject) { return builder().action(SUB_PULL).subject(subject); }
-    public static Arguments subPullQueue(String subject) { return builder().action(SUB_PULL_QUEUE).subject(subject); }
-
-    public Context build() {
-        return new Context(args.toArray(new String[0]));
+    public String[] toArray() {
+        return args.toArray(new String[0]);
     }
+
+    public static Arguments instance() { return new Arguments(); }
+    public static Arguments instance(String subject) { return instance().subject(subject); }
+    public static Arguments pubSync(String subject) { return instance().action(PUB_SYNC).subject(subject); }
+    public static Arguments pubAsync(String subject) { return instance().action(PUB_ASYNC).subject(subject); }
+    public static Arguments pubCore(String subject) { return instance().action(PUB_CORE).subject(subject); }
+    public static Arguments subPush(String subject) { return instance().action(SUB_PUSH).subject(subject); }
+    public static Arguments subQueue(String subject) { return instance().action(SUB_QUEUE).subject(subject); }
+    public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }
+    public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
 
     public Arguments printCommandLine(PrintStream ps) {
         for (String a : args) {

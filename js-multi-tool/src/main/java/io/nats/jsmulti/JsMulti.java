@@ -22,6 +22,7 @@ import io.nats.client.impl.NatsMessage;
 import io.nats.jsmulti.internal.Context;
 import io.nats.jsmulti.internal.Publisher;
 import io.nats.jsmulti.internal.Runner;
+import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Stats;
 
@@ -41,18 +42,23 @@ public class JsMulti {
     private static final int ACK_WAIT_SECONDS = 120;
 
     public static void main(String[] args) throws Exception {
-        run(new Context(args), false, true);
+        run(args, false, true);
+    }
+
+    public static List<Stats> run(Arguments args) throws Exception {
+        return run(args.toArray(), false, true);
+    }
+
+    public static List<Stats> run(Arguments args, boolean printArgs, boolean reportWhenDone) throws Exception {
+        return run(args.toArray(), printArgs, reportWhenDone);
     }
 
     public static List<Stats> run(String[] args) throws Exception {
-        return run(new Context(args), false, true);
+        return run(args, false, true);
     }
 
-    public static List<Stats> run(Context ctx) throws Exception {
-        return run(ctx, false, true);
-    }
-
-    public static List<Stats> run(Context ctx, boolean printArgs, boolean reportWhenDone) throws Exception {
+    public static List<Stats> run(String[] args, boolean printArgs, boolean reportWhenDone) throws Exception {
+        Context ctx = new Context(args);
         if (printArgs) {
             System.out.println(ctx);
         }

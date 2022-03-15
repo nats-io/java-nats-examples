@@ -16,6 +16,7 @@ package io.nats.jsmulti.internal;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
 import io.nats.jsmulti.settings.Action;
+import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.shared.Usage;
 
 import java.net.URISyntaxException;
@@ -140,6 +141,10 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     // Construction
     // ----------------------------------------------------------------------------------------------------
+    public Context(Arguments args) {
+        this(args.toArray());
+    }
+
     public Context(String[] args) {
         if (args == null || args.length == 0) {
             exit();
@@ -226,7 +231,7 @@ public class Context {
                 }
             }
             catch (Exception e) {
-                error("Exception while parsing, most likely missing an argument value. ");
+                error("Exception while parsing, most likely missing an argument value.");
             }
         }
 
