@@ -35,8 +35,6 @@ import static io.nats.jsmulti.shared.Utils.*;
 
 public class JsMulti {
 
-    private static final int ACK_WAIT_SECONDS = 120;
-
     public static void main(String[] args) throws Exception {
         run(new Context(args), false, true);
     }
@@ -199,37 +197,35 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     // Push
     // ----------------------------------------------------------------------------------------------------
+    private static final Object QUEUE_LOCK = new Object();
+
     private static void subPush(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         JetStreamSubscription sub;
-        String durable;
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at ctx time.
-            durable = ctx.queueDurable;
-            synchronized (ctx.queueName) {
+            synchronized (QUEUE_LOCK) {
                 sub = js.subscribe(ctx.subject, ctx.queueName,
                     ConsumerConfiguration.builder()
                         .ackPolicy(ctx.ackPolicy)
-                        .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
-                        .durable(durable)
+                        .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
                         .deliverGroup(ctx.queueName)
                             .buildPushSubscribeOptions());
             }
         }
         else {
-            durable = ctx.queueDurable; // need this for counter key
             sub = js.subscribe(ctx.subject,
                 ConsumerConfiguration.builder()
                     .ackPolicy(ctx.ackPolicy)
-                    .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
+                    .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
                         .buildPushSubscribeOptions());
         }
 
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
-        AtomicLong counter = ctx.getSubscribeCounter(durable);
+        AtomicLong counter = ctx.getSubscribeCounter(ctx.getSubDurable(id));
         while (counter.get() < ctx.messageCount) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
@@ -260,11 +256,11 @@ public class JsMulti {
     private static void subPull(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
 
-        String durable = ctx.getPullDurable(id);
+        String durable = ctx.getSubDurable(id);
         JetStreamSubscription sub = js.subscribe(ctx.subject,
             ConsumerConfiguration.builder()
                 .ackPolicy(ctx.ackPolicy)
-                .ackWait(Duration.ofSeconds(ACK_WAIT_SECONDS))
+                .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
                 .durable(durable)
                     .buildPullSubscribeOptions());
 

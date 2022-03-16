@@ -53,7 +53,11 @@ public class Context {
     // once per context for now
     public final String queueName = "qn-" + uniqueEnough();
     public final String queueDurable = "qd-" + uniqueEnough();
+
+    // constant now but might change in the future
     public final int maxPubRetries = 10;
+    public final int ackWaitSeconds = 120;
+
 
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
@@ -75,14 +79,14 @@ public class Context {
         return payload;
     }
 
-    private String _pullDurable;
-    public String getPullDurable(int durableId) {
+    private String _subDurable;
+    public String getSubDurable(int durableId) {
         // is a queue, use the same durable
         if (action.isQueue()) {
-            if (_pullDurable == null) {
-                _pullDurable = "qd" + uniqueEnough();
+            if (_subDurable == null) {
+                _subDurable = "qd" + uniqueEnough();
             }
-            return _pullDurable;
+            return _subDurable;
         }
 
         // not a queue, each durable is unique
