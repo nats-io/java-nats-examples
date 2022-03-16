@@ -11,19 +11,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io.nats.jsmulti.examples;
+package io.nats.jsmulti.shared;
 
 import io.nats.client.ErrorListener;
 import io.nats.client.Options;
-import io.nats.jsmulti.shared.OptionsFactory;
+import io.nats.jsmulti.internal.Context;
 
 import java.time.Duration;
 
-public class ExampleOptionsFactory implements OptionsFactory {
+public class DefaultOptionsFactory implements OptionsFactory {
     @Override
-    public Options getOptions() throws Exception {
+    public Options getOptions(Context context) throws Exception {
+        return getOptions(context.server);
+    }
+
+    public static Options getOptions(String server) {
         return new Options.Builder()
-            .server("nats://localhost:4222")
+            .server(server)
             .connectionTimeout(Duration.ofSeconds(5))
             .pingInterval(Duration.ofSeconds(10))
             .reconnectWait(Duration.ofSeconds(1))

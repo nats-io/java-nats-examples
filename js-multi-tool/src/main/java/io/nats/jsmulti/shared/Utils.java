@@ -13,24 +13,9 @@
 
 package io.nats.jsmulti.shared;
 
-import io.nats.client.ErrorListener;
-import io.nats.client.Options;
-
-import java.time.Duration;
-
 public abstract class Utils {
 
     public static final String HDR_PUB_TIME = "pt";
-
-    public static Options defaultOptions(String server) {
-        return new Options.Builder()
-            .server(server)
-            .connectionTimeout(Duration.ofSeconds(5))
-            .pingInterval(Duration.ofSeconds(10))
-            .reconnectWait(Duration.ofSeconds(1))
-            .errorListener(new ErrorListener() {})
-            .build();
-    }
 
     public static String uniqueEnough() {
         String hex = Long.toHexString(System.nanoTime()).substring(8);

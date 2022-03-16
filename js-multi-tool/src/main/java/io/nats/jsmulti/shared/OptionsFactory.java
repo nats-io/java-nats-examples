@@ -14,7 +14,8 @@
 package io.nats.jsmulti.shared;
 
 import io.nats.client.Options;
+import io.nats.jsmulti.internal.Context;
 
 public interface OptionsFactory {
-    Options getOptions() throws Exception;
+    Options getOptions(Context ctx) throws Exception;
 }

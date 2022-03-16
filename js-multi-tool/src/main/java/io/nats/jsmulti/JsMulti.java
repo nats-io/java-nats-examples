@@ -23,11 +23,9 @@ import io.nats.jsmulti.internal.Context;
 import io.nats.jsmulti.internal.Publisher;
 import io.nats.jsmulti.internal.Runner;
 import io.nats.jsmulti.settings.Arguments;
-import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Stats;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,23 +40,30 @@ public class JsMulti {
     private static final int ACK_WAIT_SECONDS = 120;
 
     public static void main(String[] args) throws Exception {
-        run(args, false, true);
-    }
-
-    public static List<Stats> run(Arguments args) throws Exception {
-        return run(args.toArray(), false, true);
-    }
-
-    public static List<Stats> run(Arguments args, boolean printArgs, boolean reportWhenDone) throws Exception {
-        return run(args.toArray(), printArgs, reportWhenDone);
+        run(new Context(args), false, true);
     }
 
     public static List<Stats> run(String[] args) throws Exception {
-        return run(args, false, true);
+        return run(new Context(args), false, true);
     }
 
     public static List<Stats> run(String[] args, boolean printArgs, boolean reportWhenDone) throws Exception {
-        Context ctx = new Context(args);
+        return run(new Context(args), printArgs, reportWhenDone);
+    }
+
+    public static List<Stats> run(Arguments args) throws Exception {
+        return run(new Context(args), false, true);
+    }
+
+    public static List<Stats> run(Arguments args, boolean printArgs, boolean reportWhenDone) throws Exception {
+        return run(new Context(args), printArgs, reportWhenDone);
+    }
+
+    public static List<Stats> run(Context ctx) throws Exception {
+        return run(ctx, false, true);
+    }
+
+    public static List<Stats> run(Context ctx, boolean printArgs, boolean reportWhenDone) throws Exception {
         if (printArgs) {
             System.out.println(ctx);
         }
@@ -348,16 +353,7 @@ public class JsMulti {
     }
 
     private static Connection connect(Context ctx) throws Exception {
-        Options options;
-        if (ctx.optionsFactoryClassName == null) {
-            options = defaultOptions(ctx.server);
-        }
-        else {
-            Class<?> c = Class.forName(ctx.optionsFactoryClassName);
-            Constructor<?> cons = c.getConstructor();
-            OptionsFactory of = (OptionsFactory)cons.newInstance();
-            options = of.getOptions();
-        }
+        Options options = ctx.getOptions();
         Connection nc = Nats.connect(options);
         for (long x = 0; x < 100; x++) { // waits up to 10 seconds (100 * 100 = 10000) millis to be connected
             sleep(100);

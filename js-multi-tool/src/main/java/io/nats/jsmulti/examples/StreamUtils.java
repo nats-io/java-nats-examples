@@ -3,19 +3,22 @@ package io.nats.jsmulti.examples;
 import io.nats.client.*;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
-import io.nats.jsmulti.shared.Utils;
+import io.nats.jsmulti.internal.Context;
+import io.nats.jsmulti.shared.DefaultOptionsFactory;
 
-import java.io.IOException;
 import java.util.List;
 
 public class StreamUtils {
 
-    public static void main(String[] args) throws Exception {
-        setupStream("strm", "sub", "nats://localhost:4222");
+    public static void setupStream(String stream, String subject, String server) throws Exception {
+        setupStream(stream, subject, DefaultOptionsFactory.getOptions(server));
     }
 
-    public static void setupStream(String stream, String subject, String server) throws InterruptedException, IOException, JetStreamApiException {
-        Options options = Utils.defaultOptions(server);
+    public static void setupStream(String stream, String subject, Context context) throws Exception {
+        setupStream(stream, subject, context.getOptions());
+    }
+
+    public static void setupStream(String stream, String subject, Options options) throws Exception {
         try (Connection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
             try {

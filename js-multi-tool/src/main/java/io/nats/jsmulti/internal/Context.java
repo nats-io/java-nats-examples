@@ -17,8 +17,11 @@ import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
 import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
+import io.nats.jsmulti.shared.DefaultOptionsFactory;
+import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Usage;
 
+import java.lang.reflect.Constructor;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,7 +41,6 @@ public class Context {
     public final Action action;
     public final boolean latencyFlag;
     public final String server;
-    public final String optionsFactoryClassName;
     public final int reportFrequency;
     public final String subject;
     public final int messageCount;
@@ -59,9 +61,18 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
+    private OptionsFactory optionsFactory;
     private final int[] perThread;
     private final byte[] payload; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
+
+    public void setOptionsFactory(OptionsFactory optionsFactory) {
+        this.optionsFactory = optionsFactory;
+    }
+
+    public Options getOptions() throws Exception {
+        return optionsFactory.getOptions(this);
+    }
 
     public byte[] getPayload() {
         return payload;
@@ -112,13 +123,7 @@ public class Context {
         StringBuilder sb = new StringBuilder("JetStream Multi-Tool Run Config:");
         append(sb, "action", "a", action, true);
         append(sb, "action", "lf", "Yes", latencyFlag);
-        if (optionsFactoryClassName == null) {
-            append(sb, "server", "s", server == null ? Options.DEFAULT_URL : server, true);
-        }
-        else {
-            append(sb, "options factory", "of", optionsFactoryClassName, true);
-        }
-
+        append(sb, "options factory", "of", optionsFactory.getClass().getTypeName(), true);
         append(sb, "report frequency", "rf", reportFrequency == Integer.MAX_VALUE ? "no reporting" : "" + reportFrequency, true);
         append(sb, "subject", "u", subject, true);
         append(sb, "message count", "m", messageCount, true);
@@ -258,7 +263,6 @@ public class Context {
         action = _action;
         latencyFlag = _latencyFlag;
         server = _server;
-        optionsFactoryClassName = _optionsFactoryClassName;
         reportFrequency = _reportFrequency;
         subject = _subject;
         messageCount = _messageCount;
@@ -270,6 +274,22 @@ public class Context {
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
+
+        OptionsFactory ofTemp = null;
+        if (_optionsFactoryClassName == null) {
+            ofTemp = new DefaultOptionsFactory();
+        }
+        else {
+            try {
+                Class<?> c = Class.forName(_optionsFactoryClassName);
+                Constructor<?> cons = c.getConstructor();
+                ofTemp = (OptionsFactory) cons.newInstance();
+            }
+            catch (Exception e) {
+                error("Error creating OptionsFactory: " + e);
+            }
+        }
+        optionsFactory = ofTemp;
 
         payload = new byte[payloadSize];
 

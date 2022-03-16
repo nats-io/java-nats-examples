@@ -43,17 +43,15 @@ public class Arguments {
     public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }
     public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
 
-    public Arguments printCommandLine(PrintStream ps) {
+    public void printCommandLine(PrintStream ps) {
         for (String a : args) {
             ps.print(a + " ");
         }
         ps.println("");
-        return this;
     }
 
-    public Arguments printCommandLine() {
+    public void printCommandLine() {
         printCommandLine(System.out);
-        return this;
     }
 
     private Arguments add(String option) {
