@@ -112,31 +112,28 @@ public class JsMulti {
     // Publish
     // ----------------------------------------------------------------------------------------------------
     interface Publisher<T> {
-        T publish(byte[] payload) throws Exception;
+        T publish(String subject, byte[] payload) throws Exception;
     }
 
     private static NatsMessage buildLatencyMessage(String subject, byte[] p) {
-        return NatsMessage.builder()
-            .subject(subject)
-            .data(p)
-            .headers(new Headers().put(HDR_PUB_TIME, "" + System.currentTimeMillis()))
-            .build();
+        //noinspection ConstantConditions
+        return new NatsMessage(subject, null, new Headers().put(HDR_PUB_TIME, "" + System.currentTimeMillis()), p);
     }
 
     private static void pubSync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         final JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         if (ctx.latencyFlag) {
-            _pub(ctx, stats, id, (p) -> js.publish(buildLatencyMessage(ctx.subject, p)));
+            _pub(ctx, stats, id, (s, p) -> js.publish(buildLatencyMessage(s, p)));
         }
         else {
-            _pub(ctx, stats, id, (p) -> js.publish(ctx.subject, p));
+            _pub(ctx, stats, id, js::publish);
         }
     }
 
     private static void pubCore(Context ctx, final Connection nc, Stats stats, int id) throws Exception {
         _pub(ctx, stats, id, ctx.latencyFlag
-            ? (p) -> { nc.publish(buildLatencyMessage(ctx.subject, p)); return null; }
-            : (p) -> { nc.publish(ctx.subject, p); return null; } );
+            ? (s, p) -> { nc.publish(buildLatencyMessage(s, p)); return null; }
+            : (s, p) -> { nc.publish(s, p); return null; } );
     }
 
     private static void _pub(Context ctx, Stats stats, int id, Publisher<PublishAck> p) throws Exception {
@@ -148,7 +145,7 @@ public class JsMulti {
             byte[] payload = ctx.getPayload();
             stats.start();
             try {
-                p.publish(payload);
+                p.publish(ctx.subject, payload);
                 stats.stopAndCount(ctx.payloadSize);
                 reportMaybe(ctx, ++published, "Published");
             }
@@ -163,10 +160,10 @@ public class JsMulti {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         Publisher<CompletableFuture<PublishAck>> publisher;
         if (ctx.latencyFlag) {
-            publisher = (p) -> js.publishAsync(ctx.subject, p);
+            publisher = (s, p) -> js.publishAsync(buildLatencyMessage(s, p));
         }
         else {
-            publisher = (p) -> js.publishAsync(buildLatencyMessage(ctx.subject, p));
+            publisher = js::publishAsync;
         }
 
         List<CompletableFuture<PublishAck>> futures = new ArrayList<>();
@@ -179,8 +176,9 @@ public class JsMulti {
                 roundCount = 0;
             }
             jitter(ctx);
+            byte[] payload = ctx.getPayload();
             stats.start();
-            futures.add(publisher.publish(ctx.getPayload()));
+            futures.add(publisher.publish(ctx.subject, payload));
             stats.stopAndCount(ctx.payloadSize);
             reportMaybe(ctx, ++published, "Published");
         }
