@@ -22,7 +22,6 @@ import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Usage;
 
 import java.lang.reflect.Constructor;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -265,12 +264,6 @@ public class Context {
 
         OptionsFactory ofTemp = null;
         if (_optionsFactoryClassName == null) {
-            try {
-                // making sure the server value is valid
-                new Options.Builder().build().createURIForServer(_server);
-            } catch (URISyntaxException e) {
-                error("Invalid server URI: " + _server);
-            }
             ofTemp = new DefaultOptionsFactory();
         }
         else {
