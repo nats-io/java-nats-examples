@@ -61,17 +61,13 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
-    private OptionsFactory optionsFactory;
+    private final OptionsFactory _optionsFactory;
     private final int[] perThread;
     private final byte[] payload; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
 
-    public void setOptionsFactory(OptionsFactory optionsFactory) {
-        this.optionsFactory = optionsFactory;
-    }
-
     public Options getOptions() throws Exception {
-        return optionsFactory.getOptions(this);
+        return _optionsFactory.getOptions(this);
     }
 
     public byte[] getPayload() {
@@ -123,7 +119,7 @@ public class Context {
         StringBuilder sb = new StringBuilder("JetStream Multi-Tool Run Config:");
         append(sb, "action", "a", action, true);
         append(sb, "action", "lf", "Yes", latencyFlag);
-        append(sb, "options factory", "of", optionsFactory.getClass().getTypeName(), true);
+        append(sb, "options factory", "of", _optionsFactory.getClass().getTypeName(), true);
         append(sb, "report frequency", "rf", reportFrequency == Integer.MAX_VALUE ? "no reporting" : "" + reportFrequency, true);
         append(sb, "subject", "u", subject, true);
         append(sb, "message count", "m", messageCount, true);
@@ -252,14 +248,6 @@ public class Context {
             // TODO IF MUST LIMIT PULL ACK POLICY
         }
 
-        if (_optionsFactoryClassName == null && !_server.equals(Options.DEFAULT_URL)) {
-            try {
-                new Options.Builder().build().createURIForServer(_server);
-            } catch (URISyntaxException e) {
-                error("Invalid server URI: " + _server);
-            }
-        }
-
         action = _action;
         latencyFlag = _latencyFlag;
         server = _server;
@@ -277,6 +265,12 @@ public class Context {
 
         OptionsFactory ofTemp = null;
         if (_optionsFactoryClassName == null) {
+            try {
+                // making sure the server value is valid
+                new Options.Builder().build().createURIForServer(_server);
+            } catch (URISyntaxException e) {
+                error("Invalid server URI: " + _server);
+            }
             ofTemp = new DefaultOptionsFactory();
         }
         else {
@@ -289,7 +283,7 @@ public class Context {
                 error("Error creating OptionsFactory: " + e);
             }
         }
-        optionsFactory = ofTemp;
+        _optionsFactory = ofTemp;
 
         payload = new byte[payloadSize];
 
