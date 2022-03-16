@@ -33,7 +33,6 @@ public interface OptionsFactory {
         return new Options.Builder()
             .server(server)
             .connectionTimeout(Duration.ofSeconds(5))
-            .pingInterval(Duration.ofSeconds(10))
             .reconnectWait(Duration.ofSeconds(1))
             .errorListener(new ErrorListener() {})
             .build();

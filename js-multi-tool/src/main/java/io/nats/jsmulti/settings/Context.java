@@ -133,7 +133,7 @@ public class Context {
         append(sb, "round size", "r", roundSize, action.isPubAction() && action.isPubSync());
 
         append(sb, "ack policy", "kp", ackPolicy, action.isSubAction());
-        append(sb, "ack all frequency", "kf", ackAllFrequency, action.isSubAction());
+        append(sb, "ack all frequency", "kf", ackAllFrequency, action.isPush() && ackPolicy == AckPolicy.All);
 
         append(sb, "batch size", "b", batchSize, action.isPull());
 
@@ -245,8 +245,8 @@ public class Context {
             error("Queue subscribing requires multiple threads!");
         }
 
-        if (_action.isPull()) {
-            // TODO IF MUST LIMIT PULL ACK POLICY
+        if (_action.isPull() && _ackPolicy != AckPolicy.Explicit) {
+            error("Pull subscribing requires AckPolicy.Explicit!");
         }
 
         action = _action;
