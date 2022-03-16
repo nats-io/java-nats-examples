@@ -18,7 +18,7 @@ public class Producer {
             .server(SERVER)
             .subject(SUBJECT)
             .action(Action.PUB_SYNC) // or Action.PUB_ASYNC or Action.PUB_CORE for example
-            .latencyFlag(true)
+            .latencyFlag(latencyRun)
             .threads(3)
             .individualConnection() // versus shared
             .reportFrequency(10000) // report every 10K
