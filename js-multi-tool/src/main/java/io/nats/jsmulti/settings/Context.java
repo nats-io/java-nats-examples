@@ -11,13 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io.nats.jsmulti.internal;
+package io.nats.jsmulti.settings;
 
+import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
-import io.nats.jsmulti.settings.Action;
-import io.nats.jsmulti.settings.Arguments;
-import io.nats.jsmulti.shared.DefaultOptionsFactory;
 import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Usage;
 
@@ -67,6 +65,10 @@ public class Context {
 
     public Options getOptions() throws Exception {
         return _optionsFactory.getOptions(this);
+    }
+
+    public JetStreamOptions getJetStreamOptions() throws Exception {
+        return _optionsFactory.getJetStreamOptions(this);
     }
 
     public byte[] getPayload() {
@@ -264,7 +266,7 @@ public class Context {
 
         OptionsFactory ofTemp = null;
         if (_optionsFactoryClassName == null) {
-            ofTemp = new DefaultOptionsFactory();
+            ofTemp = new OptionsFactory() {};
         }
         else {
             try {

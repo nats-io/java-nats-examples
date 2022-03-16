@@ -19,10 +19,8 @@ import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
-import io.nats.jsmulti.internal.Context;
-import io.nats.jsmulti.internal.Publisher;
-import io.nats.jsmulti.internal.Runner;
 import io.nats.jsmulti.settings.Arguments;
+import io.nats.jsmulti.settings.Context;
 import io.nats.jsmulti.shared.Stats;
 
 import java.io.IOException;
@@ -113,18 +111,22 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     // Publish
     // ----------------------------------------------------------------------------------------------------
-    private static NatsMessage buildLatencyMessage(Context ctx, byte[] p) {
+    interface Publisher<T> {
+        T publish(byte[] payload) throws Exception;
+    }
+
+    private static NatsMessage buildLatencyMessage(String subject, byte[] p) {
         return NatsMessage.builder()
-            .subject(ctx.subject)
+            .subject(subject)
             .data(p)
             .headers(new Headers().put(HDR_PUB_TIME, "" + System.currentTimeMillis()))
             .build();
     }
 
     private static void pubSync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
-        final JetStream js = nc.jetStream();
+        final JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         if (ctx.latencyFlag) {
-            _pub(ctx, stats, id, (p) -> js.publish(buildLatencyMessage(ctx, p)));
+            _pub(ctx, stats, id, (p) -> js.publish(buildLatencyMessage(ctx.subject, p)));
         }
         else {
             _pub(ctx, stats, id, (p) -> js.publish(ctx.subject, p));
@@ -133,7 +135,7 @@ public class JsMulti {
 
     private static void pubCore(Context ctx, final Connection nc, Stats stats, int id) throws Exception {
         _pub(ctx, stats, id, ctx.latencyFlag
-            ? (p) -> { nc.publish(buildLatencyMessage(ctx, p)); return null; }
+            ? (p) -> { nc.publish(buildLatencyMessage(ctx.subject, p)); return null; }
             : (p) -> { nc.publish(ctx.subject, p); return null; } );
     }
 
@@ -157,14 +159,14 @@ public class JsMulti {
         report(published, "Completed Publishing");
     }
 
-    private static void pubAsync(final Context ctx, Connection nc, Stats stats, int id) throws Exception {
-        JetStream js = nc.jetStream();
+    private static void pubAsync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         Publisher<CompletableFuture<PublishAck>> publisher;
         if (ctx.latencyFlag) {
             publisher = (p) -> js.publishAsync(ctx.subject, p);
         }
         else {
-            publisher = (p) -> js.publishAsync(buildLatencyMessage(ctx, p));
+            publisher = (p) -> js.publishAsync(buildLatencyMessage(ctx.subject, p));
         }
 
         List<CompletableFuture<PublishAck>> futures = new ArrayList<>();
@@ -200,7 +202,7 @@ public class JsMulti {
     // Push
     // ----------------------------------------------------------------------------------------------------
     private static void subPush(Context ctx, Connection nc, Stats stats, int id) throws Exception {
-        JetStream js = nc.jetStream();
+        JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         JetStreamSubscription sub;
         String durable;
         if (ctx.action.isQueue()) {
@@ -258,7 +260,7 @@ public class JsMulti {
     // Pull
     // ----------------------------------------------------------------------------------------------------
     private static void subPull(Context ctx, Connection nc, Stats stats, int id) throws Exception {
-        JetStream js = nc.jetStream();
+        JetStream js = nc.jetStream(ctx.getJetStreamOptions());
 
         String durable = ctx.getPullDurable(id);
         JetStreamSubscription sub = js.subscribe(ctx.subject,
@@ -367,6 +369,10 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     // Runners
     // ----------------------------------------------------------------------------------------------------
+    interface Runner {
+        void run(Connection nc, Stats stats, int id) throws Exception;
+    }
+
     private static List<Stats> runShared(Context ctx, Runner runner) throws Exception {
         List<Stats> statsList = new ArrayList<>();
         try (Connection nc = connect(ctx)) {

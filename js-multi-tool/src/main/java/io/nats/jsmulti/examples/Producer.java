@@ -1,9 +1,9 @@
 package io.nats.jsmulti.examples;
 
 import io.nats.jsmulti.JsMulti;
-import io.nats.jsmulti.internal.Context;
 import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
+import io.nats.jsmulti.settings.Context;
 
 public class Producer {
 

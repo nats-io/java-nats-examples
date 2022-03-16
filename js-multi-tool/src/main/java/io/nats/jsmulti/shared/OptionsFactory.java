@@ -13,9 +13,33 @@
 
 package io.nats.jsmulti.shared;
 
+import io.nats.client.ErrorListener;
+import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
-import io.nats.jsmulti.internal.Context;
+import io.nats.jsmulti.settings.Context;
+
+import java.time.Duration;
 
 public interface OptionsFactory {
-    Options getOptions(Context ctx) throws Exception;
+    default Options getOptions(Context ctx) throws Exception {
+        return getOptions(ctx.server);
+    }
+
+    default JetStreamOptions getJetStreamOptions(Context ctx) throws Exception {
+        return JetStreamOptions.DEFAULT_JS_OPTIONS;
+    }
+
+    static Options getOptions(String server) {
+        return new Options.Builder()
+            .server(server)
+            .connectionTimeout(Duration.ofSeconds(5))
+            .pingInterval(Duration.ofSeconds(10))
+            .reconnectWait(Duration.ofSeconds(1))
+            .errorListener(new ErrorListener() {})
+            .build();
+    }
+
+    static JetStreamOptions getJetStreamOptions() {
+        return JetStreamOptions.DEFAULT_JS_OPTIONS;
+    }
 }
