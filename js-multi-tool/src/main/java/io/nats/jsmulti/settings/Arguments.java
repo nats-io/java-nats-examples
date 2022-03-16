@@ -29,10 +29,6 @@ public class Arguments {
 
     private final List<String> args = new ArrayList<>();
 
-    public String[] toArray() {
-        return args.toArray(new String[0]);
-    }
-
     public static Arguments instance() { return new Arguments(); }
     public static Arguments instance(String subject) { return instance().subject(subject); }
     public static Arguments pubSync(String subject) { return instance().action(PUB_SYNC).subject(subject); }
@@ -42,17 +38,6 @@ public class Arguments {
     public static Arguments subQueue(String subject) { return instance().action(SUB_QUEUE).subject(subject); }
     public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }
     public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
-
-    public void printCommandLine(PrintStream ps) {
-        for (String a : args) {
-            ps.print(a + " ");
-        }
-        ps.println("");
-    }
-
-    public void printCommandLine() {
-        printCommandLine(System.out);
-    }
 
     private Arguments add(String option) {
         args.add("-" + option);
@@ -166,5 +151,20 @@ public class Arguments {
 
     public Arguments batchSize(int batchSize) {
         return add("bs", batchSize);
+    }
+
+    public String[] toArray() {
+        return args.toArray(new String[0]);
+    }
+
+    public void printCommandLine(PrintStream ps) {
+        for (String a : args) {
+            ps.print(a + " ");
+        }
+        ps.println("");
+    }
+
+    public void printCommandLine() {
+        printCommandLine(System.out);
     }
 }
