@@ -51,8 +51,7 @@ public class Context {
     public final int batchSize;
 
     // once per context for now
-    public final String queueName = "qn-" + uniqueEnough();
-    public final String queueDurable = "qd-" + uniqueEnough();
+    public final String queueName = "qn" + uniqueEnough();
 
     // constant now but might change in the future
     public final int maxPubRetries = 10;
@@ -79,18 +78,18 @@ public class Context {
         return payload;
     }
 
-    private String _subDurable;
+    private String _subDurableWhenQueue;
     public String getSubDurable(int durableId) {
         // is a queue, use the same durable
         if (action.isQueue()) {
-            if (_subDurable == null) {
-                _subDurable = "qd" + uniqueEnough();
+            if (_subDurableWhenQueue == null) {
+                _subDurableWhenQueue = "qd" + uniqueEnough();
             }
-            return _subDurable;
+            return _subDurableWhenQueue;
         }
 
         // not a queue, each durable is unique
-        return "qd" + uniqueEnough() + durableId;
+        return "dur" + uniqueEnough() + durableId;
     }
 
     public int getPubCount(int id) {

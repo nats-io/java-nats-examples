@@ -202,6 +202,7 @@ public class JsMulti {
     private static void subPush(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         JetStreamSubscription sub;
+        String durable = ctx.getSubDurable(id);
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at ctx time.
@@ -210,6 +211,7 @@ public class JsMulti {
                     ConsumerConfiguration.builder()
                         .ackPolicy(ctx.ackPolicy)
                         .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
+                        .durable(durable)
                         .deliverGroup(ctx.queueName)
                             .buildPushSubscribeOptions());
             }
@@ -219,13 +221,14 @@ public class JsMulti {
                 ConsumerConfiguration.builder()
                     .ackPolicy(ctx.ackPolicy)
                     .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
+                    .durable(durable)
                         .buildPushSubscribeOptions());
         }
 
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
-        AtomicLong counter = ctx.getSubscribeCounter(ctx.getSubDurable(id));
+        AtomicLong counter = ctx.getSubscribeCounter(durable);
         while (counter.get() < ctx.messageCount) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
@@ -267,11 +270,11 @@ public class JsMulti {
         _subPullFetch(ctx, stats, sub, durable);
     }
 
-    private static void _subPullFetch(Context ctx, Stats stats, JetStreamSubscription sub, String counterKey) {
+    private static void _subPullFetch(Context ctx, Stats stats, JetStreamSubscription sub, String durable) {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
-        AtomicLong counter = ctx.getSubscribeCounter(counterKey);
+        AtomicLong counter = ctx.getSubscribeCounter(durable);
         while (counter.get() < ctx.messageCount) {
             stats.start();
             List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
