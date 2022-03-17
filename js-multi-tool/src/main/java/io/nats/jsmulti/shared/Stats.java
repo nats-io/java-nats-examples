@@ -1,6 +1,7 @@
 package io.nats.jsmulti.shared;
 
 import io.nats.client.Message;
+import io.nats.client.impl.Headers;
 import io.nats.jsmulti.settings.Action;
 
 import java.io.PrintStream;
@@ -91,25 +92,28 @@ public class Stats {
     public void count(Message m, long mReceived) {
         messageCount++;
         this.bytes += m.getData().length;
-        String hPubTime = m.getHeaders().getFirst(HDR_PUB_TIME);
-        if (hPubTime != null) {
-            long messagePubTime = Long.parseLong(hPubTime);
-            long messageStampTime = m.metaData().timestamp().toInstant().toEpochMilli();
+        Headers h = m.getHeaders();
+        if (h != null) {
+            String hPubTime = h.getFirst(HDR_PUB_TIME);
+            if (hPubTime != null) {
+                long messagePubTime = Long.parseLong(hPubTime);
+                long messageStampTime = m.metaData().timestamp().toInstant().toEpochMilli();
 
-            double el = elapsedLatency(messagePubTime, messageStampTime);
-            messagePubToServerTimeElapsed += el;
-            maxMessagePubToServerTimeElapsed = Math.max(maxMessagePubToServerTimeElapsed, el);
-            minMessagePubToServerTimeElapsed = Math.min(minMessagePubToServerTimeElapsed, el);
+                double el = elapsedLatency(messagePubTime, messageStampTime);
+                messagePubToServerTimeElapsed += el;
+                maxMessagePubToServerTimeElapsed = Math.max(maxMessagePubToServerTimeElapsed, el);
+                minMessagePubToServerTimeElapsed = Math.min(minMessagePubToServerTimeElapsed, el);
 
-            el = elapsedLatency(messageStampTime, mReceived);
-            messageServerToReceiverElapsed += el;
-            maxMessageServerToReceiverElapsed = Math.max(maxMessageServerToReceiverElapsed, el);
-            minMessageServerToReceiverElapsed = Math.min(minMessageServerToReceiverElapsed, el);
+                el = elapsedLatency(messageStampTime, mReceived);
+                messageServerToReceiverElapsed += el;
+                maxMessageServerToReceiverElapsed = Math.max(maxMessageServerToReceiverElapsed, el);
+                minMessageServerToReceiverElapsed = Math.min(minMessageServerToReceiverElapsed, el);
 
-            el = elapsedLatency(messagePubTime, mReceived);
-            messageFullElapsed += el;
-            maxMessageFullElapsed = Math.max(maxMessageFullElapsed, el);
-            minMessageFullElapsed = Math.min(minMessageFullElapsed, el);
+                el = elapsedLatency(messagePubTime, mReceived);
+                messageFullElapsed += el;
+                maxMessageFullElapsed = Math.max(maxMessageFullElapsed, el);
+                minMessageFullElapsed = Math.min(minMessageFullElapsed, el);
+            }
         }
     }
 
