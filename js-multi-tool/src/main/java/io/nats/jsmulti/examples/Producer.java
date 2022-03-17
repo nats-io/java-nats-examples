@@ -32,7 +32,6 @@ public class Producer {
         // latency run, the consumer code sets up the stream
         if (!latencyRun) {
             StreamUtils.setupStream(STREAM, SUBJECT, ctx);
-            return;
         }
 
         JsMulti.run(ctx);
