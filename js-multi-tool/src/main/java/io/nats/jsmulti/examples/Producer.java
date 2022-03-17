@@ -11,7 +11,7 @@ public class Producer {
     static final String SUBJECT = "sub";
     static final String SERVER = "nats://localhost:4222";
 
-    static final boolean latencyRun = true;
+    static final boolean latencyRun = false;
 
     public static void main(String[] args) throws Exception {
         Arguments a = Arguments.instance()
