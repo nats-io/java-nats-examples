@@ -13,14 +13,14 @@
 
 package io.nats.jsmulti.shared;
 
-import io.nats.client.NUID;
+import java.util.UUID;
 
 public abstract class Utils {
 
     public static final String HDR_PUB_TIME = "pt";
 
     public static String uniqueEnough() {
-        return new NUID().next();
+        return UUID.randomUUID().toString().substring(24);
     }
 
     public static void sleep(long ms) {

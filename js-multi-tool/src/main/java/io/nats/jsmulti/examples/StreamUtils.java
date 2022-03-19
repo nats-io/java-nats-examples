@@ -14,8 +14,8 @@ public class StreamUtils {
         setupStream(stream, subject, OptionsFactory.getOptions(server), OptionsFactory.getJetStreamOptions());
     }
 
-    public static void setupStream(String stream, String subject, Context context) throws Exception {
-        setupStream(stream, subject, context.getOptions(), context.getJetStreamOptions());
+    public static void setupStream(String stream, Context context) throws Exception {
+        setupStream(stream, context.subject, context.getOptions(), context.getJetStreamOptions());
     }
 
     public static void setupStream(String stream, String subject, Options options, JetStreamOptions jso) throws Exception {

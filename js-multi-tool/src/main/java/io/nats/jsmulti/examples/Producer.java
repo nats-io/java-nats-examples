@@ -11,27 +11,29 @@ public class Producer {
     static final String SUBJECT = "sub";
     static final String SERVER = "nats://localhost:4222";
 
-    static final boolean latencyRun = false;
+    static final boolean LATENCY_RUN = false;
 
     public static void main(String[] args) throws Exception {
         Arguments a = Arguments.instance()
             .server(SERVER)
             .subject(SUBJECT)
-            .action(Action.PUB_SYNC) // or Action.PUB_ASYNC or Action.PUB_CORE for example
-            .latencyFlag(latencyRun)
-            .threads(3)
-            .individualConnection() // versus shared
-            .reportFrequency(10000) // report every 10K
-            .jitter(0) // > 0 means use jitter
-            .messageCount(100_000);
+            .action(Action.PUB_SYNC)    // or Action.PUB_ASYNC or Action.PUB_CORE for example
+            .latencyFlag(LATENCY_RUN)   // tells the code to add latency info to the header
+            .messageCount(50_000)       // default is 100_000
+            .payloadSize(256)           // default is 128
+            .roundSize(50)              // how often to check Async Publish Acks, default is 100
+            .threads(3)                 // default is 1
+            .individualConnection()     // versus .sharedConnection()
+            .reportFrequency(5000)      // default is 10_000
+            ;
 
         a.printCommandLine();
 
         Context ctx = new Context(a);
 
         // latency run, the consumer code sets up the stream
-        if (!latencyRun) {
-            StreamUtils.setupStream(STREAM, SUBJECT, ctx);
+        if (!LATENCY_RUN) {
+            StreamUtils.setupStream(STREAM, ctx);
         }
 
         JsMulti.run(ctx);

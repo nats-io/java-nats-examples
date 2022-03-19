@@ -23,13 +23,13 @@ public class Stats {
     private static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
     private static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
 
-    private static final String LLREPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
-    private static final String LLREPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
-    private static final String LLREPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
+    private static final String LT_REPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
+    private static final String LT_REPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
+    private static final String LT_REPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
 
-    private static final String LZREPORT_SEP_LINE    = "| ----------------- | ------------------- | ------------------- | ------------------- |";
-    private static final String LZREPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
-    private static final String LZREPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
+    private static final String LM_REPORT_SEP_LINE    = "| ----------------- | ------------------- | ------------------- | ------------------- |";
+    private static final String LM_REPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
+    private static final String LM_REPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
 
     private double elapsed = 0;
     private double bytes = 0;
@@ -49,16 +49,16 @@ public class Stats {
     private double minMessageServerToReceiverElapsed = Long.MAX_VALUE;
     private double minMessageFullElapsed = Long.MAX_VALUE;
 
-    // Misc
-    private String hdrLabel = "";
-
     // Time keeping
     private long nanoNow;
 
-    public Stats() {}
+    // Misc
+    private final String hdrLabel;
+
+    public Stats() { hdrLabel = ""; }
 
     public Stats(Action action) {
-        this.hdrLabel = action.getLabel();
+        hdrLabel = action.getLabel();
     }
 
     public void start() {
@@ -85,7 +85,7 @@ public class Stats {
     }
 
     public void stopAndCount(long bytes) {
-        elapsed += System.nanoTime() - nanoNow;
+        stop();
         count(bytes);
     }
 
@@ -149,11 +149,11 @@ public class Stats {
         }
     }
 
-    public static void llreport(Stats stats, String label, boolean header, boolean footer, PrintStream out) {
+    public static void ltReport(Stats stats, String label, boolean header, boolean footer, PrintStream out) {
         if (header) {
-            out.println("\n" + LLREPORT_SEP_LINE);
-            out.println(LLREPORT_LINE_HEADER);
-            out.println(LLREPORT_SEP_LINE);
+            out.println("\n" + LT_REPORT_SEP_LINE);
+            out.println(LT_REPORT_LINE_HEADER);
+            out.println(LT_REPORT_SEP_LINE);
         }
 
         double pubMper = stats.messagePubToServerTimeElapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.messagePubToServerTimeElapsed;
@@ -162,18 +162,23 @@ public class Stats {
         double recBper = stats.bytes * NANOS_PER_SECOND /(stats.messageServerToReceiverElapsed);
         double totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.messageFullElapsed;
         double totBper = stats.bytes * NANOS_PER_SECOND /(stats.messageFullElapsed);
-        out.printf(LLREPORT_LINE_FORMAT, label, format3(pubMper), humanBytes(pubBper), format3(recMper), humanBytes(recBper), format3(totMper), humanBytes(totBper) );
-
+        out.printf(LT_REPORT_LINE_FORMAT, label,
+            format3(pubMper),
+            humanBytes(pubBper),
+            format3(recMper),
+            humanBytes(recBper),
+            format3(totMper),
+            humanBytes(totBper));
         if (footer) {
-            out.println(LLREPORT_SEP_LINE);
+            out.println(LT_REPORT_SEP_LINE);
         }
     }
 
-    public static void lzreport(Stats stats, String label, boolean header, boolean total, PrintStream out) {
+    public static void lmReport(Stats stats, String label, boolean header, boolean total, PrintStream out) {
         if (header) {
-            out.println("\n" + LZREPORT_SEP_LINE);
-            out.println(LZREPORT_LINE_HEADER);
-            out.println(LZREPORT_SEP_LINE);
+            out.println("\n" + LM_REPORT_SEP_LINE);
+            out.println(LM_REPORT_LINE_HEADER);
+            out.println(LM_REPORT_SEP_LINE);
         }
 
         double pubMper;
@@ -189,19 +194,19 @@ public class Stats {
             recMper = stats.messageServerToReceiverElapsed == 0 ? 0 : stats.messageServerToReceiverElapsed / NANOS_PER_MILLISECOND / stats.messageCount;
             totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageFullElapsed / NANOS_PER_MILLISECOND / stats.messageCount;
         }
-        out.printf(LZREPORT_LINE_FORMAT, label + " Average", format(pubMper), format(recMper), format(totMper));
+        out.printf(LM_REPORT_LINE_FORMAT, label + " Average", format(pubMper), format(recMper), format(totMper));
 
         pubMper = stats.minMessagePubToServerTimeElapsed == 0 ? 0 : stats.minMessagePubToServerTimeElapsed / NANOS_PER_MILLISECOND;
         recMper = stats.minMessageServerToReceiverElapsed == 0 ? 0 : stats.minMessageServerToReceiverElapsed / NANOS_PER_MILLISECOND;
         totMper = stats.minMessageFullElapsed == 0 ? 0 : stats.minMessageFullElapsed / NANOS_PER_MILLISECOND;
-        out.printf(LZREPORT_LINE_FORMAT, "Minimum", format(pubMper), format(recMper), format(totMper));
+        out.printf(LM_REPORT_LINE_FORMAT, "Minimum", format(pubMper), format(recMper), format(totMper));
 
         pubMper = stats.maxMessagePubToServerTimeElapsed == 0 ? 0 : stats.maxMessagePubToServerTimeElapsed / NANOS_PER_MILLISECOND;
         recMper = stats.maxMessageServerToReceiverElapsed == 0 ? 0 : stats.maxMessageServerToReceiverElapsed / NANOS_PER_MILLISECOND;
         totMper = stats.maxMessageFullElapsed == 0 ? 0 : stats.maxMessageFullElapsed / NANOS_PER_MILLISECOND;
-        out.printf(LZREPORT_LINE_FORMAT, "Maximum", format(pubMper), format(recMper), format(totMper));
+        out.printf(LM_REPORT_LINE_FORMAT, "Maximum", format(pubMper), format(recMper), format(totMper));
 
-        out.println(LZREPORT_SEP_LINE);
+        out.println(LM_REPORT_SEP_LINE);
     }
 
     public static Stats total(List<Stats> statList) {
@@ -244,15 +249,15 @@ public class Stats {
 
         if (statList.get(0).messagePubToServerTimeElapsed > 0) {
             for (int x = 0; x < statList.size(); x++) {
-                llreport(statList.get(x), "Thread " + (x+1), x == 0, false, out);
+                ltReport(statList.get(x), "Thread " + (x+1), x == 0, false, out);
             }
-            out.println(LLREPORT_SEP_LINE);
-            llreport(totalStats, "Total", false, true, out);
+            out.println(LT_REPORT_SEP_LINE);
+            ltReport(totalStats, "Total", false, true, out);
 
             for (int x = 0; x < statList.size(); x++) {
-                lzreport(statList.get(x), "Thread " + (x+1), x == 0, false, out);
+                lmReport(statList.get(x), "Thread " + (x+1), x == 0, false, out);
             }
-            lzreport(totalStats, "Total", false, true, out);
+            lmReport(totalStats, "Total", false, true, out);
         }
     }
 

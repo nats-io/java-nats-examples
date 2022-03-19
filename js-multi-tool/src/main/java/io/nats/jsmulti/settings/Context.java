@@ -57,13 +57,13 @@ public class Context {
     public final int maxPubRetries = 10;
     public final int ackWaitSeconds = 120;
 
-
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
     private final OptionsFactory _optionsFactory;
     private final int[] perThread;
     private final byte[] payload; // private and with getter in case I want to do more with payload later
+    private String subDurableWhenQueue = "qd" + uniqueEnough();
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
 
     public Options getOptions() throws Exception {
@@ -78,18 +78,10 @@ public class Context {
         return payload;
     }
 
-    private String _subDurableWhenQueue;
     public String getSubDurable(int durableId) {
         // is a queue, use the same durable
-        if (action.isQueue()) {
-            if (_subDurableWhenQueue == null) {
-                _subDurableWhenQueue = "qd" + uniqueEnough();
-            }
-            return _subDurableWhenQueue;
-        }
-
         // not a queue, each durable is unique
-        return "dur" + uniqueEnough() + durableId;
+        return action.isQueue() ? subDurableWhenQueue : "dur" + uniqueEnough() + durableId;
     }
 
     public int getPubCount(int id) {
@@ -159,7 +151,7 @@ public class Context {
         boolean _latencyFlag = false;
         String _server = Options.DEFAULT_URL;
         String _optionsFactoryClassName = null;
-        int _reportFrequency = 1000;
+        int _reportFrequency = 10000;
         String _subject = "sub" + uniqueEnough();
         int _messageCount = 100_000;
         int _threads = 1;
@@ -201,7 +193,7 @@ public class Context {
                             _payloadSize = asNumber("payload size", args[++x], 1048576);
                             break;
                         case "-bs":
-                            _batchSize = asNumber("batch size", args[++x], 256);
+                            _batchSize = asNumber("batch size", args[++x], 200);
                             break;
                         case "-rs":
                             _roundSize = asNumber("round size", args[++x], 1000);
@@ -222,7 +214,7 @@ public class Context {
                             }
                             break;
                         case "-kf":
-                            _ackAllFrequency = asNumber("ack frequency", args[++x], 256);
+                            _ackAllFrequency = asNumber("ack frequency", args[++x], 100);
                             break;
                         case "-rf":
                             _reportFrequency = asNumber("report frequency", args[++x], -2);

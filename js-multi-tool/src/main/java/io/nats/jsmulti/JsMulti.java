@@ -138,6 +138,7 @@ public class JsMulti {
         int retriesAvailable = ctx.maxPubRetries;
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
+        int unReported = 0;
         while (published < pubTarget) {
             jitter(ctx);
             byte[] payload = ctx.getPayload();
@@ -145,7 +146,7 @@ public class JsMulti {
             try {
                 p.publish(ctx.subject, payload);
                 stats.stopAndCount(ctx.payloadSize);
-                reportMaybe(ctx, ++published, "Published");
+                unReported = reportMaybe(ctx, ++published, ++unReported, "Published");
             }
             catch (IOException ioe) {
                 if (!isRegularTimeout(ioe) || --retriesAvailable == 0) { throw ioe; }
@@ -168,6 +169,7 @@ public class JsMulti {
         int roundCount = 0;
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
+        int unReported = 0;
         while (published < pubTarget) {
             if (++roundCount >= ctx.roundSize) {
                 processFutures(futures, stats);
@@ -178,7 +180,7 @@ public class JsMulti {
             stats.start();
             futures.add(publisher.publish(ctx.subject, payload));
             stats.stopAndCount(ctx.payloadSize);
-            reportMaybe(ctx, ++published, "Published");
+            unReported = reportMaybe(ctx, ++published, ++unReported, "Published");
         }
         report(published, "Completed Publishing");
     }
@@ -205,7 +207,7 @@ public class JsMulti {
         String durable = ctx.getSubDurable(id);
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
-            // when they start, the consumer does not exist. So force them do it one at ctx time.
+            // when they start, the consumer does not exist. So force them do it one at a time.
             synchronized (QUEUE_LOCK) {
                 sub = js.subscribe(ctx.subject, ctx.queueName,
                     ConsumerConfiguration.builder()
@@ -228,6 +230,7 @@ public class JsMulti {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
+        int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
         while (counter.get() < ctx.messageCount) {
             stats.start();
@@ -235,7 +238,7 @@ public class JsMulti {
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
-                acceptHoldIfReceivedAny(stats, rcvd, hold);
+                acceptHoldOnceStarted(stats, rcvd, hold);
             }
             else {
                 stats.acceptHold(hold);
@@ -244,7 +247,7 @@ public class JsMulti {
                 if ( (lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null ) {
                     unAckedCount = 0;
                 }
-                reportMaybe(ctx, ++rcvd, "Messages Read");
+                unReported = reportMaybe(ctx, ++rcvd, ++unReported, "Messages Read");
             }
         }
         if (lastUnAcked != null) {
@@ -259,13 +262,18 @@ public class JsMulti {
     private static void subPull(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
 
+        // Really only need to lock when queueing b/c it's the same durable...
+        // To ensure protection from multiple threads trying  make the same consumer because
         String durable = ctx.getSubDurable(id);
-        JetStreamSubscription sub = js.subscribe(ctx.subject,
-            ConsumerConfiguration.builder()
-                .ackPolicy(ctx.ackPolicy)
-                .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
-                .durable(durable)
+        JetStreamSubscription sub;
+        synchronized (QUEUE_LOCK) {
+            sub = js.subscribe(ctx.subject,
+                ConsumerConfiguration.builder()
+                    .ackPolicy(ctx.ackPolicy)
+                    .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
+                    .durable(durable)
                     .buildPullSubscribeOptions());
+        }
 
         _subPullFetch(ctx, stats, sub, durable);
     }
@@ -274,21 +282,26 @@ public class JsMulti {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
+        int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
         while (counter.get() < ctx.messageCount) {
             stats.start();
             List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
-            for (Message m : list) {
-                stats.count(m, received);
-                counter.incrementAndGet();
-                if ( (lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null ) {
-                    unAckedCount = 0;
+            int lc = list.size();
+            if (lc > 0) {
+                for (Message m : list) {
+                    stats.count(m, received);
+                    counter.incrementAndGet();
+                    if ((lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null) {
+                        unAckedCount = 0;
+                    }
                 }
-                reportMaybe(ctx, ++rcvd, "Messages Read");
+                rcvd += lc;
+                unReported = reportMaybe(ctx, rcvd, unReported + lc, "Messages Read");
             }
-            acceptHoldIfReceivedAny(stats, rcvd, hold);
+            acceptHoldOnceStarted(stats, rcvd, hold);
         }
         if (lastUnAcked != null) {
             _ack(stats, lastUnAcked);
@@ -299,7 +312,7 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------------------------------------
-    private static void acceptHoldIfReceivedAny(Stats stats, int rcvd, long hold) {
+    private static void acceptHoldOnceStarted(Stats stats, int rcvd, long hold) {
         if (rcvd == 0) {
             log("Waiting for first message.");
         }
@@ -313,8 +326,9 @@ public class JsMulti {
         return ioe.getMessage().equals("Timeout or no response waiting for NATS JetStream server");
     }
 
+    // This method returns null if message is acked or policy is None
     private static Message ackMaybe(Context ctx, Stats stats, Message m, int unAckedCount) {
-        if (ctx.ackPolicy == AckPolicy.Explicit || ctx.ackAllFrequency < 2) {
+        if (ctx.ackPolicy == AckPolicy.Explicit) {
             _ack(stats, m);
             return null;
         }
@@ -335,14 +349,16 @@ public class JsMulti {
         stats.stop();
     }
 
-    private static void report(int x, String message) {
-        log(message + " " + Stats.format(x));
+    private static void report(int total, String message) {
+        log(message + " " + Stats.format(total));
     }
 
-    private static void reportMaybe(Context ctx, int x, String message) {
-        if (x % ctx.reportFrequency == 0) {
-            report(x, message);
+    private static int reportMaybe(Context ctx, int total, int unReported, String message) {
+        if (unReported >= ctx.reportFrequency) {
+            report(total, message);
+            return 0; // there are 0 unreported now
         }
+        return unReported;
     }
 
     private static void jitter(Context ctx) {
