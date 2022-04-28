@@ -24,7 +24,10 @@ public class Usage {
     }
 
     public static final String USAGE =
-        "\nUsage: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [configuration options]"
+        "\nUsage: "
+            + "\n  gradle clean jsMulti --args=\"[configuration options]\""
+            + "\n  mvn clean compile exec:java -Dexec.mainClass=\"io.nats.jsmulti.JsMulti\" -Dexec.args=\"[configuration options]\""
+            + "\n  java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [configuration options]"
             + "\n---------------------------------------------------------------------------------------"
             + "\nConfiguration Options"
             + "\n---------------------------------------------------------------------------------------"
@@ -40,8 +43,12 @@ public class Usage {
             + "\n                    Requires 2 or more threads"
             + "\n---------------------------------------------------------------------------------------"
             + "\n-s server url (string), optional, defaults to nats://localhost:4222"
+            + "\n-cf credentials file (string), optional"
+            + "\n-ctms connection timeout millis, optional, defaults to 5000"
+            + "\n-rwms reconnect wait millis, optional, defaults to 1000"
             + "\n-of options factory class name. Class with no op constructor that implements OptionsFactory"
-            + "\n    Takes precedence over -s."
+            + "\n    If supplied, used instead of -s, -cf, -ctms and -rwms."
+            + "\n---------------------------------------------------------------------------------------"
             + "\n-rf report frequency (number) how often to print progress, defaults to 1000 messages."
             + "\n    <= 0 for no reporting. Reporting time is excluded from timings"
             + "\n-lf latency flag. Needed when publishing to test latency. See examples."

@@ -13,32 +13,43 @@
 
 package io.nats.jsmulti.shared;
 
-import io.nats.client.ErrorListener;
-import io.nats.client.JetStreamOptions;
-import io.nats.client.Options;
+import io.nats.client.*;
 import io.nats.jsmulti.settings.Context;
 
 import java.time.Duration;
 
 public interface OptionsFactory {
     default Options getOptions(Context ctx) throws Exception {
-        return getOptions(ctx.server);
-    }
-
-    default JetStreamOptions getJetStreamOptions(Context ctx) throws Exception {
-        return JetStreamOptions.DEFAULT_JS_OPTIONS;
-    }
-
-    static Options getOptions(String server) {
         return new Options.Builder()
-            .server(server)
-            .connectionTimeout(Duration.ofSeconds(5))
-            .reconnectWait(Duration.ofSeconds(1))
-            .errorListener(new ErrorListener() {})
+            .server(getServer(ctx))
+            .authHandler(getAuthHandler(ctx))
+            .connectionTimeout(getConnectionTimeout(ctx))
+            .reconnectWait(getReconnectWait(ctx))
+            .errorListener(getErrorListener())
             .build();
     }
 
-    static JetStreamOptions getJetStreamOptions() {
+    default String getServer(Context ctx) {
+        return ctx.server;
+    }
+
+    default AuthHandler getAuthHandler(Context ctx) {
+        return ctx.credsFile == null ? null : Nats.credentials(ctx.credsFile);
+    }
+
+    default Duration getConnectionTimeout(Context ctx) {
+        return Duration.ofMillis(ctx.connectionTimeoutMillis);
+    }
+
+    default Duration getReconnectWait(Context ctx) {
+        return Duration.ofMillis(ctx.reconnectWaitMillis);
+    }
+
+    default ErrorListener getErrorListener() {
+        return new ErrorListener() {};
+    }
+
+    default JetStreamOptions getJetStreamOptions(Context ctx) throws Exception {
         return JetStreamOptions.DEFAULT_JS_OPTIONS;
     }
 }

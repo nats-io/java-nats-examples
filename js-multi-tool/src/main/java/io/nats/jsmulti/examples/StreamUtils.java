@@ -4,39 +4,30 @@ import io.nats.client.*;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.jsmulti.settings.Context;
-import io.nats.jsmulti.shared.OptionsFactory;
-
-import java.util.List;
+import io.nats.jsmulti.settings.StreamOptions;
 
 public class StreamUtils {
 
-    public static void setupStream(String stream, String subject, String server) throws Exception {
-        setupStream(stream, subject, OptionsFactory.getOptions(server), OptionsFactory.getJetStreamOptions());
-    }
-
     public static void setupStream(String stream, Context context) throws Exception {
-        setupStream(stream, context.subject, context.getOptions(), context.getJetStreamOptions());
+        setupStream(stream, context.subject, new StreamOptions(), context.getOptions(), context.getJetStreamOptions());
     }
 
-    public static void setupStream(String stream, String subject, Options options, JetStreamOptions jso) throws Exception {
+    public static void setupStream(String stream, StreamOptions so, Context context) throws Exception {
+        setupStream(stream, context.subject, so, context.getOptions(), context.getJetStreamOptions());
+    }
+
+    public static void setupStream(String stream, String subject, StreamOptions so, Options options, JetStreamOptions jso) throws Exception {
         try (Connection nc = Nats.connect(options)) {
             JetStreamManagement jsm = nc.jetStreamManagement(jso);
-            try {
-                jsm.purgeStream(stream);
-                List<String> cons = jsm.getConsumerNames(stream);
-                for (String c : cons) {
-                    jsm.deleteConsumer(stream, c);
-                }
-                System.out.println("PURGED: " + jsm.getStreamInfo(stream));
-            }
-            catch (JetStreamApiException j) {
-                StreamConfiguration streamConfig = StreamConfiguration.builder()
-                    .name(stream)
-                    .subjects(subject)
-                    .storageType(StorageType.Memory)
-                    .build();
-                System.out.println("CREATED: " + jsm.addStream(streamConfig));
-            }
+            try { jsm.deleteStream(stream); } catch (JetStreamApiException ignored) {}
+            StreamConfiguration streamConfig = StreamConfiguration.builder()
+                .name(stream)
+                .subjects(subject)
+                .storageType(so.storageType)
+                .maxBytes(so.maxBytes)
+                .replicas(so.replicas)
+                .build();
+            System.out.println("CREATED: " + jsm.addStream(streamConfig));
         }
     }
 }

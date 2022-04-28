@@ -78,16 +78,16 @@ public class Arguments {
         return add("rf", -1);
     }
 
-    public Arguments memory() {
-        return add("o", StorageType.Memory);
+    public Arguments credsFile(String credsFile) {
+        return add("cf", credsFile);
     }
 
-    public Arguments file() {
-        return add("o", StorageType.File);
+    public Arguments connectionTimeoutMillis(long connectionTimeoutMillis) {
+        return add("ctms", connectionTimeoutMillis);
     }
 
-    public Arguments replicas(int replicas) {
-        return add("c", replicas);
+    public Arguments reconnectWaitMillis(long reconnectWaitMillis) {
+        return add("rwms", reconnectWaitMillis);
     }
 
     public Arguments subject(String subject) {

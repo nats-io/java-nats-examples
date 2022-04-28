@@ -16,6 +16,7 @@ package io.nats.jsmulti.settings;
 import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
+import io.nats.client.api.StorageType;
 import io.nats.jsmulti.shared.OptionsFactory;
 import io.nats.jsmulti.shared.Usage;
 
@@ -37,7 +38,13 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     public final Action action;
     public final boolean latencyFlag;
+
+    // connection options
     public final String server;
+    public final String credsFile;
+    public final long connectionTimeoutMillis;
+    public final long reconnectWaitMillis;
+
     public final int reportFrequency;
     public final String subject;
     public final int messageCount;
@@ -125,7 +132,7 @@ public class Context {
         append(sb, "payload size", "p", payloadSize + " bytes", action.isPubAction());
         append(sb, "jitter", "j", jitter, action.isPubAction());
 
-        append(sb, "round size", "r", roundSize, action.isPubAction() && action.isPubSync());
+        append(sb, "round size", "r", roundSize, action.isPubAsync());
 
         append(sb, "ack policy", "kp", ackPolicy, action.isSubAction());
         append(sb, "ack all frequency", "kf", ackAllFrequency, action.isPush() && ackPolicy == AckPolicy.All);
@@ -150,6 +157,9 @@ public class Context {
         Action _action = null;
         boolean _latencyFlag = false;
         String _server = Options.DEFAULT_URL;
+        String _credsFile = null;
+        long _connectionTimeoutMillis = 5000;
+        long _reconnectWaitMillis = 1000;
         String _optionsFactoryClassName = null;
         int _reportFrequency = 10000;
         String _subject = "sub" + uniqueEnough();
@@ -162,6 +172,9 @@ public class Context {
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
         int _batchSize = 10;
+        StorageType _storageType = StorageType.Memory;
+        int _replicas = 1;
+        int _maxBytes = -1;
 
         if (args != null && args.length > 0) {
             try {
@@ -190,7 +203,7 @@ public class Context {
                             _messageCount = asNumber("total messages", args[++x], -1);
                             break;
                         case "-ps":
-                            _payloadSize = asNumber("payload size", args[++x], 1048576);
+                            _payloadSize = asNumber("payload size", args[++x], 64 * 1024 * 1024); // 67108864
                             break;
                         case "-bs":
                             _batchSize = asNumber("batch size", args[++x], 200);
@@ -199,7 +212,7 @@ public class Context {
                             _roundSize = asNumber("round size", args[++x], 1000);
                             break;
                         case "-d":
-                            _threads = asNumber("number of threads", args[++x], 10);
+                            _threads = asNumber("number of threads", args[++x], 20);
                             break;
                         case "-j":
                             _jitter = asNumber("jitter", args[++x], 10_000);
@@ -217,7 +230,16 @@ public class Context {
                             _ackAllFrequency = asNumber("ack frequency", args[++x], 100);
                             break;
                         case "-rf":
-                            _reportFrequency = asNumber("report frequency", args[++x], -2);
+                            _reportFrequency = asNumber("report frequency", args[++x]);
+                            break;
+                        case "-cf":
+                            _credsFile = asString(args[++x]);
+                            break;
+                        case "-ctms":
+                            _connectionTimeoutMillis = asNumber("connection timeout millis", args[++x]);
+                            break;
+                        case "-rwms":
+                            _reconnectWaitMillis = asNumber("reconnect wait millis", args[++x]);
                             break;
                         case "":
                             break;
@@ -247,6 +269,9 @@ public class Context {
         action = _action;
         latencyFlag = _latencyFlag;
         server = _server;
+        credsFile = _credsFile;
+        connectionTimeoutMillis = _connectionTimeoutMillis;
+        reconnectWaitMillis = _reconnectWaitMillis;
         reportFrequency = _reportFrequency;
         subject = _subject;
         messageCount = _messageCount;
@@ -309,6 +334,10 @@ public class Context {
         return val.trim();
     }
 
+    private static int asNumber(String name, String val) {
+        return asNumber(name, val, -2);
+    }
+
     private static int asNumber(String name, String val, int upper) {
         int v = Integer.parseInt(normalize(asString(val)));
         if (upper == -2 && v < 1) {
@@ -318,6 +347,17 @@ public class Context {
             if (v > upper) {
                 error("Value for " + name + " cannot exceed " + upper);
             }
+        }
+        return v;
+    }
+
+    private static int asNumber(String name, String val, int lower, int upper) {
+        int v = Integer.parseInt(normalize(asString(val)));
+        if (v < lower) {
+            error("Value for " + name + " cannot be less than " + lower);
+        }
+        if (v > upper) {
+            error("Value for " + name + " cannot exceed " + upper);
         }
         return v;
     }

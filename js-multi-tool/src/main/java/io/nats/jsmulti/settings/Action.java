@@ -68,7 +68,11 @@ public enum Action {
     }
 
     public boolean isPubSync() {
-        return pubSync;
+        return pubAction && pubSync;
+    }
+
+    public boolean isPubAsync() {
+        return pubAction && !pubSync;
     }
 
     public boolean isSubAction() {
