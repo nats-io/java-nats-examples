@@ -7,6 +7,12 @@ import io.nats.jsmulti.settings.Context;
 
 public class Producer {
 
+    /*
+        gradle clean producer --args="[args]"
+        mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Producer -Dexec.args="[args]"
+        java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Producer [args]
+     */
+
     static final String STREAM = "strm";
     static final String SUBJECT = "sub";
     static final String SERVER = "nats://localhost:4222";

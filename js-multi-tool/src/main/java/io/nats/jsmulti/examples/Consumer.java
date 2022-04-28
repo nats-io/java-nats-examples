@@ -6,6 +6,11 @@ import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 
 public class Consumer {
+    /*
+        gradle clean consumer --args="[args]"
+        mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Consumer -Dexec.args="[args]"
+        java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Consumer [args]
+     */
 
     static final String STREAM = "strm";
     static final String SUBJECT = "sub";
