@@ -14,7 +14,6 @@
 package io.nats.jsmulti.settings;
 
 import io.nats.client.api.AckPolicy;
-import io.nats.client.api.StorageType;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -58,6 +57,18 @@ public class Arguments {
         return add("s", server);
     }
 
+    public Arguments credsFile(String credsFile) {
+        return add("cf", credsFile);
+    }
+
+    public Arguments connectionTimeoutMillis(long connectionTimeoutMillis) {
+        return add("ctms", connectionTimeoutMillis);
+    }
+
+    public Arguments reconnectWaitMillis(long reconnectWaitMillis) {
+        return add("rwms", reconnectWaitMillis);
+    }
+
     public Arguments latencyFlag() {
         return add("lf");
     }
@@ -78,18 +89,6 @@ public class Arguments {
         return add("rf", -1);
     }
 
-    public Arguments credsFile(String credsFile) {
-        return add("cf", credsFile);
-    }
-
-    public Arguments connectionTimeoutMillis(long connectionTimeoutMillis) {
-        return add("ctms", connectionTimeoutMillis);
-    }
-
-    public Arguments reconnectWaitMillis(long reconnectWaitMillis) {
-        return add("rwms", reconnectWaitMillis);
-    }
-
     public Arguments subject(String subject) {
         if (subject == null) {
             return this;
@@ -103,6 +102,14 @@ public class Arguments {
 
     public Arguments threads(int threads) {
         return add("d", threads);
+    }
+
+    public Arguments queueName(String queueName) {
+        return add("q", queueName);
+    }
+
+    public Arguments subDurableWhenQueue(String subDurableWhenQueue) {
+        return add("sdwq", subDurableWhenQueue);
     }
 
     public Arguments individualConnection() {

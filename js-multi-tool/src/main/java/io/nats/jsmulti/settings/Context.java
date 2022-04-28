@@ -58,7 +58,7 @@ public class Context {
     public final int batchSize;
 
     // once per context for now
-    public final String queueName = "qn" + uniqueEnough();
+    public final String queueName;
 
     // constant now but might change in the future
     public final int maxPubRetries = 10;
@@ -70,8 +70,8 @@ public class Context {
     private final OptionsFactory _optionsFactory;
     private final int[] perThread;
     private final byte[] payload; // private and with getter in case I want to do more with payload later
-    private String subDurableWhenQueue = "qd" + uniqueEnough();
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
+    private final String subDurableWhenQueue;
 
     public Options getOptions() throws Exception {
         return _optionsFactory.getOptions(this);
@@ -175,6 +175,8 @@ public class Context {
         StorageType _storageType = StorageType.Memory;
         int _replicas = 1;
         int _maxBytes = -1;
+        String _queueName = "qn" + uniqueEnough();
+        String _subDurableWhenQueue = "qd" + uniqueEnough();
 
         if (args != null && args.length > 0) {
             try {
@@ -241,6 +243,12 @@ public class Context {
                         case "-rwms":
                             _reconnectWaitMillis = asNumber("reconnect wait millis", args[++x]);
                             break;
+                        case "-q":
+                            _queueName = asString(args[++x]);
+                            break;
+                        case "-sdwq":
+                            _subDurableWhenQueue = asString(args[++x]);
+                            break;
                         case "":
                             break;
                         default:
@@ -283,6 +291,9 @@ public class Context {
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
+
+        queueName = _queueName;
+        subDurableWhenQueue = _subDurableWhenQueue;
 
         OptionsFactory ofTemp = null;
         if (_optionsFactoryClassName == null) {
