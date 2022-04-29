@@ -100,7 +100,7 @@ public class Context {
     }
 
     public String getLabel(int id) {
-        return action + (connShared ? "Shared" : "Individual") + id;
+        return action + "-" + id;
     }
 
     // ----------------------------------------------------------------------------------------------------

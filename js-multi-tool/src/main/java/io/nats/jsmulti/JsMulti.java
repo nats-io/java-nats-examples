@@ -139,6 +139,7 @@ public class JsMulti {
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
         int unReported = 0;
+        report(published, "Begin Publishing");
         while (published < pubTarget) {
             jitter(ctx);
             byte[] payload = ctx.getPayload();
@@ -170,6 +171,7 @@ public class JsMulti {
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
         int unReported = 0;
+        report(published, "Begin Publishing");
         while (published < pubTarget) {
             if (++roundCount >= ctx.roundSize) {
                 processFutures(futures, stats);
@@ -232,6 +234,7 @@ public class JsMulti {
         int unAckedCount = 0;
         int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
+        report(rcvd, "Begin Reading");
         while (counter.get() < ctx.messageCount) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
@@ -284,6 +287,7 @@ public class JsMulti {
         int unAckedCount = 0;
         int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
+        report(rcvd, "Begin Reading");
         while (counter.get() < ctx.messageCount) {
             stats.start();
             List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
