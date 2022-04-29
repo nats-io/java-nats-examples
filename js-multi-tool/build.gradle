@@ -30,14 +30,17 @@ apply plugin: 'java'
 task(jsMulti, dependsOn: 'classes', type: JavaExec) {
     main = 'io.nats.jsmulti.JsMulti'
     classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ['-Xmx4g']
 }
 
 task(producer, dependsOn: 'classes', type: JavaExec) {
     main = 'io.nats.jsmulti.examples.Producer'
     classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ['-Xmx4g']
 }
 
 task(consumer, dependsOn: 'classes', type: JavaExec) {
     main = 'io.nats.jsmulti.examples.Consumer'
     classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ['-Xmx4g']
 }

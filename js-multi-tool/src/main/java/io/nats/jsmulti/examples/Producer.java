@@ -10,8 +10,10 @@ import io.nats.jsmulti.settings.Context;
  *
  * Various ways to run the code
  * 1. Through an ide...
- * 2. Gradle: gradle clean producer --args="[args]"
- * 3. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Producer -Dexec.args="[args]"
+ * 2. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Producer -Dexec.args="[args]"
+ *    ! You can increase memory for maven via environment variable, i.e. set MAVEN_OPTS=-Xmx6g
+ * 3. Gradle: gradle clean producer --args="[args]"
+ *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `producer` task in build.gradle.
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Producer [args]
  */
 public class Producer {

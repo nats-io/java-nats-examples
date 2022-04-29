@@ -10,11 +10,30 @@ Administration and server related benchmarking of NATS should prefer the [NATS C
 
 ### Running from the Command Line
 
-#### Maven exec
+#### Maven exec:java
 You can use the maven exec plugin...
 
 ```shell
-mvn exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+```
+
+You can increase memory for maven via environment variable, i.e.
+
+```
+set MAVEN_OPTS=-Xmx6g
+```
+
+#### Gradle jsMultiTask
+You can use the maven exec plugin...
+
+```shell
+gradle clean consumer --args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+```
+
+You can increase memory for the gradle task by changing the `jvmArgs` value for the `jsMulti` task in build.gradle.
+
+```
+set MAVEN_OPTS=-Xmx6g
 ```
 
 #### Direct Java
@@ -380,4 +399,12 @@ The start the producer...
 ```shell
 ... JsMulti -s nats://localhost:4222 -u sub -a PubSync -lf -d 3 -n individual -rf 10000 -j 0 -m 100000
 ```
- 
+
+## Producer / Consumer Examples
+
+Look at the java programs `src/main/java/io/nats/jsmulti/examples`
+
+`Producer.java` demonstrates how to build a simple main to produce messages (publish).
+`Consumer.java` demonstrates how to build a simple main to consume messages (subscribe).
+
+These are provided as customization examples. They also have instructions on how to run them.

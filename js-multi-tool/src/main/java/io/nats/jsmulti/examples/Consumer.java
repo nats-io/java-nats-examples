@@ -5,13 +5,17 @@ import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 
+import java.text.NumberFormat;
+
 /**
  * Example class running a consumer (publisher)
  *
  * Various ways to run the code
  * 1. Through an ide...
- * 2. Gradle: gradle clean consumer --args="[args]"
- * 3. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Consumer -Dexec.args="[args]"
+ * 2. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Consumer -Dexec.args="[args]"
+ *    ! You can increase memory for maven via environment variable, i.e. set MAVEN_OPTS=-Xmx6g
+ * 3. Gradle: gradle clean consumer --args="[args]"
+ *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `consumer` task in build.gradle.
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Consumer [args]
  */
 public class Consumer {
@@ -21,6 +25,22 @@ public class Consumer {
     static final String SERVER = "nats://localhost:4222";
 
     public static void main(String[] args) throws Exception {
+        Runtime runtime = Runtime.getRuntime();
+
+        NumberFormat format = NumberFormat.getInstance();
+
+        StringBuilder sb = new StringBuilder();
+        long maxMemory = runtime.maxMemory();
+        long allocatedMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+
+        sb.append("\n\nfree memory: " + format.format(freeMemory / 1024) + "\n");
+        sb.append("allocated memory: " + format.format(allocatedMemory / 1024) + "\n");
+        sb.append("max memory: " + format.format(maxMemory / 1024) + "\n");
+        sb.append("total free memory: " + format.format((freeMemory + (maxMemory - allocatedMemory)) / 1024) + "\n\n");
+        System.out.println(sb);
+        if (true) return;
+        
         // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
             .server(SERVER)

@@ -33,6 +33,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nats.jsmulti.shared.Utils.*;
 
+/**
+ * The main class
+ *
+ * Various ways to run the code
+ * 1. Through an ide...
+ * 2. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.JsMulti -Dexec.args="[args]"
+ *    ! You can increase memory for maven via environment variable, i.e. set MAVEN_OPTS=-Xmx6g
+ * 3. Gradle: gradle clean consumer --args="[args]"
+ *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `jsMulti` task in build.gradle.
+ * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [args]
+ */
 public class JsMulti {
 
     public static void main(String[] args) throws Exception {
