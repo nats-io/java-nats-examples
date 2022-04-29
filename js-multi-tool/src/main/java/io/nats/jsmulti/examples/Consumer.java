@@ -5,18 +5,23 @@ import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 
+/**
+ * Example class running a consumer (publisher)
+ *
+ * Various ways to run the code
+ * 1. Through an ide...
+ * 2. Gradle: gradle clean consumer --args="[args]"
+ * 3. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Consumer -Dexec.args="[args]"
+ * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Consumer [args]
+ */
 public class Consumer {
-    /*
-        gradle clean consumer --args="[args]"
-        mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Consumer -Dexec.args="[args]"
-        java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Consumer [args]
-     */
 
     static final String STREAM = "strm";
     static final String SUBJECT = "sub";
     static final String SERVER = "nats://localhost:4222";
 
     public static void main(String[] args) throws Exception {
+        // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
             .server(SERVER)
             .subject(SUBJECT)
@@ -27,15 +32,17 @@ public class Consumer {
             .batchSize(20)                  // default is 10 only used with pull subs
             .threads(3)                     // default is 1
             .individualConnection()         // versus .sharedConnection()
-            .reportFrequency(5000)          // default is 10_000
+            // .reportFrequency(500)        // default is 10% of message count
             ;
 
         a.printCommandLine();
 
         Context ctx = new Context(a);
 
-        // Consumer sets up the stream for latency (non-normal) runs.
-        // Uncomment for latency runs
+        // -----------------------------------------------------
+        // Uncomment for latency runs. The stream needs to exist
+        // before the consumers start.
+        // -----------------------------------------------------
         // StreamUtils.setupStream(STREAM, ctx);
 
         JsMulti.run(ctx, true, true);

@@ -45,7 +45,6 @@ public class Context {
     public final long connectionTimeoutMillis;
     public final long reconnectWaitMillis;
 
-    public final int reportFrequency;
     public final String subject;
     public final int messageCount;
     public final int threads;
@@ -56,6 +55,7 @@ public class Context {
     public final AckPolicy ackPolicy;
     public final int ackAllFrequency;
     public final int batchSize;
+    public final int reportFrequency;
 
     // once per context for now
     public final String queueName;
@@ -123,7 +123,7 @@ public class Context {
         append(sb, "action", "a", action, true);
         append(sb, "action", "lf", "Yes", latencyFlag);
         append(sb, "options factory", "of", _optionsFactory.getClass().getTypeName(), true);
-        append(sb, "report frequency", "rf", reportFrequency == Integer.MAX_VALUE ? "no reporting" : "" + reportFrequency, true);
+        append(sb, "report frequency", "rf", reportFrequency < 1 ? "no reporting" : "" + reportFrequency, true);
         append(sb, "subject", "u", subject, true);
         append(sb, "message count", "m", messageCount, true);
         append(sb, "threads", "d", threads, true);
@@ -161,7 +161,7 @@ public class Context {
         long _connectionTimeoutMillis = 5000;
         long _reconnectWaitMillis = 1000;
         String _optionsFactoryClassName = null;
-        int _reportFrequency = 10000;
+        Integer _reportFrequency = null;
         String _subject = "sub" + uniqueEnough();
         int _messageCount = 100_000;
         int _threads = 1;
@@ -280,7 +280,6 @@ public class Context {
         credsFile = _credsFile;
         connectionTimeoutMillis = _connectionTimeoutMillis;
         reconnectWaitMillis = _reconnectWaitMillis;
-        reportFrequency = _reportFrequency;
         subject = _subject;
         messageCount = _messageCount;
         threads = _threads;
@@ -291,6 +290,13 @@ public class Context {
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
+
+        if (_reportFrequency == null) {
+            reportFrequency = messageCount / 10;
+        }
+        else {
+            reportFrequency = _reportFrequency;
+        }
 
         queueName = _queueName;
         subDurableWhenQueue = _subDurableWhenQueue;

@@ -49,7 +49,7 @@ public class Usage {
             + "\n-of options factory class name. Class with no op constructor that implements OptionsFactory"
             + "\n    If supplied, used instead of -s, -cf, -ctms and -rwms."
             + "\n---------------------------------------------------------------------------------------"
-            + "\n-rf report frequency (number) how often to print progress, defaults to 1000 messages."
+            + "\n-rf report frequency (number) how often to print progress, defaults to 10% of message count."
             + "\n    <= 0 for no reporting. Reporting time is excluded from timings"
             + "\n-lf latency flag. Needed when publishing to test latency. See examples."
             + "\n---------------------------------------------------------------------------------------"

@@ -5,13 +5,16 @@ import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 
+/**
+ * Example class running a producer (publisher)
+ *
+ * Various ways to run the code
+ * 1. Through an ide...
+ * 2. Gradle: gradle clean producer --args="[args]"
+ * 3. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Producer -Dexec.args="[args]"
+ * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Producer [args]
+ */
 public class Producer {
-
-    /*
-        gradle clean producer --args="[args]"
-        mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.examples.Producer -Dexec.args="[args]"
-        java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Producer [args]
-     */
 
     static final String STREAM = "strm";
     static final String SUBJECT = "sub";
@@ -20,6 +23,7 @@ public class Producer {
     static final boolean LATENCY_RUN = false;
 
     public static void main(String[] args) throws Exception {
+        // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
             .server(SERVER)
             .subject(SUBJECT)
@@ -30,14 +34,18 @@ public class Producer {
             .roundSize(50)              // how often to check Async Publish Acks, default is 100
             .threads(3)                 // default is 1
             .individualConnection()     // versus .sharedConnection()
-            .reportFrequency(5000)      // default is 10_000
+            // .reportFrequency(500)    // default is 10% of message count
             ;
 
         a.printCommandLine();
 
         Context ctx = new Context(a);
 
-        // latency run, the consumer code sets up the stream
+        // ---------------------------------------------------
+        // For latency runs, the consumer code sets up the
+        // stream because the stream needs to exist before the
+        // consumers start.
+        // ---------------------------------------------------
         if (!LATENCY_RUN) {
             StreamUtils.setupStream(STREAM, ctx);
         }
