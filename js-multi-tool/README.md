@@ -14,7 +14,9 @@ Administration and server related benchmarking of NATS should prefer the [NATS C
 You can use the maven exec plugin...
 
 ```shell
-mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+> mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+> mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.examples.Producer" -Dexec.args="[arguments]"
+> mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.examples.Consumer" -Dexec.args="[arguments]"
 ```
 
 You can increase memory for maven via environment variable, i.e.
@@ -23,18 +25,16 @@ You can increase memory for maven via environment variable, i.e.
 set MAVEN_OPTS=-Xmx6g
 ```
 
-#### Gradle jsMultiTask
-You can use the maven exec plugin...
+#### Gradle Task
+There are tasks available for js
 
 ```shell
-gradle clean consumer --args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+> gradle clean jsMulti --args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
+> gradle clean producer --args="[arguments]"
+> gradle clean consumer --args="[arguments]"
 ```
 
-You can increase memory for the gradle task by changing the `jvmArgs` value for the `jsMulti` task in build.gradle.
-
-```
-set MAVEN_OPTS=-Xmx6g
-```
+You can increase memory for the gradle task by changing the `jvmArgs` value for the correct task in build.gradle.
 
 #### Direct Java
 
@@ -44,7 +44,21 @@ you can simply run java with the correct classpath, which includes the location 
 At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-java -cp <my-code-path>\java-nats-examples\js-multi-tool\target\classes;<my-repo-path>\io\nats\jnats\2.14.0\jnats-2.14.0.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/target/classes;<my-repo-path>/io/nats/jnats/2.15.0/jnats-2.15.0.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
+```
+
+You could also use a gradle task to build an uber jar. This jar will contain all necessary classes and the jnats library.
+
+```shell
+gradle uberJar
+```
+
+At that point you can run directly the programs you can run with the gradle tasks 
+
+```shell
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.JsMulti [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
 ```
 
 ### Running from an IDE

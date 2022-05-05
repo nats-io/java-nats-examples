@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation("io.nats:jnats:2.14.0")
+    implementation("io.nats:jnats:2.15.0")
     testImplementation(platform("org.junit:junit-bom:5.7.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
