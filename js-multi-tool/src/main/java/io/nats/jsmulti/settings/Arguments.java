@@ -160,7 +160,7 @@ public class Arguments {
         return add("bs", batchSize);
     }
 
-    public String[] toArray() {
+    public String[] toStringArray() {
         return args.toArray(new String[0]);
     }
 

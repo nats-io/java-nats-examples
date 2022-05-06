@@ -13,7 +13,7 @@
 
 package io.nats.jsmulti.shared;
 
-public interface Reporter {
+public interface Application {
     default void report(Object o) {
         System.out.println(format(o));
     }
@@ -27,7 +27,19 @@ public interface Reporter {
         e.printStackTrace();
     }
 
-    static String format(Object o) {
+    default void usage() {
+        System.err.println(Usage.USAGE);
+    }
+
+    default void exit(int status) {
+        System.exit(status);
+    }
+
+    default String format(Object o) {
         return System.currentTimeMillis() + " [" + Thread.currentThread().getName() + "] " + o.toString();
+    }
+
+    default OptionsFactory getOptionsFactory() {
+        return new OptionsFactory() {};
     }
 }

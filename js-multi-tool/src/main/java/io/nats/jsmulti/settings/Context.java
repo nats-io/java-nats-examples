@@ -16,10 +16,8 @@ package io.nats.jsmulti.settings;
 import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
-import io.nats.jsmulti.shared.ExitHandler;
+import io.nats.jsmulti.shared.Application;
 import io.nats.jsmulti.shared.OptionsFactory;
-import io.nats.jsmulti.shared.Reporter;
-import io.nats.jsmulti.shared.Usage;
 
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
@@ -66,10 +64,9 @@ public class Context {
     public final int ackWaitSeconds = 120;
 
     // ----------------------------------------------------------------------------------------------------
-    // Provided in constructor versus arguments as these allow embedding in another application
+    // Application allows the J
     // ----------------------------------------------------------------------------------------------------
-    public final Reporter reporter;
-    public final ExitHandler exitHandler;
+    public final Application application;
 
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
@@ -153,20 +150,23 @@ public class Context {
     // Construction
     // ----------------------------------------------------------------------------------------------------
     public Context(Arguments args) {
-        this(args.toArray(), null, null);
+        this(args.toStringArray(), null);
+    }
+
+    public Context(Arguments args, Application application) {
+        this(args.toStringArray(), application);
     }
 
     public Context(String[] args) {
-        this(args, null, null);
+        this(args, null);
     }
 
-    public Context(String[] args, Reporter reporter, ExitHandler exitHandler) {
-        this.reporter = reporter == null ? new Reporter() {} : reporter;
-        this.exitHandler = exitHandler == null ? new ExitHandler() {} : exitHandler;
+    public Context(String[] args, Application application) {
+        this.application = application == null ? new Application() {} : application;
 
         if (args == null || args.length == 0) {
-            this.reporter.reportErr(Usage.USAGE);
-            this.exitHandler.exit(-1);
+            this.application.usage();
+            this.application.exit(-1);
         }
 
         Action _action = null;
@@ -314,7 +314,13 @@ public class Context {
         subDurableWhenQueue = _subDurableWhenQueue;
 
         if (_optionsFactoryClassName == null) {
-            _optionsFactory = new OptionsFactory() {};
+            OptionsFactory appOf = application.getOptionsFactory();
+            if (appOf == null) {
+                _optionsFactory = new OptionsFactory() {};
+            }
+            else {
+                _optionsFactory = appOf;
+            }
         }
         else {
             _optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "OptionsFactory");
@@ -349,8 +355,8 @@ public class Context {
     }
 
     private void error(String errMsg) {
-        reporter.reportErr("ERROR: " + errMsg);
-        exitHandler.exit(-1);
+        application.reportErr("ERROR: " + errMsg);
+        application.exit(-1);
     }
 
     private String normalize(String s) {
@@ -366,7 +372,7 @@ public class Context {
     }
 
     private int asNumber(String name, String val, int upper) {
-        int v = Integer.parseInt(normalize(asString(val)));
+        int v = _asNumber(val);
         if (upper == -2 && v < 1) {
             return Integer.MAX_VALUE;
         }
@@ -379,7 +385,7 @@ public class Context {
     }
 
     private int asNumber(String name, String val, int lower, int upper) {
-        int v = Integer.parseInt(normalize(asString(val)));
+        int v = _asNumber(val);
         if (v < lower) {
             error("Value for " + name + " cannot be less than " + lower);
         }
@@ -388,6 +394,34 @@ public class Context {
         }
         return v;
     }
+
+    private int _asNumber(String val) {
+        int factor = 1;
+        String vl = val.toLowerCase();
+        if (vl.endsWith("k")) {
+            factor = 1000;
+        }
+        if (vl.endsWith("ki")) {
+            factor = 1024;
+        }
+        else if (vl.endsWith("m")) {
+            factor = 1_000_000;
+        }
+        else if (vl.endsWith("mi")) {
+            factor = 1024 * 1024;
+        }
+        else if (vl.endsWith("g")) {
+            factor = 1_000_000_000;
+        }
+        else if (vl.endsWith("gi")) {
+            factor = 1024 * 1024 * 1024;
+        }
+        if (factor > 1) {
+            vl = vl.substring(0, vl.length() - 1);
+        }
+        return Integer.parseInt(normalize(asString(vl))) * factor;
+    }
+
 
     private boolean bool(String name, String val, String trueChoice, String falseChoice) {
         return choice(name, val, trueChoice, falseChoice) == 0;
