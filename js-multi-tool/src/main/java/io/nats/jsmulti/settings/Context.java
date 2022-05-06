@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nats.jsmulti.settings.Arguments.INDIVIDUAL;
 import static io.nats.jsmulti.settings.Arguments.SHARED;
+import static io.nats.jsmulti.shared.Utils.parseInt;
 import static io.nats.jsmulti.shared.Utils.randomString;
 
 public class Context {
@@ -66,7 +67,7 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     // Application allows the J
     // ----------------------------------------------------------------------------------------------------
-    public final Application application;
+    public final Application app;
 
     // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
@@ -153,20 +154,20 @@ public class Context {
         this(args.toStringArray(), null);
     }
 
-    public Context(Arguments args, Application application) {
-        this(args.toStringArray(), application);
+    public Context(Arguments args, Application app) {
+        this(args.toStringArray(), app);
     }
 
     public Context(String[] args) {
         this(args, null);
     }
 
-    public Context(String[] args, Application application) {
-        this.application = application == null ? new Application() {} : application;
+    public Context(String[] args, Application inApp) {
+        this.app = inApp == null ? new Application() {} : inApp;
 
         if (args == null || args.length == 0) {
-            this.application.usage();
-            this.application.exit(-1);
+            app.usage();
+            app.exit(-1);
         }
 
         Action _action = null;
@@ -314,7 +315,7 @@ public class Context {
         subDurableWhenQueue = _subDurableWhenQueue;
 
         if (_optionsFactoryClassName == null) {
-            OptionsFactory appOf = application.getOptionsFactory();
+            OptionsFactory appOf = app.getOptionsFactory();
             if (appOf == null) {
                 _optionsFactory = new OptionsFactory() {};
             }
@@ -355,12 +356,8 @@ public class Context {
     }
 
     private void error(String errMsg) {
-        application.reportErr("ERROR: " + errMsg);
-        application.exit(-1);
-    }
-
-    private String normalize(String s) {
-        return s.replaceAll("_", "").replaceAll(",", "").replaceAll("\\.", "");
+        app.reportErr("ERROR: " + errMsg);
+        app.exit(-1);
     }
 
     private String asString(String val) {
@@ -372,7 +369,7 @@ public class Context {
     }
 
     private int asNumber(String name, String val, int upper) {
-        int v = _asNumber(val);
+        int v = parseInt(val);
         if (upper == -2 && v < 1) {
             return Integer.MAX_VALUE;
         }
@@ -385,7 +382,7 @@ public class Context {
     }
 
     private int asNumber(String name, String val, int lower, int upper) {
-        int v = _asNumber(val);
+        int v = parseInt(val);
         if (v < lower) {
             error("Value for " + name + " cannot be less than " + lower);
         }
@@ -393,33 +390,6 @@ public class Context {
             error("Value for " + name + " cannot exceed " + upper);
         }
         return v;
-    }
-
-    private int _asNumber(String val) {
-        int factor = 1;
-        String vl = val.toLowerCase();
-        if (vl.endsWith("k")) {
-            factor = 1000;
-        }
-        if (vl.endsWith("ki")) {
-            factor = 1024;
-        }
-        else if (vl.endsWith("m")) {
-            factor = 1_000_000;
-        }
-        else if (vl.endsWith("mi")) {
-            factor = 1024 * 1024;
-        }
-        else if (vl.endsWith("g")) {
-            factor = 1_000_000_000;
-        }
-        else if (vl.endsWith("gi")) {
-            factor = 1024 * 1024 * 1024;
-        }
-        if (factor > 1) {
-            vl = vl.substring(0, vl.length() - 1);
-        }
-        return Integer.parseInt(normalize(asString(vl))) * factor;
     }
 
 
