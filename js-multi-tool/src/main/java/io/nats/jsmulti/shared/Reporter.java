@@ -13,17 +13,21 @@
 
 package io.nats.jsmulti.shared;
 
-import io.nats.client.NUID;
-
-public abstract class Utils {
-
-    public static final String HDR_PUB_TIME = "pt";
-
-    public static String randomString() {
-        return new NUID().next();
+public interface Reporter {
+    default void report(Object o) {
+        System.out.println(format(o));
     }
 
-    public static void sleep(long ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) { /* ignored */ }
+    default void reportErr(Object o) {
+        System.err.println(format(o));
+    }
+
+    default void reportEx(Exception e) {
+        System.err.println(format(e.getMessage()));
+        e.printStackTrace();
+    }
+
+    static String format(Object o) {
+        return System.currentTimeMillis() + " [" + Thread.currentThread().getName() + "] " + o.toString();
     }
 }

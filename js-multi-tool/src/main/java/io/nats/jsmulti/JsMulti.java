@@ -21,6 +21,7 @@ import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
+import io.nats.jsmulti.shared.Reporter;
 import io.nats.jsmulti.shared.Stats;
 
 import java.io.IOException;
@@ -31,7 +32,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.nats.jsmulti.shared.Utils.*;
+import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
+import static io.nats.jsmulti.shared.Utils.sleep;
 
 /**
  * The main class
@@ -76,7 +78,9 @@ public class JsMulti {
         }
 
         Runner runner = getRunner(ctx);
-        List<Stats> statsList = ctx.connShared ? runShared(ctx, runner) : runIndividual(ctx, runner);
+        List<Stats> statsList = ctx.connShared
+            ? runShared(ctx, runner)
+            : runIndividual(ctx, runner);
 
         if (reportWhenDone) {
             Stats.report(statsList);
@@ -150,7 +154,7 @@ public class JsMulti {
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
         int unReported = 0;
-        report(published, "Begin Publishing");
+        report(published, "Begin Publishing", ctx.reporter);
         while (published < pubTarget) {
             jitter(ctx);
             byte[] payload = ctx.getPayload();
@@ -164,7 +168,7 @@ public class JsMulti {
                 if (!isRegularTimeout(ioe) || --retriesAvailable == 0) { throw ioe; }
             }
         }
-        report(published, "Completed Publishing");
+        report(published, "Completed Publishing", ctx.reporter);
     }
 
     private static void pubAsync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
@@ -182,7 +186,7 @@ public class JsMulti {
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
         int unReported = 0;
-        report(published, "Begin Publishing");
+        report(published, "Begin Publishing", ctx.reporter);
         while (published < pubTarget) {
             if (++roundCount >= ctx.roundSize) {
                 processFutures(futures, stats);
@@ -195,7 +199,7 @@ public class JsMulti {
             stats.stopAndCount(ctx.payloadSize);
             unReported = reportMaybe(ctx, ++published, ++unReported, "Published");
         }
-        report(published, "Completed Publishing");
+        report(published, "Completed Publishing", ctx.reporter);
     }
 
     private static void processFutures(List<CompletableFuture<PublishAck>> futures, Stats stats) {
@@ -245,14 +249,14 @@ public class JsMulti {
         int unAckedCount = 0;
         int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
-        report(rcvd, "Begin Reading");
+        report(rcvd, "Begin Reading", ctx.reporter);
         while (counter.get() < ctx.messageCount) {
             stats.start();
             Message m = sub.nextMessage(Duration.ofSeconds(1));
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
-                acceptHoldOnceStarted(stats, rcvd, hold);
+                acceptHoldOnceStarted(stats, rcvd, hold, ctx.reporter);
             }
             else {
                 stats.acceptHold(hold);
@@ -267,7 +271,7 @@ public class JsMulti {
         if (lastUnAcked != null) {
             _ack(stats, lastUnAcked);
         }
-        report(rcvd, "Finished Reading Messages");
+        report(rcvd, "Finished Reading Messages", ctx.reporter);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -298,7 +302,7 @@ public class JsMulti {
         int unAckedCount = 0;
         int unReported = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
-        report(rcvd, "Begin Reading");
+        report(rcvd, "Begin Reading", ctx.reporter);
         while (counter.get() < ctx.messageCount) {
             stats.start();
             List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
@@ -316,20 +320,20 @@ public class JsMulti {
                 rcvd += lc;
                 unReported = reportMaybe(ctx, rcvd, unReported + lc, "Messages Read");
             }
-            acceptHoldOnceStarted(stats, rcvd, hold);
+            acceptHoldOnceStarted(stats, rcvd, hold, ctx.reporter);
         }
         if (lastUnAcked != null) {
             _ack(stats, lastUnAcked);
         }
-        report(rcvd, "Finished Reading Messages");
+        report(rcvd, "Finished Reading Messages", ctx.reporter);
     }
 
     // ----------------------------------------------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------------------------------------------
-    private static void acceptHoldOnceStarted(Stats stats, int rcvd, long hold) {
+    private static void acceptHoldOnceStarted(Stats stats, int rcvd, long hold, Reporter reporter) {
         if (rcvd == 0) {
-            log("Waiting for first message.");
+            reporter.report("Waiting for first message.");
         }
         else {
             // not the first message so we count waiting time
@@ -364,13 +368,13 @@ public class JsMulti {
         stats.stop();
     }
 
-    private static void report(int total, String message) {
-        log(message + " " + Stats.format(total));
+    private static void report(int total, String message, Reporter reporter) {
+        reporter.report(message + " " + Stats.format(total));
     }
 
     private static int reportMaybe(Context ctx, int total, int unReported, String message) {
         if (unReported >= ctx.reportFrequency) {
-            report(total, message);
+            report(total, message, ctx.reporter);
             return 0; // there are 0 unreported now
         }
         return unReported;
@@ -413,7 +417,7 @@ public class JsMulti {
                     try {
                         runner.run(nc, stats, id);
                     } catch (Exception e) {
-                        logEx(e);
+                        ctx.reporter.reportEx(e);
                     }
                 }, ctx.getLabel(id));
                 threads.add(t);
@@ -436,7 +440,7 @@ public class JsMulti {
                 try (Connection nc = connect(ctx)) {
                     runner.run(nc, stats, id);
                 } catch (Exception e) {
-                    logEx(e);
+                    ctx.reporter.reportEx(e);
                 }
             }, ctx.getLabel(id));
             threads.add(t);

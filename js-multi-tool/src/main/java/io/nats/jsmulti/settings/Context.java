@@ -16,8 +16,9 @@ package io.nats.jsmulti.settings;
 import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
-import io.nats.client.api.StorageType;
+import io.nats.jsmulti.shared.ExitHandler;
 import io.nats.jsmulti.shared.OptionsFactory;
+import io.nats.jsmulti.shared.Reporter;
 import io.nats.jsmulti.shared.Usage;
 
 import java.lang.reflect.Constructor;
@@ -29,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nats.jsmulti.settings.Arguments.INDIVIDUAL;
 import static io.nats.jsmulti.settings.Arguments.SHARED;
-import static io.nats.jsmulti.shared.Utils.uniqueEnough;
+import static io.nats.jsmulti.shared.Utils.randomString;
 
 public class Context {
 
@@ -65,6 +66,12 @@ public class Context {
     public final int ackWaitSeconds = 120;
 
     // ----------------------------------------------------------------------------------------------------
+    // Provided in constructor versus arguments as these allow embedding in another application
+    // ----------------------------------------------------------------------------------------------------
+    public final Reporter reporter;
+    public final ExitHandler exitHandler;
+
+    // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
     private final OptionsFactory _optionsFactory;
@@ -88,7 +95,7 @@ public class Context {
     public String getSubDurable(int durableId) {
         // is a queue, use the same durable
         // not a queue, each durable is unique
-        return action.isQueue() ? subDurableWhenQueue : "dur" + uniqueEnough() + durableId;
+        return action.isQueue() ? subDurableWhenQueue : "dur" + randomString() + durableId;
     }
 
     public int getPubCount(int id) {
@@ -146,12 +153,20 @@ public class Context {
     // Construction
     // ----------------------------------------------------------------------------------------------------
     public Context(Arguments args) {
-        this(args.toArray());
+        this(args.toArray(), null, null);
     }
 
     public Context(String[] args) {
+        this(args, null, null);
+    }
+
+    public Context(String[] args, Reporter reporter, ExitHandler exitHandler) {
+        this.reporter = reporter == null ? new Reporter() {} : reporter;
+        this.exitHandler = exitHandler == null ? new ExitHandler() {} : exitHandler;
+
         if (args == null || args.length == 0) {
-            exit();
+            this.reporter.reportErr(Usage.USAGE);
+            this.exitHandler.exit(-1);
         }
 
         Action _action = null;
@@ -162,7 +177,7 @@ public class Context {
         long _reconnectWaitMillis = 1000;
         String _optionsFactoryClassName = null;
         Integer _reportFrequency = null;
-        String _subject = "sub" + uniqueEnough();
+        String _subject = "sub" + randomString();
         int _messageCount = 100_000;
         int _threads = 1;
         boolean _connShared = true;
@@ -172,11 +187,8 @@ public class Context {
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
         int _batchSize = 10;
-        StorageType _storageType = StorageType.Memory;
-        int _replicas = 1;
-        int _maxBytes = -1;
-        String _queueName = "qn" + uniqueEnough();
-        String _subDurableWhenQueue = "qd" + uniqueEnough();
+        String _queueName = "qn" + randomString();
+        String _subDurableWhenQueue = "qd" + randomString();
 
         if (args != null && args.length > 0) {
             try {
@@ -301,21 +313,12 @@ public class Context {
         queueName = _queueName;
         subDurableWhenQueue = _subDurableWhenQueue;
 
-        OptionsFactory ofTemp = null;
         if (_optionsFactoryClassName == null) {
-            ofTemp = new OptionsFactory() {};
+            _optionsFactory = new OptionsFactory() {};
         }
         else {
-            try {
-                Class<?> c = Class.forName(_optionsFactoryClassName);
-                Constructor<?> cons = c.getConstructor();
-                ofTemp = (OptionsFactory) cons.newInstance();
-            }
-            catch (Exception e) {
-                error("Error creating OptionsFactory: " + e);
-            }
+            _optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "OptionsFactory");
         }
-        _optionsFactory = ofTemp;
 
         payload = new byte[payloadSize];
 
@@ -333,29 +336,36 @@ public class Context {
         }
     }
 
-    private static void error(String errMsg) {
-        System.err.println("\nERROR: " + errMsg);
-        exit();
+    private Object classForName(String className, String label) {
+        try {
+            Class<?> c = Class.forName(className);
+            Constructor<?> cons = c.getConstructor();
+            return cons.newInstance();
+        }
+        catch (Exception e) {
+            error("Error creating " + label + ": " + e);
+        }
+        return null;
     }
 
-    private static void exit() {
-        System.err.println(Usage.USAGE);
-        System.exit(-1);
+    private void error(String errMsg) {
+        reporter.reportErr("ERROR: " + errMsg);
+        exitHandler.exit(-1);
     }
 
-    private static String normalize(String s) {
+    private String normalize(String s) {
         return s.replaceAll("_", "").replaceAll(",", "").replaceAll("\\.", "");
     }
 
-    private static String asString(String val) {
+    private String asString(String val) {
         return val.trim();
     }
 
-    private static int asNumber(String name, String val) {
+    private int asNumber(String name, String val) {
         return asNumber(name, val, -2);
     }
 
-    private static int asNumber(String name, String val, int upper) {
+    private int asNumber(String name, String val, int upper) {
         int v = Integer.parseInt(normalize(asString(val)));
         if (upper == -2 && v < 1) {
             return Integer.MAX_VALUE;
@@ -368,7 +378,7 @@ public class Context {
         return v;
     }
 
-    private static int asNumber(String name, String val, int lower, int upper) {
+    private int asNumber(String name, String val, int lower, int upper) {
         int v = Integer.parseInt(normalize(asString(val)));
         if (v < lower) {
             error("Value for " + name + " cannot be less than " + lower);
@@ -379,11 +389,11 @@ public class Context {
         return v;
     }
 
-    private static boolean bool(String name, String val, String trueChoice, String falseChoice) {
+    private boolean bool(String name, String val, String trueChoice, String falseChoice) {
         return choice(name, val, trueChoice, falseChoice) == 0;
     }
 
-    private static int choice(String name, String val, String... choices) {
+    private int choice(String name, String val, String... choices) {
         String value = asString(val);
         for (int x = 0; x < choices.length; x++) {
             if (value.equalsIgnoreCase(choices[x])) {

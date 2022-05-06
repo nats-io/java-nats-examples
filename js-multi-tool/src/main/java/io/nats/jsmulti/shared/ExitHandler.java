@@ -13,17 +13,8 @@
 
 package io.nats.jsmulti.shared;
 
-import io.nats.client.NUID;
-
-public abstract class Utils {
-
-    public static final String HDR_PUB_TIME = "pt";
-
-    public static String randomString() {
-        return new NUID().next();
-    }
-
-    public static void sleep(long ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) { /* ignored */ }
+public interface ExitHandler {
+    default void exit(int status) {
+        System.exit(status);
     }
 }
