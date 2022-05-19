@@ -11,7 +11,7 @@ import java.util.List;
 import static io.nats.client.support.JsonUtils.printFormatted;
 
 /*
-Demonstrate various ways to get onsumer info
+Demonstrate various ways to get consumer info
  */
 public class ConsumerInfoVarious
 {
