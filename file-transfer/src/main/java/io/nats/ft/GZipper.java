@@ -1,3 +1,6 @@
+// Copied under Apache License, Version 2.0
+// from https://github.com/scottf/Java-Utilities
+
 package io.nats.ft;
 
 import io.nats.client.support.ByteArrayBuilder;
