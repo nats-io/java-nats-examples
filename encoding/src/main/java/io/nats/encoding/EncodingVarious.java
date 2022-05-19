@@ -13,69 +13,78 @@ Demonstrate various ways to encode
  */
 public class EncodingVarious
 {
-
-    public static void main( String[] args )
+    public static void main(String[] args) throws Exception
     {
         try (Connection nc = Nats.connect("nats://localhost")) {
             JetStreamManagement jsm = nc.jetStreamManagement();
 
-            // Build the configuration and create the stream
-            StreamConfiguration streamConfig = StreamConfiguration.builder()
-                    .name("stream")
-                    .subjects("json", "gzip")
-                    .storageType(StorageType.Memory)
-                    .build();
-            jsm.addStream(streamConfig);
-            jsm.purgeStream("stream");
+            // Purge the stream. If it doesn't exist, an exception is thrown and we know to create it.
+            try {
+                jsm.purgeStream("stream");
+            }
+            catch (JetStreamApiException je) {
+                if (je.getApiErrorCode() == 10059) {
+                    StreamConfiguration streamConfig = StreamConfiguration.builder()
+                        .name("stream")
+                        .subjects("json", "gzip")
+                        .storageType(StorageType.Memory)
+                        .build();
+                    jsm.addStream(streamConfig);
+                }
+                else {
+                    throw je;
+                }
+            }
+
             JetStream js = nc.jetStream();
             json(js);
             gzip(js);
         }
-        catch (Exception e) {
-            System.err.println(e);
-        }
     }
 
     private static void gzip(JetStream js) throws IOException, JetStreamApiException, InterruptedException {
-        System.out.println("\nGZIP");
-        Pojo ppub = getPojo();
-        String json = JsonWriter.toJson(ppub);
-        System.out.println("JSON    : " + json);
-        System.out.println("LENGTH  : " + json.length());
+        Pojo originalPojo = getPojo();
+        String originalJson = JsonWriter.toJson(originalPojo);
+
         GZipper gz = new GZipper();
-        gz.zip(json.getBytes());
-        byte[] zipped = gz.finish();
-        System.out.println("ZIP LEN : " + zipped.length);
-        js.publish("gzip", zipped);
+        gz.zip(originalJson.getBytes());
+        byte[] originalZipped = gz.finish();
+        js.publish("gzip", originalZipped);
 
         JetStreamSubscription sub = js.subscribe("gzip");
-        Message m = sub.nextMessage(Duration.ofSeconds(1));
-        System.out.println("RAW LEN : " + m.getData().length);
+        Message subMessage = sub.nextMessage(Duration.ofSeconds(1));
 
-        byte[] unzipped = GZipper.unzip(m.getData());
-        System.out.println("UN LEN  : " + unzipped.length);
-        Pojo psub = JsonReader.read(unzipped, Pojo.class);
-        System.out.println("UN JSON : " + JsonWriter.toJson(psub));
-        System.out.println("EQUAL   : " + psub.equals(ppub));
+        byte[] subUnzipped = GZipper.unzip(subMessage.getData());
+        Pojo subPojo = JsonReader.read(subUnzipped, Pojo.class);
 
         sub.unsubscribe();
+
+        System.out.println("\nGZIP\n----");
+        System.out.println("ORIG JSON      : " + originalJson);
+        System.out.println("ORIG LENGTH    : " + originalJson.length());
+        System.out.println("ORIG GZIP LEN  : " + originalZipped.length);
+        System.out.println("SUB RAW LEN    : " + subMessage.getData().length);
+        System.out.println("SUB UNZIP LEN  : " + subUnzipped.length);
+        System.out.println("SUB UNZIP JSON : " + JsonWriter.toJson(subPojo));
+        System.out.println("ORIG EQ SUB    : " + subPojo.equals(originalPojo));
     }
 
     private static void json(JetStream js) throws IOException, JetStreamApiException, InterruptedException {
-        System.out.println("\nJSON");
-        Pojo ppub = getPojo();
-        System.out.println("IN    : " + JsonWriter.toJson(ppub));
+        Pojo originalPojo = getPojo();
+        String originalJson = JsonWriter.toJson(originalPojo);
 
-        js.publish("json", JsonWriter.toJsonBytes(ppub));
+        js.publish("json", JsonWriter.toJsonBytes(originalPojo));
 
         JetStreamSubscription sub = js.subscribe("json");
         Message m = sub.nextMessage(Duration.ofSeconds(1));
-        System.out.println("RAW   : " + new String(m.getData()));
 
-        Pojo psub = JsonReader.read(m.getData(), Pojo.class);
-        System.out.println("EQUAL : " + psub.equals(ppub));
-
+        Pojo subPojo = JsonReader.read(m.getData(), Pojo.class);
         sub.unsubscribe();
+
+        System.out.println("\nJSON\n----");
+        System.out.println("ORIG JSON    : " + originalJson);
+        System.out.println("SUB RAW DATA : " + new String(m.getData()));
+        System.out.println("ORIG EQ SUB  : " + subPojo.equals(originalPojo));
     }
 
     private static Pojo getPojo() {
