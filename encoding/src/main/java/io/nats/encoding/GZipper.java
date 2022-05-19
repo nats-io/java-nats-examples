@@ -1,5 +1,5 @@
 // Copied under Apache License, Version 2.0
-// from https://github.com/scottf/Java-Utilities
+// from https://github.com/scottf/java-utilities
 
 package io.nats.encoding;
 
