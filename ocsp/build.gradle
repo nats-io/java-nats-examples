@@ -23,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.15.0'
+    implementation 'io.nats:jnats:2.15.3'
     implementation 'io.github.hakky54:sslcontext-kickstart-for-pem:6.7.0'
 }
 
