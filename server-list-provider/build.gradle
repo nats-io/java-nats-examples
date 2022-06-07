@@ -1,0 +1,29 @@
+plugins {
+    id 'java-library'
+}
+
+version = "1.0.0"
+group = 'nats'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven {
+        url "https://oss.sonatype.org/content/repositories/releases/"
+    }
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots/"
+    }
+}
+
+dependencies {
+    implementation 'io.nats:jnats:2.15.3'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+}
+
+test {
+    // Use junit platform for unit tests
+    useJUnitPlatform()
+}
+apply plugin: 'java'
