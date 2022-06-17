@@ -17,6 +17,9 @@ import java.security.cert.*;
 import java.util.EnumSet;
 import java.util.List;
 
+/**
+ * This example will run against the test "TestOCSPServerExample" in the "ocsp-test" branch in the NATS server
+ */
 public class OcspExample
 {
 
