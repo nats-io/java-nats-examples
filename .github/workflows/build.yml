@@ -34,6 +34,24 @@ jobs:
           chmod +x gradlew
           ./gradlew compileJava
           popd
+      - name: Core Reply Request Patterns
+        run: |
+          pushd core-reply-request-patterns
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Encoding
+        run: |
+          pushd encoding
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: File Transfer
+        run: |
+          pushd file-transfer
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
       - name: Functional Examples
         run: |
           pushd functional-examples
@@ -46,9 +64,34 @@ jobs:
           chmod +x gradlew
           ./gradlew test
           popd
+      - name: Js Multi Tool
+        run: |
+          pushd js-multi-tool
+          chmod +x gradlew
+          ./gradlew clean compileJava
+          mvn clean compile
+          popd
+      - name: Js Over Core
+        run: |
+          pushd js-over-core
+          chmod +x gradlew
+          ./gradlew clean compileJava
+          popd
+      - name: Multi Subject Worker
+        run: |
+          pushd multi-subject-worker
+          chmod +x gradlew
+          ./gradlew clean compileJava
+          popd
       - name: OCSP
         run: |
           pushd ocsp
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Server List Provider
+        run: |
+          pushd server-list-provider
           chmod +x gradlew
           ./gradlew compileJava
           popd
