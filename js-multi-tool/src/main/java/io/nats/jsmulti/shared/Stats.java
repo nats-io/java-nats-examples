@@ -266,7 +266,12 @@ public class Stats {
             return String.format("%.2f b", bytes);
         }
         int exp = (int) (Math.log(bytes) / Math.log(HUMAN_BYTES_BASE));
-        return String.format("%.2f %s", bytes / Math.pow(HUMAN_BYTES_BASE, exp), HUMAN_BYTES_UNITS[exp]);
+        try {
+            return String.format("%.2f %s", bytes / Math.pow(HUMAN_BYTES_BASE, exp), HUMAN_BYTES_UNITS[exp]);
+        }
+        catch (Exception e) {
+            return String.format("%.2f b", bytes);
+        }
     }
 
     public static String format(Number s) {
