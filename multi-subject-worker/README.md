@@ -1,8 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Hello World
+# Multi Subject Worker
 
-Some examples that create streams, publish and subscribe.
+An example that processes multiple subjects.
 
 ## License
 

@@ -13,22 +13,29 @@ public class Publisher
         try (Connection nc = Nats.connect(Options.DEFAULT_URL)) {
             JetStreamManagement jsm = nc.jetStreamManagement();
 
-            try { jsm.deleteStream("msw-stream"); } catch (Exception ignore) {}
-            
+            try { jsm.deleteStream("msw-one"); } catch (Exception ignore) {}
+            try { jsm.deleteStream("msw-two"); } catch (Exception ignore) {}
+
             StreamConfiguration streamConfig = StreamConfiguration.builder()
-                .name("msw-stream")
-                .subjects("msw.>")
+                .name("msw-stream-one")
+                .subjects("msw.one.>")
+                .storageType(StorageType.Memory)
+                .build();
+            jsm.addStream(streamConfig);
+
+            streamConfig = StreamConfiguration.builder()
+                .name("msw-stream-two")
+                .subjects("msw.two.>")
                 .storageType(StorageType.Memory)
                 .build();
             jsm.addStream(streamConfig);
 
             for (int x = 10000; x < 20000; x++) {
                 // fastest publish, don't care about acks, this is assuming there will be no error
-                nc.publish("msw.A.segment", ("A-" + x).getBytes());
-                nc.publish("msw.B.segment", ("B-" + x).getBytes());
-                nc.publish("msw.C.segment", ("C-" + x).getBytes());
-                nc.publish("msw.D.segment", ("D-" + x).getBytes());
-                nc.publish("msw.E.segment", ("E-" + x).getBytes());
+                nc.publish("msw.one.EAST.segment", ("E-one-" + x).getBytes());
+                nc.publish("msw.one.WEST.segment", ("W-one" + x).getBytes());
+                nc.publish("msw.two.EAST.segment", ("E-two-" + x).getBytes());
+                nc.publish("msw.two.WEST.segment", ("W-two-" + x).getBytes());
             }
         }
         catch (Exception e) {
