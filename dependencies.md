@@ -16,23 +16,17 @@ This file lists the dependencies used in this repository.
 | net.i2p.crypto:eddsa:0.3.0 | CC 1.0 Universal |
 | org.apiguardian:apiguardian-api:1.1.2 | Apache 2.0 License |
 | org.bouncycastle:bcutil-jdk15on:jar:1.69 | MIT |
-| org.junit.jupiter:junit-jupiter-api:5.7.1 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-api:5.8.2 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-api:jar:5.8.2 | Eclipse Public License v2.0 |
-| org.junit.jupiter:junit-jupiter-engine:5.7.1 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-engine:5.8.2 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-engine:jar:5.8.2 | Eclipse Public License v2.0 |
-| org.junit.jupiter:junit-jupiter-params:5.7.1 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-params:5.8.2 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter-params:jar:5.8.2 | Eclipse Public License v2.0 |
-| org.junit.jupiter:junit-jupiter:5.7.1 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter:5.8.2 | Eclipse Public License v2.0 |
 | org.junit.jupiter:junit-jupiter:jar:5.8.2 | Eclipse Public License v2.0 |
-| org.junit.platform:junit-platform-commons:1.7.1  | Eclipse Public License v2.0 |
 | org.junit.platform:junit-platform-commons:1.8.2  | Eclipse Public License v2.0 |
-| org.junit.platform:junit-platform-engine:1.7.1  | Eclipse Public License v2.0  |
 | org.junit.platform:junit-platform-engine:1.8.2  | Eclipse Public License v2.0 |
-| org.junit:junit-bom:5.7.1  | Eclipse Public License v2.0|
+| org.junit:junit-bom:5.8.2  | Eclipse Public License v2.0|
 | org.opentest4j:opentest4j:1.2.0 | Apache 2.0 License |
 | org.slf4j:slf4j-api:jar:1.7.31 | Apache 2.0 License |
 
