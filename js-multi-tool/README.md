@@ -84,8 +84,10 @@ to make it more readable. So these are all valid for 1 million `1000000`, `1,000
 * `PubCore` publish synchronously using the core api
 * `SubPush` push subscribe read messages (synchronously)
 * `SubQueue` push subscribe read messages with queue (synchronously)
-* `SubPull` pull subscribe read messages (different durable if threaded)
-* `SubPullQueue` pull subscribe read messages (all with same durable)
+* `SubPull` pull subscribe fetch messages (different durable if threaded)
+* `SubPullQueue` pull subscribe fetch messages (all with same durable)
+* `SubPullRead` pull subscribe read messages (different durable if threaded)
+* `SubPullReadQueue` pull subscribe read messages (all with same durable)
 
 #### Using the builder
 
@@ -101,6 +103,8 @@ Context ctx = Arguments.pubCore("subject-name") ... .build();
 Context ctx = Arguments.subPush("subject-name") ... .build();
 Context ctx = Arguments.subQueue("subject-name") ... .build();
 Context ctx = Arguments.subPull("subject-name") ... .build();
+Context ctx = Arguments.subPullRead("subject-name") ... .build();
+Context ctx = Arguments.subPullReadQueue("subject-name") ... .build();
 ```
 
 You could build your own custom class to run from the command line:
@@ -230,7 +234,7 @@ Does not apply to Ack Policy `none`
 
 `-pt` pull type (fetch|iterate) defaults to iterate
 
-`-bs` batch size (number) for subPull/subPullQueue, defaults to 10, maximum 256
+`-bs` batch size (number) for subPull*, defaults to 10, maximum 256
 
 ```shell
 ... JsMulti ... -pt fetch -kp explicit -kf 100 -bs 50 

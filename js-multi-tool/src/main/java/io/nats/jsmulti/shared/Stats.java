@@ -2,18 +2,22 @@ package io.nats.jsmulti.shared;
 
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
-import io.nats.jsmulti.settings.Action;
+import io.nats.jsmulti.settings.Context;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
 
 public class Stats {
-    private static final double NANOS_PER_MILLISECOND = 1e6;
-    private static final double NANOS_PER_SECOND = 1e9;
+    private static final double MILLIS_PER_SECOND = 1000;
 
     private static final long HUMAN_BYTES_BASE = 1024;
     private static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
@@ -31,46 +35,69 @@ public class Stats {
     private static final String LM_REPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
     private static final String LM_REPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
 
-    private double elapsed = 0;
-    private double bytes = 0;
+    private static final String LCSV_HEADER = "Publish Time,Server Time,Received Time,Publish to Server,Server to Consumer,Publish to Consumer\n";
+
+    private long elapsed = 0;
+    private long bytes = 0;
     private int messageCount = 0;
 
     // latency
-    private double messagePubToServerTimeElapsed = 0;
-    private double messageServerToReceiverElapsed = 0;
-    private double messageFullElapsed = 0;
-    private double messagePubToServerTimeElapsedForAverage = 0;
-    private double messageServerToReceiverElapsedForAverage = 0;
-    private double messageFullElapsedForAverage = 0;
-    private double maxMessagePubToServerTimeElapsed = 0;
-    private double maxMessageServerToReceiverElapsed = 0;
-    private double maxMessageFullElapsed = 0;
-    private double minMessagePubToServerTimeElapsed = Long.MAX_VALUE;
-    private double minMessageServerToReceiverElapsed = Long.MAX_VALUE;
-    private double minMessageFullElapsed = Long.MAX_VALUE;
+    private long messagePubToServerTimeElapsed = 0;
+    private long messageServerToReceiverElapsed = 0;
+    private long messageFullElapsed = 0;
+    private long messagePubToServerTimeElapsedForAverage = 0;
+    private long messageServerToReceiverElapsedForAverage = 0;
+    private long messageFullElapsedForAverage = 0;
+    private long maxMessagePubToServerTimeElapsed = 0;
+    private long maxMessageServerToReceiverElapsed = 0;
+    private long maxMessageFullElapsed = 0;
+    private long minMessagePubToServerTimeElapsed = Long.MAX_VALUE;
+    private long minMessageServerToReceiverElapsed = Long.MAX_VALUE;
+    private long minMessageFullElapsed = Long.MAX_VALUE;
 
     // Time keeping
-    private long nanoNow;
+    private long milliNow;
 
     // Misc
     private final String hdrLabel;
 
-    public Stats() { hdrLabel = ""; }
+    private final ExecutorService countService = Executors.newSingleThreadExecutor();
+    private final FileOutputStream lout;
 
-    public Stats(Action action) {
-        hdrLabel = action.getLabel();
+    public Stats() {
+        hdrLabel = "";
+        lout = null;
+    }
+
+    public Stats(Context ctx) throws IOException {
+        hdrLabel = ctx.action.getLabel();
+        if (ctx.lcsv == null) {
+            lout = null;
+        }
+        else {
+            lout = new FileOutputStream(ctx.lcsv);
+            lout.write(LCSV_HEADER.getBytes(StandardCharsets.US_ASCII));
+        }
+    }
+
+    public void shutdown() {
+        countService.shutdown();
+    }
+
+    public boolean isTerminated() {
+        return countService.isTerminated();
     }
 
     public void start() {
-        nanoNow = System.nanoTime();
+        milliNow = System.currentTimeMillis();
     }
 
     public void stop() {
-        elapsed += System.nanoTime() - nanoNow;
+        elapsed += System.currentTimeMillis() - milliNow;
     }
 
     public long elapsed() {
-        return System.nanoTime() - nanoNow;
+        return System.currentTimeMillis() - milliNow;
     }
 
     public void acceptHold(long hold) {
@@ -79,19 +106,19 @@ public class Stats {
         }
     }
 
-    public void count(long bytes) {
+    public void stopAndCount(long bytes) {
+        stop();
         messageCount++;
         this.bytes += bytes;
     }
 
-    public void stopAndCount(long bytes) {
-        stop();
-        count(bytes);
-    }
-
-    public void count(Message m, long mReceived) {
+    public void count(final Message m, final long mReceived) {
         messageCount++;
         this.bytes += m.getData().length;
+        countService.submit(() -> countTask(m, mReceived));
+    }
+
+    private void countTask(Message m, long mReceived) {
         Headers h = m.getHeaders();
         if (h != null) {
             String hPubTime = h.getFirst(HDR_PUB_TIME);
@@ -99,27 +126,32 @@ public class Stats {
                 long messagePubTime = Long.parseLong(hPubTime);
                 long messageStampTime = m.metaData().timestamp().toInstant().toEpochMilli();
 
-                double el = elapsedLatency(messagePubTime, messageStampTime);
-                messagePubToServerTimeElapsed += el;
-                maxMessagePubToServerTimeElapsed = Math.max(maxMessagePubToServerTimeElapsed, el);
-                minMessagePubToServerTimeElapsed = Math.min(minMessagePubToServerTimeElapsed, el);
+                long pToS = messageStampTime - messagePubTime;
+                messagePubToServerTimeElapsed += pToS;
+                maxMessagePubToServerTimeElapsed = Math.max(maxMessagePubToServerTimeElapsed, pToS);
+                minMessagePubToServerTimeElapsed = Math.min(minMessagePubToServerTimeElapsed, pToS);
 
-                el = elapsedLatency(messageStampTime, mReceived);
-                messageServerToReceiverElapsed += el;
-                maxMessageServerToReceiverElapsed = Math.max(maxMessageServerToReceiverElapsed, el);
-                minMessageServerToReceiverElapsed = Math.min(minMessageServerToReceiverElapsed, el);
+                long sToR = mReceived - messageStampTime;
+                messageServerToReceiverElapsed += sToR;
+                maxMessageServerToReceiverElapsed = Math.max(maxMessageServerToReceiverElapsed, sToR);
+                minMessageServerToReceiverElapsed = Math.min(minMessageServerToReceiverElapsed, sToR);
 
-                el = elapsedLatency(messagePubTime, mReceived);
-                messageFullElapsed += el;
-                maxMessageFullElapsed = Math.max(maxMessageFullElapsed, el);
-                minMessageFullElapsed = Math.min(minMessageFullElapsed, el);
+                long full = mReceived - messagePubTime;
+                messageFullElapsed += full;
+                maxMessageFullElapsed = Math.max(maxMessageFullElapsed, full);
+                minMessageFullElapsed = Math.min(minMessageFullElapsed, full);
+
+                if (lout != null) {
+                    try {
+                        lout.write(("" + messagePubTime + "," + messageStampTime + "," + mReceived
+                            + "," + pToS + "," + sToR + "," + full
+                            + "\n").getBytes(StandardCharsets.US_ASCII));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
         }
-    }
-
-    private double elapsedLatency(double startMs, double stopMs) {
-        double d = stopMs - startMs;
-        return d < 1 ? 0 : d * NANOS_PER_MILLISECOND;
     }
 
     public static void report(Stats stats) {
@@ -131,9 +163,8 @@ public class Stats {
     }
 
     public static void report(Stats stats, String tlabel, boolean header, boolean footer, PrintStream out) {
-        double elapsed = stats.elapsed / NANOS_PER_MILLISECOND;
-        double messagesPerSecond = stats.elapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.elapsed;
-        double bytesPerSecond = NANOS_PER_SECOND * (stats.bytes) / (stats.elapsed);
+        double messagesPerSecond = stats.elapsed == 0 ? 0 : stats.messageCount * MILLIS_PER_SECOND / stats.elapsed;
+        double bytesPerSecond = MILLIS_PER_SECOND * (stats.bytes) / (stats.elapsed);
         if (header) {
             out.println("\n" + REPORT_SEP_LINE);
             out.printf(REPORT_LINE_HEADER, stats.hdrLabel);
@@ -141,7 +172,7 @@ public class Stats {
         }
         out.printf(REPORT_LINE_FORMAT, tlabel,
             format(stats.messageCount),
-            format3(elapsed),
+            format3(stats.elapsed),
             format3(messagesPerSecond),
             humanBytes(bytesPerSecond));
         if (footer) {
@@ -156,12 +187,12 @@ public class Stats {
             out.println(LT_REPORT_SEP_LINE);
         }
 
-        double pubMper = stats.messagePubToServerTimeElapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.messagePubToServerTimeElapsed;
-        double pubBper = stats.bytes * NANOS_PER_SECOND /(stats.messagePubToServerTimeElapsed);
-        double recMper = stats.messageServerToReceiverElapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.messageServerToReceiverElapsed;
-        double recBper = stats.bytes * NANOS_PER_SECOND /(stats.messageServerToReceiverElapsed);
-        double totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageCount * NANOS_PER_SECOND / stats.messageFullElapsed;
-        double totBper = stats.bytes * NANOS_PER_SECOND /(stats.messageFullElapsed);
+        double pubMper = stats.messagePubToServerTimeElapsed == 0 ? 0 : stats.messageCount * MILLIS_PER_SECOND / stats.messagePubToServerTimeElapsed;
+        double pubBper = stats.bytes * MILLIS_PER_SECOND / (stats.messagePubToServerTimeElapsed);
+        double recMper = stats.messageServerToReceiverElapsed == 0 ? 0 : stats.messageCount * MILLIS_PER_SECOND / stats.messageServerToReceiverElapsed;
+        double recBper = stats.bytes * MILLIS_PER_SECOND / (stats.messageServerToReceiverElapsed);
+        double totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageCount * MILLIS_PER_SECOND / stats.messageFullElapsed;
+        double totBper = stats.bytes * MILLIS_PER_SECOND / (stats.messageFullElapsed);
         out.printf(LT_REPORT_LINE_FORMAT, label,
             format3(pubMper),
             humanBytes(pubBper),
@@ -185,25 +216,25 @@ public class Stats {
         double recMper;
         double totMper;
         if (total) {
-            pubMper = stats.messagePubToServerTimeElapsedForAverage == 0 ? 0 : stats.messagePubToServerTimeElapsedForAverage / NANOS_PER_MILLISECOND / stats.messageCount;
-            recMper = stats.messageServerToReceiverElapsedForAverage == 0 ? 0 : stats.messageServerToReceiverElapsedForAverage / NANOS_PER_MILLISECOND / stats.messageCount;
-            totMper = stats.messageFullElapsedForAverage == 0 ? 0 : stats.messageFullElapsedForAverage / NANOS_PER_MILLISECOND / stats.messageCount;
+            pubMper = stats.messagePubToServerTimeElapsedForAverage == 0 ? 0 : stats.messagePubToServerTimeElapsedForAverage / MILLIS_PER_SECOND / stats.messageCount;
+            recMper = stats.messageServerToReceiverElapsedForAverage == 0 ? 0 : stats.messageServerToReceiverElapsedForAverage / MILLIS_PER_SECOND / stats.messageCount;
+            totMper = stats.messageFullElapsedForAverage == 0 ? 0 : stats.messageFullElapsedForAverage / MILLIS_PER_SECOND / stats.messageCount;
         }
         else {
-            pubMper = stats.messagePubToServerTimeElapsed == 0 ? 0 : stats.messagePubToServerTimeElapsed / NANOS_PER_MILLISECOND / stats.messageCount;
-            recMper = stats.messageServerToReceiverElapsed == 0 ? 0 : stats.messageServerToReceiverElapsed / NANOS_PER_MILLISECOND / stats.messageCount;
-            totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageFullElapsed / NANOS_PER_MILLISECOND / stats.messageCount;
+            pubMper = stats.messagePubToServerTimeElapsed == 0 ? 0 : stats.messagePubToServerTimeElapsed / MILLIS_PER_SECOND / stats.messageCount;
+            recMper = stats.messageServerToReceiverElapsed == 0 ? 0 : stats.messageServerToReceiverElapsed / MILLIS_PER_SECOND / stats.messageCount;
+            totMper = stats.messageFullElapsed == 0 ? 0 : stats.messageFullElapsed / MILLIS_PER_SECOND / stats.messageCount;
         }
         out.printf(LM_REPORT_LINE_FORMAT, label + " Average", format(pubMper), format(recMper), format(totMper));
 
-        pubMper = stats.minMessagePubToServerTimeElapsed == 0 ? 0 : stats.minMessagePubToServerTimeElapsed / NANOS_PER_MILLISECOND;
-        recMper = stats.minMessageServerToReceiverElapsed == 0 ? 0 : stats.minMessageServerToReceiverElapsed / NANOS_PER_MILLISECOND;
-        totMper = stats.minMessageFullElapsed == 0 ? 0 : stats.minMessageFullElapsed / NANOS_PER_MILLISECOND;
+        pubMper = stats.minMessagePubToServerTimeElapsed == 0 ? 0 : stats.minMessagePubToServerTimeElapsed / MILLIS_PER_SECOND;
+        recMper = stats.minMessageServerToReceiverElapsed == 0 ? 0 : stats.minMessageServerToReceiverElapsed / MILLIS_PER_SECOND;
+        totMper = stats.minMessageFullElapsed == 0 ? 0 : stats.minMessageFullElapsed / MILLIS_PER_SECOND;
         out.printf(LM_REPORT_LINE_FORMAT, "Minimum", format(pubMper), format(recMper), format(totMper));
 
-        pubMper = stats.maxMessagePubToServerTimeElapsed == 0 ? 0 : stats.maxMessagePubToServerTimeElapsed / NANOS_PER_MILLISECOND;
-        recMper = stats.maxMessageServerToReceiverElapsed == 0 ? 0 : stats.maxMessageServerToReceiverElapsed / NANOS_PER_MILLISECOND;
-        totMper = stats.maxMessageFullElapsed == 0 ? 0 : stats.maxMessageFullElapsed / NANOS_PER_MILLISECOND;
+        pubMper = stats.maxMessagePubToServerTimeElapsed == 0 ? 0 : stats.maxMessagePubToServerTimeElapsed / MILLIS_PER_SECOND;
+        recMper = stats.maxMessageServerToReceiverElapsed == 0 ? 0 : stats.maxMessageServerToReceiverElapsed / MILLIS_PER_SECOND;
+        totMper = stats.maxMessageFullElapsed == 0 ? 0 : stats.maxMessageFullElapsed / MILLIS_PER_SECOND;
         out.printf(LM_REPORT_LINE_FORMAT, "Maximum", format(pubMper), format(recMper), format(totMper));
 
         out.println(LM_REPORT_SEP_LINE);

@@ -1,5 +1,11 @@
 ![NATS](../images/large-logo.png)
 
+# DEPRECATED!
+
+This example is perfectly fine but the Java client now contains Object Store functionality,
+which is based on this example. Not all functionality was carried over, for instance 
+the way metadata is handled is different.
+
 # File Transfer
 
 The file transfer example demonstrates using JetStream as a way to store a large block of data such as a file.

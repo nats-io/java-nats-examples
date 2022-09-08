@@ -28,7 +28,7 @@ public class Consumer {
         Arguments a = Arguments.instance()
             .server(SERVER)
             .subject(SUBJECT)
-            .action(Action.SUB_PULL_QUEUE)  // could be Action.SUB_PULL for example
+            .action(Action.SUB_PULL_QUEUE)  // could be Action.SUB_PULL_READ for example
             .messageCount(50_000)           // default is 100_000. Consumer needs this to know when to stop.
             // .ackPolicy(AckPolicy.None)   // default is AckPolicy.Explicit which is the only policy allowed for PULL at the moment
             // .ackAllFrequency(20)         // for AckPolicy.All how many message to wait before acking, DEFAULT IS 1
@@ -36,6 +36,7 @@ public class Consumer {
             .threads(3)                     // default is 1
             .individualConnection()         // versus .sharedConnection()
             // .reportFrequency(500)        // default is 10% of message count
+            // .latencyCsv("C:\\temp\\latency.csv") // write latency data to a csv file
             ;
 
         a.printCommandLine();
