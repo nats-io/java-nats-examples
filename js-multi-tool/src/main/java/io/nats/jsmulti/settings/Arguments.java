@@ -37,6 +37,8 @@ public class Arguments {
     public static Arguments subQueue(String subject) { return instance().action(SUB_QUEUE).subject(subject); }
     public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }
     public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
+    public static Arguments subPullRead(String subject) { return instance().action(SUB_PULL_READ).subject(subject); }
+    public static Arguments subPullReadQueue(String subject) { return instance().action(SUB_PULL_READ_QUEUE).subject(subject); }
 
     private Arguments add(String option) {
         args.add("-" + option);
@@ -75,6 +77,10 @@ public class Arguments {
 
     public Arguments latencyFlag(boolean lf) {
         return lf ? add("lf") : this;
+    }
+
+    public Arguments latencyCsv(String latencyCsvFileSpec) {
+        return add("lcsv", latencyCsvFileSpec);
     }
 
     public Arguments optionsFactory(String optionsFactoryClassName) {

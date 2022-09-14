@@ -14,11 +14,10 @@
 package io.nats.jsmulti;
 
 import io.nats.client.*;
-import io.nats.client.api.AckPolicy;
-import io.nats.client.api.ConsumerConfiguration;
-import io.nats.client.api.PublishAck;
+import io.nats.client.api.*;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
+import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 import io.nats.jsmulti.shared.Application;
@@ -47,6 +46,8 @@ import static io.nats.jsmulti.shared.Utils.sleep;
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [args]
  */
 public class JsMulti {
+
+    static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(1);
 
     public static void main(String[] args) throws Exception {
         run(new Context(args), false, true);
@@ -100,6 +101,7 @@ public class JsMulti {
                 case SUB_PUSH:
                     return (nc, stats, id) -> subPush(ctx, nc, stats, id);
                 case SUB_PULL:
+                case SUB_PULL_READ:
                     return (nc, stats, id) -> subPull(ctx, nc, stats, id);
                 case SUB_QUEUE:
                     if (ctx.threads > 1) {
@@ -107,6 +109,7 @@ public class JsMulti {
                     }
                     break;
                 case SUB_PULL_QUEUE:
+                case SUB_PULL_READ_QUEUE:
                     if (ctx.threads > 1) {
                         return (nc, stats, id) -> subPull(ctx, nc, stats, id);
                     }
@@ -144,9 +147,40 @@ public class JsMulti {
     }
 
     private static void pubCore(Context ctx, final Connection nc, Stats stats, int id) throws Exception {
+        // if you are using pub core to test latency, that's okay but...
+        // sometimes if you disconnect before all publishes have completed
+        // the publishes don't actually take. I think this is a matter
+        // of how pub acks work. So we are going to try to make sure the message show up.
+        JetStreamManagement jsm = null;
+        String streamName = null;
+        long startingCount = -1;
+        if (ctx.latencyFlag) {
+            jsm = nc.jetStreamManagement(ctx.getJetStreamOptions());
+            List<String> streamNames = jsm.getStreamNamesBySubjectFilter(ctx.subject);
+            if (streamNames.size() != 1) {
+                throw new RuntimeException("JetStream subject does not exist for latency run [" + ctx.subject + "]");
+            }
+            streamName = streamNames.get(0);
+            StreamInfo si = jsm.getStreamInfo(streamName, StreamInfoOptions.filterSubjects(ctx.subject));
+            List<Subject> subjects = si.getStreamState().getSubjects();
+            startingCount = subjects == null ? 0 : subjects.get(0).getCount();
+        }
+
         _pub(ctx, stats, id, ctx.latencyFlag
             ? (s, p) -> { nc.publish(buildLatencyMessage(s, p)); return null; }
             : (s, p) -> { nc.publish(s, p); return null; } );
+
+        if (startingCount != -1) {
+            long currentCount = 0;
+            while (currentCount < ctx.messageCount) {
+                StreamInfo si = jsm.getStreamInfo(streamName, StreamInfoOptions.filterSubjects(ctx.subject));
+                currentCount = si.getStreamState().getSubjects().get(0).getCount();
+                if (currentCount < ctx.messageCount) {
+                    ctx.app.report("Waiting for the server to record all publishes. " + currentCount + " of " + ctx.messageCount);
+                    Thread.sleep(100);
+                }
+            }
+        }
     }
 
     private static void _pub(Context ctx, Stats stats, int id, Publisher<PublishAck> p) throws Exception {
@@ -244,6 +278,17 @@ public class JsMulti {
                         .buildPushSubscribeOptions());
         }
 
+        _pushLike(ctx, stats, durable, sub::nextMessage);
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // Simple Reader - Used by push and pull reader
+    // ----------------------------------------------------------------------------------------------------
+    interface SimpleReader {
+        Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException;
+    }
+
+    private static void _pushLike(Context ctx, Stats stats, String durable, SimpleReader reader) throws InterruptedException {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
@@ -252,7 +297,7 @@ public class JsMulti {
         report(rcvd, "Begin Reading", ctx.app);
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            Message m = sub.nextMessage(Duration.ofSeconds(1));
+            Message m = reader.nextMessage(DEFAULT_TIMEOUT);
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
@@ -293,7 +338,12 @@ public class JsMulti {
                     .buildPullSubscribeOptions());
         }
 
-        _subPullFetch(ctx, stats, sub, durable);
+        if (ctx.action == Action.SUB_PULL || ctx.action == Action.SUB_PULL_QUEUE) {
+            _subPullFetch(ctx, stats, sub, durable);
+        }
+        else {
+            _subPullRead(ctx, stats, sub, durable);
+        }
     }
 
     private static void _subPullFetch(Context ctx, Stats stats, JetStreamSubscription sub, String durable) {
@@ -305,7 +355,7 @@ public class JsMulti {
         report(rcvd, "Begin Reading", ctx.app);
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            List<Message> list = sub.fetch(ctx.batchSize, Duration.ofMillis(500));
+            List<Message> list = sub.fetch(ctx.batchSize, DEFAULT_TIMEOUT);
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             int lc = list.size();
@@ -326,6 +376,12 @@ public class JsMulti {
             _ack(stats, lastUnAcked);
         }
         report(rcvd, "Finished Reading Messages", ctx.app);
+    }
+
+    private static void _subPullRead(Context ctx, Stats stats, JetStreamSubscription sub, String durable) throws InterruptedException {
+        JetStreamReader reader = sub.reader(ctx.batchSize, ctx.batchSize / 4); // repullAt 25% of batch size
+        _pushLike(ctx, stats, durable, reader::nextMessage);
+        reader.stop();
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -406,12 +462,12 @@ public class JsMulti {
     }
 
     private static List<Stats> runShared(Context ctx, Runner runner) throws Exception {
-        List<Stats> statsList = new ArrayList<>();
         try (Connection nc = connect(ctx)) {
+            List<Stats> statsList = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
             for (int x = 0; x < ctx.threads; x++) {
                 final int id = x + 1;
-                final Stats stats = new Stats(ctx.action);
+                final Stats stats = new Stats(ctx);
                 statsList.add(stats);
                 Thread t = new Thread(() -> {
                     try {
@@ -422,19 +478,16 @@ public class JsMulti {
                 }, ctx.getLabel(id));
                 threads.add(t);
             }
-            for (Thread t : threads) { t.start(); }
-            for (Thread t : threads) { t.join(); }
+            return endRun(statsList, threads);
         }
-        return statsList;
     }
 
     private static List<Stats> runIndividual(Context ctx, Runner runner) throws Exception {
         List<Stats> statsList = new ArrayList<>();
         List<Thread> threads = new ArrayList<>();
-
         for (int x = 0; x < ctx.threads; x++) {
             final int id = x + 1;
-            final Stats stats = new Stats(ctx.action);
+            final Stats stats = new Stats(ctx);
             statsList.add(stats);
             Thread t = new Thread(() -> {
                 try (Connection nc = connect(ctx)) {
@@ -445,9 +498,25 @@ public class JsMulti {
             }, ctx.getLabel(id));
             threads.add(t);
         }
+        return endRun(statsList, threads);
+    }
+
+    private static List<Stats> endRun(List<Stats> statsList, List<Thread> threads) throws InterruptedException {
         for (Thread t : threads) { t.start(); }
         for (Thread t : threads) { t.join(); }
-
+        for (Stats s : statsList) {
+            s.shutdown();
+        }
+        boolean notTerminated = true;
+        while (notTerminated) {
+            Thread.sleep(100);
+            notTerminated = false;
+            for (Stats s : statsList) {
+                if (!s.isTerminated()) {
+                    notTerminated = true;
+                }
+            }
+        }
         return statsList;
     }
 }

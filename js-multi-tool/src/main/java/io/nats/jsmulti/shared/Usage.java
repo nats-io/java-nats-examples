@@ -23,20 +23,20 @@ public class Usage {
         System.out.println(Usage.USAGE);
     }
 
-    public static final String ACTIONS =
-          "-a action (string), required, one of "
+    public static final String ACTIONS = "-a action (string), required, one of "
         + "\n   pubSync      - publish synchronously"
         + "\n   pubAsync     - publish asynchronously"
         + "\n   pubCore      - core publish (synchronously) to subject"
         + "\n   subPush      - push subscribe read messages (synchronously)"
         + "\n   subQueue     - push subscribe read messages with queue (synchronously)."
         + "\n                    Requires 2 or more threads"
-        + "\n   subPull      - pull subscribe read messages"
-        + "\n   subPullQueue - pull subscribe read messages, queue (using common durable)"
+        + "\n   subPull      - pull subscribe fetch messages"
+        + "\n   subPullQueue - pull subscribe fetch messages, queue (using common durable)"
+        + "\n   subPullRead  - pull subscribe read messages"
+        + "\n   subPullReadQueue - pull subscribe read messages, queue (using common durable)"
         + "\n                    Requires 2 or more threads";
 
-    public static final String SERVER =
-          "-s server url (string), optional, defaults to nats://localhost:4222"
+    public static final String SERVER = "-s server url (string), optional, defaults to nats://localhost:4222"
         + "\n-cf credentials file (string), optional"
         + "\n-ctms connection timeout millis, optional, defaults to 5000"
         + "\n-rwms reconnect wait millis, optional, defaults to 1000"
@@ -46,10 +46,10 @@ public class Usage {
         + "\n    <= 0 for no reporting. Reporting time is excluded from timings";
 
     public static final String LATENCY =
-        "-lf latency flag. Needed when publishing to test latency. See examples.";
+        "-lf latency flag. Needed when publishing to test latency. See examples."
+        + "\n-lcsv latency-csv-file-spec";
 
-    public static final String NOTES =
-          "All text constants are case insensitive, i.e."
+    public static final String NOTES = "All text constants are case insensitive, i.e."
         + "\n  action, connection strategy, ack policy, pull type"
         + "\nInput numbers can be formatted for easier viewing. For instance, ten thousand"
         + "\n  can be any of these: 10000 10,000 10.000 10_000"
@@ -57,8 +57,7 @@ public class Usage {
         + "\n  or ki, mi, gi meaning x 1024, x 1024 * 1024, x 1024 * 1024 * 1024"
         + "\nUse tls:// or opentls:// in the server url to require tls, via the Default SSLContext";
 
-    public static final String GENERAL =
-          "-u subject (string), required for publishing or subscribing"
+    public static final String GENERAL = "-u subject (string), required for publishing or subscribing"
         + "\n-m message count (number) required > 1 for publishing or subscribing, defaults to 100_000"
         + "\n-d threads (number) for publishing or subscribing, defaults to 1"
         + "\n-n connection strategy (shared|individual) when threading, whether to share"
@@ -71,7 +70,7 @@ public class Usage {
         + "\n-kp ack policy (explicit|none|all) for subscriptions, defaults to explicit"
         + "\n-kf ack all frequency (number), applies to ack policy all, ack after kf messages"
         + "\n      defaults to 1, maximum 100"
-        + "\n-bs batch size (number) for subPull/subPullQueue, defaults to 10, maximum 200";
+        + "\n-bs batch size (number) for subPull*, defaults to 10, maximum 200";
 
     public static final String SSEP =
         "---------------------------";

@@ -37,7 +37,10 @@ public class Context {
     // Settings
     // ----------------------------------------------------------------------------------------------------
     public final Action action;
+
+    // latency
     public final boolean latencyFlag;
+    public final String lcsv;
 
     // connection options
     public final String server;
@@ -45,6 +48,7 @@ public class Context {
     public final long connectionTimeoutMillis;
     public final long reconnectWaitMillis;
 
+    // general
     public final String subject;
     public final int messageCount;
     public final int threads;
@@ -188,6 +192,7 @@ public class Context {
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
         int _batchSize = 10;
+        String _lcsv = null;
         String _queueName = "qn" + randomString();
         String _subDurableWhenQueue = "qd" + randomString();
 
@@ -198,6 +203,9 @@ public class Context {
                     switch (arg) {
                         case "-s":
                             _server = asString(args[++x]);
+                            break;
+                        case "-lcsv":
+                            _lcsv = asString(args[++x]);
                             break;
                         case "-of":
                             _optionsFactoryClassName = asString(args[++x]);
@@ -294,6 +302,7 @@ public class Context {
         connectionTimeoutMillis = _connectionTimeoutMillis;
         reconnectWaitMillis = _reconnectWaitMillis;
         subject = _subject;
+        lcsv = _lcsv;
         messageCount = _messageCount;
         threads = _threads;
         connShared = _connShared;
