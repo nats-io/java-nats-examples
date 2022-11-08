@@ -156,7 +156,7 @@ public class JsMulti {
         long startingCount = -1;
         if (ctx.latencyFlag) {
             jsm = nc.jetStreamManagement(ctx.getJetStreamOptions());
-            List<String> streamNames = jsm.getStreamNamesBySubjectFilter(ctx.subject);
+            List<String> streamNames = jsm.getStreamNames(ctx.subject);
             if (streamNames.size() != 1) {
                 throw new RuntimeException("JetStream subject does not exist for latency run [" + ctx.subject + "]");
             }
