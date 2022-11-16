@@ -326,7 +326,7 @@ public class JsMulti {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
 
         // Really only need to lock when queueing b/c it's the same durable...
-        // To ensure protection from multiple threads trying  make the same consumer because
+        // ... to ensure protection from multiple threads trying to make the same consumer
         String durable = ctx.getSubDurable(id);
         JetStreamSubscription sub;
         synchronized (QUEUE_LOCK) {
