@@ -309,12 +309,15 @@ public class Stats {
         return NumberFormat.getNumberInstance(Locale.getDefault()).format(s);
     }
 
-    public static String format3(Number s) {
-        if (s.longValue() >= 1_000_000_000) {
-            return humanBytes(s.doubleValue());
+    public static String format3(Number n) {
+        if (n.longValue() >= 1_000_000_000) {
+            return humanBytes(n.doubleValue());
         }
-        String f = format(s);
+        String f = format(n);
         int at = f.indexOf('.');
+        if (at == -1) {
+            return f;
+        }
         if (at == 0) {
             return f + "." + ZEROS.substring(0, 3);
         }
