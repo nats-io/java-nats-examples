@@ -46,9 +46,15 @@ jobs:
           chmod +x gradlew
           ./gradlew compileJava
           popd
-      - name: File Transfer
+      - name: File Transfer Manual
         run: |
-          pushd file-transfer
+          pushd file-transfer-manual
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: File Transfer Object Store
+        run: |
+          pushd file-transfer-object-store
           chmod +x gradlew
           ./gradlew compileJava
           popd
