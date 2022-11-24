@@ -43,7 +43,7 @@ public static void upload(
 
 - conn: The connection to JetStream
 - partSize: The size of each part. The example code is set to 8192 bytes.
-- f: The input File object.
+- f: The dataFile File object.
 - description: A description of the file.
 - contentType: The mime type of the file. See `Constants.java` for examples.
 - gzip: boolean whether to compress the contents. Works great for text, not so good for binary.
@@ -105,7 +105,7 @@ io.nats.part.start:8192
 
 The `Runner.java` class is just a main that can be used to exercise the code.
 
-- inputs: This array is used to setup which files to use as input for the run.
+- dataFiles: This array is used to setup which files to use as dataFile for the run.
 - generateFiles(): helper function to generate test files. Overwrites existing files.
 - setup(): helper function to setup the bucket and stream
 - upload(): helper function to upload files
