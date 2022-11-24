@@ -6,7 +6,7 @@ This example uses the Object Store functionality to demonstrate uploading and do
 
 ### Runner
 
-The `Runner.java` is your starting point. It has all the code you need to
+The [Runner.java](src/main/java/io/nats/ft/Runner.java) is your starting point. It has all the code you need to
 * Make input data files.
 * Create the Object Store
 * Upload input data files
