@@ -24,6 +24,7 @@ public class Usage {
     }
 
     public static final String ACTIONS = "-a action (string), required, one of "
+        + "\n   RTT          - round trip timing"
         + "\n   pubSync      - publish synchronously"
         + "\n   pubAsync     - publish asynchronously"
         + "\n   pubCore      - core publish (synchronously) to subject"

@@ -17,6 +17,7 @@ You can use the maven exec plugin...
 > mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.JsMulti" -Dexec.args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
 > mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.examples.Producer" -Dexec.args="[arguments]"
 > mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.examples.Consumer" -Dexec.args="[arguments]"
+> mvn clean compile exec:java -Dexec.mainClass="io.nats.jsmulti.examples.Rtt" -Dexec.args="[arguments]"
 ```
 
 You can increase memory for maven via environment variable, i.e.
@@ -32,6 +33,7 @@ There are tasks available for js
 > gradle clean jsMulti --args="-a PubSync -s nats://localhost:4222 -u sub -m 10_000"
 > gradle clean producer --args="[arguments]"
 > gradle clean consumer --args="[arguments]"
+> gradle clean rtt --args="[arguments]"
 ```
 
 You can increase memory for the gradle task by changing the `jvmArgs` value for the correct task in build.gradle.
@@ -44,7 +46,7 @@ you can simply run java with the correct classpath, which includes the location 
 At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/target/classes;<my-repo-path>/io/nats/jnats/2.16.4/jnats-2.16.4.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/target/classes;<my-repo-path>/io/nats/jnats/2.16.5/jnats-2.16.5.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
 ```
 
 You could also use a gradle task to build an uber jar. This jar will contain all necessary classes and the jnats library.
@@ -56,9 +58,10 @@ gradle uberJar
 At that point you can run directly the programs you can run with the gradle tasks 
 
 ```shell
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.JsMulti [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.3.0-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.JsMulti [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Rtt [arguments] 
 ```
 
 ### Running from an IDE
@@ -79,6 +82,7 @@ to make it more readable. So these are all valid for 1 million `1000000`, `1,000
 
 `-a` The action to execute. Always required. One of the following (case ignored)
 
+* `RTT` Round Trip Test
 * `PubSync` publish synchronously
 * `PubAsync` publish asynchronously
 * `PubCore` publish synchronously using the core api
@@ -97,6 +101,7 @@ You could use the builder and modify the `JsMulti` class or just create your own
 The actions all have smart builder creation methods...
 
 ```java
+Context ctx = Arguments.rtt() ... .build();
 Context ctx = Arguments.pubSync("subject-name") ... .build();
 Context ctx = Arguments.pubAsync("subject-name") ... .build();
 Context ctx = Arguments.pubCore("subject-name") ... .build();

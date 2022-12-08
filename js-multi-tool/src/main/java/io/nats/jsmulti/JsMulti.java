@@ -41,9 +41,12 @@ import static io.nats.jsmulti.shared.Utils.sleep;
  * 1. Through an ide...
  * 2. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.JsMulti -Dexec.args="[args]"
  *    ! You can increase memory for maven via environment variable, i.e. set MAVEN_OPTS=-Xmx6g
- * 3. Gradle: gradle clean consumer --args="[args]"
+ * 3. Gradle: gradle clean jsMulti --args="[args]"
  *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `jsMulti` task in build.gradle.
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.JsMulti [args]
+ *    ! You must have run gradle clean jar and know where the jnats library is
+ * 5. Command Line: java -cp <path-to-uber-jar> io.nats.jsmulti.JsMulti [args]
+ *    ! You must have run gradle clean uberJar
  */
 public class JsMulti {
 
@@ -114,6 +117,8 @@ public class JsMulti {
                         return (nc, stats, id) -> subPull(ctx, nc, stats, id);
                     }
                     break;
+                case RTT:
+                    return (nc, stats, id) -> rtt(ctx, nc, stats, id);
             }
             throw new Exception("Invalid Action");
         }
@@ -122,6 +127,27 @@ public class JsMulti {
             System.exit(-1);
             return null;
         }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // RTT
+    // ----------------------------------------------------------------------------------------------------
+    private static void rtt(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        int pubTarget = ctx.getPubCount(id);
+        int published = 0;
+        int unReported = 0;
+        report(published, "Begin RTT", ctx.app);
+        while (published < pubTarget) {
+            jitter(ctx);
+            try {
+                stats.manualElapsed(nc.RTT().toNanos(), 1);
+                unReported = reportMaybe(ctx, ++published, ++unReported, "RTTs so far");
+            }
+            catch (Exception e) {
+                throw e;
+            }
+        }
+        report(published, "RTTs completed", ctx.app);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -304,7 +330,7 @@ public class JsMulti {
                 acceptHoldOnceStarted(stats, rcvd, hold, ctx.app);
             }
             else {
-                stats.acceptHold(hold);
+                stats.manualElapsed(hold);
                 stats.count(m, received);
                 counter.incrementAndGet();
                 if ( (lastUnAcked = ackMaybe(ctx, stats, m, ++unAckedCount)) == null ) {
@@ -393,7 +419,7 @@ public class JsMulti {
         }
         else {
             // not the first message so we count waiting time
-            stats.acceptHold(hold);
+            stats.manualElapsed(hold);
         }
     }
 

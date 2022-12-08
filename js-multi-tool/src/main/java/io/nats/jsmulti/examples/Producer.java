@@ -15,6 +15,9 @@ import io.nats.jsmulti.settings.Context;
  * 3. Gradle: gradle clean producer --args="[args]"
  *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `producer` task in build.gradle.
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Producer [args]
+ *    ! You must have run gradle clean jar and know where the jnats library is
+ * 5. Command Line: java -cp <path-to-uber-jar> io.nats.jsmulti.examples.Producer [args]
+ *    ! You must have run gradle clean uberJar
  */
 public class Producer {
 
@@ -31,12 +34,13 @@ public class Producer {
             .subject(SUBJECT)
             .action(Action.PUB_SYNC)    // or Action.PUB_ASYNC or Action.PUB_CORE for example
             .latencyFlag(LATENCY_RUN)   // tells the code to add latency info to the header
-            .messageCount(50_000)       // default is 100_000
+            .messageCount(3_000)       // default is 100_000
             .payloadSize(256)           // default is 128
             .roundSize(50)              // how often to check Async Publish Acks, default is 100
             .threads(3)                 // default is 1
             .individualConnection()     // versus .sharedConnection()
             // .reportFrequency(500)    // default is 10% of message count
+            .add(args)                  // last added wins so these will take precedence over defaults
             ;
 
         a.printCommandLine();

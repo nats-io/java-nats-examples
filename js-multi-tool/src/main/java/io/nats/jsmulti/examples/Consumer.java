@@ -6,7 +6,7 @@ import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
 
 /**
- * Example class running a consumer (publisher)
+ * Example class running a consumer
  *
  * Various ways to run the code
  * 1. Through an ide...
@@ -15,6 +15,9 @@ import io.nats.jsmulti.settings.Context;
  * 3. Gradle: gradle clean consumer --args="[args]"
  *    ! You can increase memory for the gradle task by changing the `jvmArgs` value for the `consumer` task in build.gradle.
  * 4. Command Line: java -cp <path-to-js-multi-files-or-jar>:<path-to-jnats-jar> io.nats.jsmulti.examples.Consumer [args]
+ *    ! You must have run gradle clean jar and know where the jnats library is
+ * 5. Command Line: java -cp <path-to-uber-jar> io.nats.jsmulti.examples.Consumer [args]
+ *    ! You must have run gradle clean uberJar
  */
 public class Consumer {
 
@@ -23,7 +26,6 @@ public class Consumer {
     static final String SERVER = "nats://localhost:4222";
 
     public static void main(String[] args) throws Exception {
-
         // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
             .server(SERVER)
@@ -37,6 +39,7 @@ public class Consumer {
             .individualConnection()         // versus .sharedConnection()
             // .reportFrequency(500)        // default is 10% of message count
             // .latencyCsv("C:\\temp\\latency.csv") // write latency data to a csv file
+            .add(args)                      // last added wins so these will take precedence over defaults
             ;
 
         a.printCommandLine();

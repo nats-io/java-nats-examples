@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
 }
 
-version = "1.5.0"
+version = "1.5.1"
 group = 'io.nats'
 
 repositories {
@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.16.4'
+    implementation 'io.nats:jnats:2.16.5'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
 }
 
@@ -52,6 +52,12 @@ task(producer, dependsOn: 'classes', type: JavaExec) {
 
 task(consumer, dependsOn: 'classes', type: JavaExec) {
     main = 'io.nats.jsmulti.examples.Consumer'
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ['-Xmx4g']
+}
+
+task(rtt, dependsOn: 'classes', type: JavaExec) {
+    main = 'io.nats.jsmulti.examples.Rtt'
     classpath = sourceSets.main.runtimeClasspath
     jvmArgs = ['-Xmx4g']
 }

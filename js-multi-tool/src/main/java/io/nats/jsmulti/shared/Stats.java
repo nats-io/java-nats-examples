@@ -2,6 +2,7 @@ package io.nats.jsmulti.shared;
 
 import io.nats.client.Message;
 import io.nats.client.impl.Headers;
+import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Context;
 
 import java.io.FileOutputStream;
@@ -18,6 +19,7 @@ import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
 
 public class Stats {
     private static final double MILLIS_PER_SECOND = 1000;
+    private static final double NANOS_PER_MILLI = 1000000;
 
     private static final long HUMAN_BYTES_BASE = 1024;
     private static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
@@ -26,6 +28,10 @@ public class Stats {
     private static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
     private static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
     private static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
+
+    private static final String RTT_REPORT_SEP_LINE    = "| --------------- | ------------ | ------------------ | ------------------ |";
+    private static final String RTT_REPORT_LINE_HEADER = "| %-15s |        count |         total time |       average time |\n";
+    private static final String RTT_REPORT_LINE_FORMAT = "| %-15s | %12s |    %12s ms | %15s ms |\n";
 
     private static final String LT_REPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
     private static final String LT_REPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
@@ -59,17 +65,20 @@ public class Stats {
     private long milliNow;
 
     // Misc
+    private final Context ctx;
     private final String hdrLabel;
 
     private final ExecutorService countService = Executors.newSingleThreadExecutor();
     private final FileOutputStream lout;
 
     public Stats() {
+        ctx = null;
         hdrLabel = "";
         lout = null;
     }
 
     public Stats(Context ctx) throws IOException {
+        this.ctx = ctx;
         hdrLabel = ctx.action.getLabel();
         if (ctx.lcsv == null) {
             lout = null;
@@ -100,10 +109,19 @@ public class Stats {
         return System.currentTimeMillis() - milliNow;
     }
 
-    public void acceptHold(long hold) {
-        if (hold > 0) {
-            elapsed += hold;
-        }
+    public void manualElapsed(long mElapsed) {
+        elapsed += mElapsed;
+    }
+
+    public void manualElapsed(long mElapsed, long mMessageCount) {
+        elapsed += mElapsed;
+        messageCount += mMessageCount;
+    }
+
+    public void manualElapsed(long mElapsed, long mMessageCount, long mBytes) {
+        elapsed += mElapsed;
+        messageCount += mMessageCount;
+        bytes += mBytes;
     }
 
     public void stopAndCount(long bytes) {
@@ -154,15 +172,7 @@ public class Stats {
         }
     }
 
-    public static void report(Stats stats) {
-        report(stats, "Total", true, true, System.out);
-    }
-
-    public static void report(Stats stats, String label, boolean header, boolean footer) {
-        report(stats, label, header, footer, System.out);
-    }
-
-    public static void report(Stats stats, String tlabel, boolean header, boolean footer, PrintStream out) {
+    public static void report(Stats stats, String label, boolean header, boolean footer, PrintStream out) {
         double messagesPerSecond = stats.elapsed == 0 ? 0 : stats.messageCount * MILLIS_PER_SECOND / stats.elapsed;
         double bytesPerSecond = MILLIS_PER_SECOND * (stats.bytes) / (stats.elapsed);
         if (header) {
@@ -170,13 +180,28 @@ public class Stats {
             out.printf(REPORT_LINE_HEADER, stats.hdrLabel);
             out.println(REPORT_SEP_LINE);
         }
-        out.printf(REPORT_LINE_FORMAT, tlabel,
+        out.printf(REPORT_LINE_FORMAT, label,
             format(stats.messageCount),
             format3(stats.elapsed),
             format3(messagesPerSecond),
             humanBytes(bytesPerSecond));
         if (footer) {
             out.println(REPORT_SEP_LINE);
+        }
+    }
+
+    public static void rttReport(Stats stats, String tlabel, boolean header, boolean footer, PrintStream out) {
+        if (header) {
+            out.println("\n" + RTT_REPORT_SEP_LINE);
+            out.printf(RTT_REPORT_LINE_HEADER, stats.hdrLabel);
+            out.println(RTT_REPORT_SEP_LINE);
+        }
+        out.printf(RTT_REPORT_LINE_FORMAT, tlabel,
+            format(stats.messageCount),
+            format3(stats.elapsed / NANOS_PER_MILLI),
+            format3(stats.elapsed / NANOS_PER_MILLI / stats.messageCount));
+        if (footer) {
+            out.println(RTT_REPORT_SEP_LINE);
         }
     }
 
@@ -272,6 +297,17 @@ public class Stats {
 
     public static void report(List<Stats> statList, PrintStream out) {
         Stats totalStats = total(statList);
+
+        Context ctx = statList.get(0).ctx;
+        if (ctx != null && ctx.action == Action.RTT) {
+            for (int x = 0; x < statList.size(); x++) {
+                rttReport(statList.get(x), "Thread " + (x+1), x == 0, false, out);
+            }
+            out.println(RTT_REPORT_SEP_LINE);
+            rttReport(totalStats, "Total", false, true, out);
+            return;
+        }
+
         for (int x = 0; x < statList.size(); x++) {
             report(statList.get(x), "Thread " + (x+1), x == 0, false, out);
         }

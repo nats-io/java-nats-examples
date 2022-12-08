@@ -17,6 +17,7 @@ import io.nats.client.api.AckPolicy;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static io.nats.jsmulti.settings.Action.*;
@@ -30,6 +31,7 @@ public class Arguments {
 
     public static Arguments instance() { return new Arguments(); }
     public static Arguments instance(String subject) { return instance().subject(subject); }
+    public static Arguments rtt() { return instance().action(RTT); }
     public static Arguments pubSync(String subject) { return instance().action(PUB_SYNC).subject(subject); }
     public static Arguments pubAsync(String subject) { return instance().action(PUB_ASYNC).subject(subject); }
     public static Arguments pubCore(String subject) { return instance().action(PUB_CORE).subject(subject); }
@@ -40,14 +42,19 @@ public class Arguments {
     public static Arguments subPullRead(String subject) { return instance().action(SUB_PULL_READ).subject(subject); }
     public static Arguments subPullReadQueue(String subject) { return instance().action(SUB_PULL_READ_QUEUE).subject(subject); }
 
-    private Arguments add(String option) {
+    public Arguments add(String option) {
         args.add("-" + option);
         return this;
     }
 
-    private Arguments add(String option, Object value) {
+    public Arguments add(String option, Object value) {
         args.add("-" + option);
         args.add(value.toString());
+        return this;
+    }
+
+    public Arguments add(String[] inArgs) {
+        args.addAll(Arrays.asList(inArgs));
         return this;
     }
 

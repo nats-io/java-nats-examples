@@ -14,15 +14,16 @@
 package io.nats.jsmulti.settings;
 
 public enum Action {
-    PUB_SYNC(            "PubSync",       true),
-    PUB_ASYNC(           "PubAsync",      false),
-    PUB_CORE(            "PubCore",       true),
-    SUB_PUSH(            "SubPush",       true,  false),
-    SUB_QUEUE(           "SubQueue",      true,  true),
-    SUB_PULL(            "SubPull",       false, false),
-    SUB_PULL_READ(       "SubPullRead",  false, false),
-    SUB_PULL_QUEUE(      "SubPullQueue",  false, true),
-    SUB_PULL_READ_QUEUE( "SubPullReadQueue",  false, false);
+    PUB_SYNC(            "PubSync",          true),
+    PUB_ASYNC(           "PubAsync",         false),
+    PUB_CORE(            "PubCore",          true),
+    SUB_PUSH(            "SubPush",          true,  false),
+    SUB_QUEUE(           "SubQueue",         true,  true),
+    SUB_PULL(            "SubPull",          false, false),
+    SUB_PULL_READ(       "SubPullRead",      false, false),
+    SUB_PULL_QUEUE(      "SubPullQueue",     false, true),
+    SUB_PULL_READ_QUEUE( "SubPullReadQueue", false, false),
+    RTT(                 "RTT",              true);
 
     private final String label;
     private final boolean pubAction;
