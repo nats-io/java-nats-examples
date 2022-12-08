@@ -431,3 +431,66 @@ Look at the java programs `src/main/java/io/nats/jsmulti/examples`
 `Consumer.java` demonstrates how to build a simple main to consume messages (subscribe).
 
 These are provided as customization examples. They also have instructions on how to run them.
+
+## Usage
+
+```
+Actions Arguments
+-----------------
+-a action (string), required, one of 
+   RTT          - round trip timing
+   pubSync      - publish synchronously
+   pubAsync     - publish asynchronously
+   pubCore      - core publish (synchronously) to subject
+   subPush      - push subscribe read messages (synchronously)
+   subQueue     - push subscribe read messages with queue (synchronously).
+                    Requires 2 or more threads
+   subPull      - pull subscribe fetch messages
+   subPullQueue - pull subscribe fetch messages, queue (using common durable)
+   subPullRead  - pull subscribe read messages
+   subPullReadQueue - pull subscribe read messages, queue (using common durable)
+                    Requires 2 or more threads
+
+Server Arguments
+----------------
+-s server url (string), optional, defaults to nats://localhost:4222
+-cf credentials file (string), optional
+-ctms connection timeout millis, optional, defaults to 5000
+-rwms reconnect wait millis, optional, defaults to 1000
+-of options factory class name. Class with no op constructor that implements OptionsFactory
+    If supplied, used instead of -s, -cf, -ctms and -rwms.
+-rf report frequency (number) how often to print progress, defaults to 10% of message count.
+    <= 0 for no reporting. Reporting time is excluded from timings
+
+Latency Arguments
+-----------------
+-lf latency flag. Needed when publishing to test latency. See examples.
+-lcsv latency-csv-file-spec
+
+General Arguments
+-----------------
+-u subject (string), required for publishing or subscribing
+-m message count (number) required > 1 for publishing or subscribing, defaults to 100_000
+-d threads (number) for publishing or subscribing, defaults to 1
+-n connection strategy (shared|individual) when threading, whether to share
+     the connection, defaults to shared
+-j jitter (number) between publishes or subscribe message retrieval of random
+     number from 0 to j-1, in milliseconds, defaults to 0 (no jitter), maximum 10_000
+     time spent in jitter is excluded from timings
+-ps payload size (number) for publishing, defaults to 128, maximum 1048576
+-rs round size (number) for pubAsync, default to 100, maximum 1000
+-kp ack policy (explicit|none|all) for subscriptions, defaults to explicit
+-kf ack all frequency (number), applies to ack policy all, ack after kf messages
+      defaults to 1, maximum 100
+-bs batch size (number) for subPull*, defaults to 10, maximum 200
+
+Notes
+-----
+All text constants are case insensitive, i.e.
+  action, connection strategy, ack policy, pull type
+Input numbers can be formatted for easier viewing. For instance, ten thousand
+  can be any of these: 10000 10,000 10.000 10_000
+  and can end with factors k, m, g meaning x 1000, x 1_000_000, x 1_000_000_000
+  or ki, mi, gi meaning x 1024, x 1024 * 1024, x 1024 * 1024 * 1024
+Use tls:// or opentls:// in the server url to require tls, via the Default SSLContext
+```
