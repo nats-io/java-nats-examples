@@ -1,8 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Encoding Examples
+# Nats By Example
 
-Some examples that encoded/decode message payload
+Examples that are published here: https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/
 
 ## License
 
