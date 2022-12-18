@@ -6,7 +6,7 @@
 
 * Key Value Intro
   * [KeyValueIntro.java](src/main/java/io/nats/KeyValueIntro.java)
-  * [Nats By Example Website](https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/examples/kv/intro/go) 
+  * [Nats By Example Key Value Intro](https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/examples/kv/intro/java) 
 
 ## License
 
