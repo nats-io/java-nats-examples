@@ -2,11 +2,11 @@
 
 # Nats By Example
 
-[Nats By Example Website](https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/)
+[Nats By Example Website](https://natsbyexample.com/)
 
 * Key Value Intro
   * [KeyValueIntro.java](src/main/java/io/nats/KeyValueIntro.java)
-  * [Nats By Example Key Value Intro](https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/examples/kv/intro/java) 
+  * [Nats By Example Key Value Intro Java](https://natsbyexample.com/examples/kv/intro/java) 
 
 ## License
 
