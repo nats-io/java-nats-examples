@@ -39,7 +39,6 @@ public class Consumer {
             .individualConnection()         // versus .sharedConnection()
             // .reportFrequency(500)        // default is 10% of message count
             // .latencyCsv("C:\\temp\\latency.csv") // write latency data to a csv file
-            .add(args)                      // last added wins so these will take precedence over defaults
             ;
 
         a.printCommandLine();
@@ -50,7 +49,7 @@ public class Consumer {
         // Uncomment for latency runs. The stream needs to exist
         // before the consumers start.
         // -----------------------------------------------------
-        // StreamUtils.setupStream(STREAM, ctx);
+         StreamUtils.setupStream(STREAM, ctx);
 
         JsMulti.run(ctx, true, true);
     }

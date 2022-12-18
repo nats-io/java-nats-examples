@@ -34,13 +34,12 @@ public class Producer {
             .subject(SUBJECT)
             .action(Action.PUB_SYNC)    // or Action.PUB_ASYNC or Action.PUB_CORE for example
             .latencyFlag(LATENCY_RUN)   // tells the code to add latency info to the header
-            .messageCount(3_000)       // default is 100_000
+            .messageCount(50_000)       // default is 100_000
             .payloadSize(256)           // default is 128
             .roundSize(50)              // how often to check Async Publish Acks, default is 100
             .threads(3)                 // default is 1
             .individualConnection()     // versus .sharedConnection()
             // .reportFrequency(500)    // default is 10% of message count
-            .add(args)                  // last added wins so these will take precedence over defaults
             ;
 
         a.printCommandLine();

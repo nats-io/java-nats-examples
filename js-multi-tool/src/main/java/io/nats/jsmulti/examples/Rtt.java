@@ -30,7 +30,6 @@ public class Rtt {
             .server(SERVER)
             .action(Action.RTT)
             .messageCount(10_000) // default is 100_000
-            .add(args)            // last added wins so these will take precedence over defaults
             ;
 
         a.printCommandLine();
