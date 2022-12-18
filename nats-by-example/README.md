@@ -2,7 +2,7 @@
 
 # Nats By Example
 
-Examples that are published here: https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/
+[Nats By Example Website](https://nats-by-example-1f8ikqh8c-connecteverything.vercel.app/)
 
 * Key Value Intro
   * [KeyValueIntro.java](src/main/java/io/nats/KeyValueIntro.java)
