@@ -103,7 +103,7 @@ public class JsMulti {
                 case PUB:
                     return (nc, stats, id) -> pub(ctx, nc, stats, id);
                 case REQUEST:
-                case REQUEST_ASYNC:
+                // case REQUEST_ASYNC:
                     return (nc, stats, id) -> request(ctx, nc, stats, id);
                 case REPLY:
                     return (nc, stats, id) -> reply(ctx, nc, stats, id);

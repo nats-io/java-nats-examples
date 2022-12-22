@@ -20,7 +20,7 @@ public enum Action {
     PUB(                 "Pub",                 true,  true,  true,  false, false),
 
     REQUEST(             "Request",             true,  true,  true,  false, false),
-    REQUEST_ASYNC(       "RequestAsync",        true,  false, true,  false, false),
+    // REQUEST_ASYNC(       "RequestAsync",        true,  false, true,  false, false),
     REPLY(               "Reply",               false, false, true,  true,  false),
 
     SUB_CORE(            "SubCore",             false, false, true,  true,  false),
