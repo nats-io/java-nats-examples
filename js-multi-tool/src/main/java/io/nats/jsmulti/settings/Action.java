@@ -14,42 +14,44 @@
 package io.nats.jsmulti.settings;
 
 public enum Action {
-    PUB_SYNC(            "PubSync",          true),
-    PUB_ASYNC(           "PubAsync",         false),
-    PUB_CORE(            "PubCore",          true),
-    SUB_PUSH(            "SubPush",          true,  false),
-    SUB_QUEUE(           "SubQueue",         true,  true),
-    SUB_PULL(            "SubPull",          false, false),
-    SUB_PULL_READ(       "SubPullRead",      false, false),
-    SUB_PULL_QUEUE(      "SubPullQueue",     false, true),
-    SUB_PULL_READ_QUEUE( "SubPullReadQueue", false, false),
-    RTT(                 "RTT",              true);
+    PUB_SYNC(            "PubSync",             true,  true,  false, false, false),
+    PUB_ASYNC(           "PubAsync",            true,  false, false, false, false),
+    PUB_CORE(            "PubCore",             true,  true,  false, false, false),
+    PUB(                 "Pub",                 true,  true,  true,  false, false),
+
+    REQUEST(             "Request",             true,  true,  true,  false, false),
+    REQUEST_ASYNC(       "RequestAsync",        true,  false, true,  false, false),
+    REPLY(               "Reply",               false, false, true,  true,  false),
+
+    SUB_CORE(            "SubCore",             false, false, true,  true,  false),
+    SUB_CORE_QUEUE(      "SubCoreQueue",        false, false, true,  true,  true),
+
+    SUB_PUSH(            "SubPush",             false, false, false, true,  false),
+    SUB_QUEUE(           "SubQueue",            false, false, false, true,  true),
+    SUB_PULL(            "SubPull",             false, false, false, false, false),
+    SUB_PULL_READ(       "SubPullRead",         false, false, false, false, false),
+    SUB_PULL_QUEUE(      "SubPullQueue",        false, false, false, false, true),
+    SUB_PULL_READ_QUEUE( "SubPullReadQueue",    false, false, false, false, false),
+
+    RTT(                 "RTT",                 true,  true,  true,  false, false);
 
     private final String label;
     private final boolean pubAction;
     private final boolean pubSync;
     private final boolean subAction;
+    private final boolean regularCore;
     private final boolean push;
     private final boolean pull;
     private final boolean queue;
 
-    Action(String label, boolean sync) {
+    Action(String label, boolean pub, boolean pubSync, boolean regularCore, boolean push, boolean queue) {
         this.label = label;
-        this.pubAction = true;
-        this.pubSync = sync;
-        this.subAction = false;
-        this.push = false;
-        this.pull = false;
-        this.queue = false;
-    }
-
-    Action(String label, boolean push, boolean queue) {
-        this.label = label;
-        this.pubAction = false;
-        this.pubSync = false;
-        this.subAction = true;
+        this.pubAction = pub;
+        this.pubSync = pubSync;
+        this.subAction = !pub;
+        this.regularCore = regularCore;
         this.push = push;
-        this.pull = !push;
+        this.pull = !regularCore && !push;
         this.queue = queue;
     }
 
@@ -80,6 +82,10 @@ public enum Action {
 
     public boolean isSubAction() {
         return subAction;
+    }
+
+    public boolean isRegularCore() {
+        return regularCore;
     }
 
     public boolean isPush() {

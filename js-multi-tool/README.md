@@ -58,10 +58,10 @@ gradle uberJar
 At that point you can run directly the programs you can run with the gradle tasks 
 
 ```shell
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.JsMulti [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.1-uber.jar io.nats.jsmulti.examples.Rtt [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.JsMulti [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Rtt [arguments] 
 ```
 
 ### Running from an IDE

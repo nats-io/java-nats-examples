@@ -20,6 +20,7 @@ import io.nats.jsmulti.shared.Application;
 import io.nats.jsmulti.shared.OptionsFactory;
 
 import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,6 +68,8 @@ public class Context {
     // constant now but might change in the future
     public final int maxPubRetries = 10;
     public final int ackWaitSeconds = 120;
+    public final Duration requestWaitMillis = Duration.ofMillis(1000);
+    public final long postPubWaitMillis = 1000;
 
     // ----------------------------------------------------------------------------------------------------
     // Application allows the J
@@ -80,7 +83,7 @@ public class Context {
     private final int[] perThread;
     private final byte[] payload; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
-    private final String subDurableWhenQueue;
+    private final String subNameWhenQueue;
 
     public Options getOptions() throws Exception {
         return _optionsFactory.getOptions(this);
@@ -94,10 +97,18 @@ public class Context {
         return payload;
     }
 
-    public String getSubDurable(int durableId) {
+    private String _getSubName(String pfx, int id) {
         // is a queue, use the same durable
         // not a queue, each durable is unique
-        return action.isQueue() ? subDurableWhenQueue : "dur" + randomString() + durableId;
+        return action.isQueue() ? subNameWhenQueue : pfx + randomString() + id;
+    }
+
+    public String getSubName(int subId) {
+        return _getSubName("sub", subId);
+    }
+
+    public String getSubDurable(int durableId) {
+        return _getSubName("dur", durableId);
     }
 
     public int getPubCount(int id) {
@@ -321,7 +332,7 @@ public class Context {
         }
 
         queueName = _queueName;
-        subDurableWhenQueue = _subDurableWhenQueue;
+        subNameWhenQueue = _subDurableWhenQueue;
 
         if (_optionsFactoryClassName == null) {
             OptionsFactory appOf = app.getOptionsFactory();

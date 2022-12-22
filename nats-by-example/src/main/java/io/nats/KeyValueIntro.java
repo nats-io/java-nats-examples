@@ -166,6 +166,9 @@ public class KeyValueIntro {
             // than sequence numbers relative to each key.
             kv.put("sue.food", "pizza");
 
+            // Sleep this thread a little so the program has time
+            // to receive all the messages before the program quits.
+            Thread.sleep(500);
         } catch (InterruptedException | IOException | JetStreamApiException e) {
             e.printStackTrace();
         }

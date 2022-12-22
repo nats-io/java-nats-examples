@@ -35,6 +35,7 @@ public class Arguments {
     public static Arguments pubSync(String subject) { return instance().action(PUB_SYNC).subject(subject); }
     public static Arguments pubAsync(String subject) { return instance().action(PUB_ASYNC).subject(subject); }
     public static Arguments pubCore(String subject) { return instance().action(PUB_CORE).subject(subject); }
+    public static Arguments subCore(String subject) { return instance().action(SUB_CORE).subject(subject); }
     public static Arguments subPush(String subject) { return instance().action(SUB_PUSH).subject(subject); }
     public static Arguments subQueue(String subject) { return instance().action(SUB_QUEUE).subject(subject); }
     public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }

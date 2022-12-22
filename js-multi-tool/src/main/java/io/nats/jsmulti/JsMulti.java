@@ -35,8 +35,7 @@ import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
 import static io.nats.jsmulti.shared.Utils.sleep;
 
 /**
- * The main class
- *
+ * The JsMulti Main class
  * Various ways to run the code
  * 1. Through an ide...
  * 2. Maven: mvn clean compile exec:java -Dexec.mainClass=io.nats.jsmulti.JsMulti -Dexec.args="[args]"
@@ -86,7 +85,7 @@ public class JsMulti {
             ? runShared(ctx, runner)
             : runIndividual(ctx, runner);
 
-        if (reportWhenDone) {
+        if (reportWhenDone && ctx.action != Action.REPLY) {
             Stats.report(statsList);
         }
         return statsList;
@@ -101,6 +100,15 @@ public class JsMulti {
                     return (nc, stats, id) -> pubAsync(ctx, nc, stats, id);
                 case PUB_CORE:
                     return (nc, stats, id) -> pubCore(ctx, nc, stats, id);
+                case PUB:
+                    return (nc, stats, id) -> pub(ctx, nc, stats, id);
+                case REQUEST:
+                case REQUEST_ASYNC:
+                    return (nc, stats, id) -> request(ctx, nc, stats, id);
+                case REPLY:
+                    return (nc, stats, id) -> reply(ctx, nc, stats, id);
+                case SUB_CORE:
+                    return (nc, stats, id) -> subCore(ctx, nc, stats, id);
                 case SUB_PUSH:
                     return (nc, stats, id) -> subPush(ctx, nc, stats, id);
                 case SUB_PULL:
@@ -157,18 +165,51 @@ public class JsMulti {
         T publish(String subject, byte[] payload) throws Exception;
     }
 
+    interface ResultHandler<T> {
+        void handle(T t);
+    }
+
     private static NatsMessage buildLatencyMessage(String subject, byte[] p) {
         //noinspection ConstantConditions
         return new NatsMessage(subject, null, new Headers().put(HDR_PUB_TIME, "" + System.currentTimeMillis()), p);
     }
 
+    private static void pub(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        if (ctx.latencyFlag) {
+            _pub(ctx, stats, id, (s, p) -> {
+                nc.publish(buildLatencyMessage(s, p));
+                return true;
+            }, b -> {});
+        }
+        else {
+            _pub(ctx, stats, id, (s, p) -> {
+                nc.publish(s, p);
+                return true;
+            }, b -> {});
+        }
+
+        // if you are using pub with a consumer on the other side,
+        // sometimes if you disconnect before all publishes have completed
+        // the publishes don't actually take.
+        Thread.sleep(ctx.postPubWaitMillis);
+    }
+
+    private static void request(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        if (ctx.action.isPubAsync()) {
+            _pub(ctx, stats, id, nc::request, cfm -> {});
+        }
+        else {
+            _pub(ctx, stats, id, (s, p) -> nc.request(s, p, ctx.requestWaitMillis), m -> {});
+        }
+    }
+
     private static void pubSync(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         final JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         if (ctx.latencyFlag) {
-            _pub(ctx, stats, id, (s, p) -> js.publish(buildLatencyMessage(s, p)));
+            _pub(ctx, stats, id, (s, p) -> js.publish(buildLatencyMessage(s, p)), na -> {});
         }
         else {
-            _pub(ctx, stats, id, js::publish);
+            _pub(ctx, stats, id, js::publish, na -> {});
         }
     }
 
@@ -192,9 +233,11 @@ public class JsMulti {
             startingCount = subjects == null ? 0 : subjects.get(0).getCount();
         }
 
-        _pub(ctx, stats, id, ctx.latencyFlag
+        Publisher<PublishAck> publisher = ctx.latencyFlag
             ? (s, p) -> { nc.publish(buildLatencyMessage(s, p)); return null; }
-            : (s, p) -> { nc.publish(s, p); return null; } );
+            : (s, p) -> { nc.publish(s, p); return null; };
+
+        _pub(ctx, stats, id, publisher, pa -> {});
 
         if (startingCount != -1) {
             long currentCount = 0;
@@ -209,7 +252,7 @@ public class JsMulti {
         }
     }
 
-    private static void _pub(Context ctx, Stats stats, int id, Publisher<PublishAck> p) throws Exception {
+    private static <T> void _pub(Context ctx, Stats stats, int id, Publisher<T> p, ResultHandler<T> rh) throws Exception {
         int retriesAvailable = ctx.maxPubRetries;
         int pubTarget = ctx.getPubCount(id);
         int published = 0;
@@ -220,7 +263,7 @@ public class JsMulti {
             byte[] payload = ctx.getPayload();
             stats.start();
             try {
-                p.publish(ctx.subject, payload);
+                rh.handle(p.publish(ctx.subject, payload));
                 stats.stopAndCount(ctx.payloadSize);
                 unReported = reportMaybe(ctx, ++published, ++unReported, "Published");
             }
@@ -278,6 +321,62 @@ public class JsMulti {
     // ----------------------------------------------------------------------------------------------------
     private static final Object QUEUE_LOCK = new Object();
 
+    private static void reply(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        Subscription sub;
+        if (ctx.action.isQueue()) {
+            // if we don't do this, multiple threads will try to make the same consumer because
+            // when they start, the consumer does not exist. So force them do it one at a time.
+            synchronized (QUEUE_LOCK) {
+                sub = nc.subscribe(ctx.subject, ctx.queueName);
+            }
+        }
+        else {
+            sub = nc.subscribe(ctx.subject);
+        }
+
+        _corePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> nc.publish(m.getReplyTo(), m.getData()));
+    }
+
+    private static void subCore(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        Subscription sub;
+        if (ctx.action.isQueue()) {
+            // if we don't do this, multiple threads will try to make the same consumer because
+            // when they start, the consumer does not exist. So force them do it one at a time.
+            synchronized (QUEUE_LOCK) {
+                sub = nc.subscribe(ctx.subject, ctx.queueName);
+            }
+        }
+        else {
+            sub = nc.subscribe(ctx.subject);
+        }
+
+        _corePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> {});
+    }
+
+    private static void _corePush(Context ctx, Stats stats, String subName, SimpleReader reader, ResultHandler<Message> rh) throws InterruptedException {
+        int rcvd = 0;
+        int unReported = 0;
+        AtomicLong counter = ctx.getSubscribeCounter(subName);
+        report(rcvd, "Begin Reading", ctx.app);
+        while (counter.get() < ctx.messageCount) {
+            stats.start();
+            Message m = reader.nextMessage(DEFAULT_TIMEOUT);
+            long hold = stats.elapsed();
+            long received = System.currentTimeMillis();
+            if (m == null) {
+                acceptHoldOnceStarted(stats, rcvd, hold, ctx.app);
+            }
+            else {
+                rh.handle(m);
+                stats.manualElapsed(hold);
+                stats.count(m, received);
+                counter.incrementAndGet();
+                unReported = reportMaybe(ctx, ++rcvd, ++unReported, "Messages Read");
+            }
+        }
+        report(rcvd, "Finished Reading Messages", ctx.app);
+    }
+
     private static void subPush(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         JetStream js = nc.jetStream(ctx.getJetStreamOptions());
         JetStreamSubscription sub;
@@ -292,7 +391,7 @@ public class JsMulti {
                         .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
                         .durable(durable)
                         .deliverGroup(ctx.queueName)
-                            .buildPushSubscribeOptions());
+                        .buildPushSubscribeOptions());
             }
         }
         else {
@@ -301,10 +400,10 @@ public class JsMulti {
                     .ackPolicy(ctx.ackPolicy)
                     .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
                     .durable(durable)
-                        .buildPushSubscribeOptions());
+                    .buildPushSubscribeOptions());
         }
 
-        _pushLike(ctx, stats, durable, sub::nextMessage);
+        _jsReadLikePush(ctx, stats, durable, sub::nextMessage);
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -314,7 +413,7 @@ public class JsMulti {
         Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException;
     }
 
-    private static void _pushLike(Context ctx, Stats stats, String durable, SimpleReader reader) throws InterruptedException {
+    private static void _jsReadLikePush(Context ctx, Stats stats, String durable, SimpleReader reader) throws InterruptedException {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
@@ -406,7 +505,7 @@ public class JsMulti {
 
     private static void _subPullRead(Context ctx, Stats stats, JetStreamSubscription sub, String durable) throws InterruptedException {
         JetStreamReader reader = sub.reader(ctx.batchSize, ctx.batchSize / 4); // repullAt 25% of batch size
-        _pushLike(ctx, stats, durable, reader::nextMessage);
+        _jsReadLikePush(ctx, stats, durable, reader::nextMessage);
         reader.stop();
     }
 
