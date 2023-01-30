@@ -19,8 +19,8 @@ repositories {
     // You can declare any Maven/Ivy/file repository here.
     mavenLocal()
     mavenCentral()
-    maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    maven { url = uri("https://oss.sonatype.org/content/repositories/releases/") }
+    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots/") }
 }
 
 dependencies {
