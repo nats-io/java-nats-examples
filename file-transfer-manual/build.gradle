@@ -15,7 +15,6 @@ plugins {
 }
 
 repositories {
-    jcenter()
     mavenLocal()
     mavenCentral()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
@@ -23,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.16.5'
+    implementation 'io.nats:jnats:2.16.7'
 }
 
 test {

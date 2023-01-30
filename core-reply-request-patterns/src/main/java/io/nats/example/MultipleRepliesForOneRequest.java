@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 /*
-Multiple replies to one request
+Multiple replies to one request. Another example for scatter gather.
  */
 public class MultipleRepliesForOneRequest
 {
