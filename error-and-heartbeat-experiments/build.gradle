@@ -3,8 +3,8 @@ apply plugin: 'java'
 group = 'io.nats.java-nats-examples'
 version = '1.0-SNAPSHOT'
 
-description = "Heartbeat Awareness"
 
+description = "Error and Heartbeat Experiments"
 repositories {
     mavenCentral()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
