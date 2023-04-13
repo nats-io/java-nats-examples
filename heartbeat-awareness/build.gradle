@@ -3,13 +3,11 @@ apply plugin: 'java'
 group = 'io.nats.java-nats-examples'
 version = '1.0-SNAPSHOT'
 
-description = "Chain Of Command Pattern examples for NATS Java Client"
+description = "Heartbeat Awareness"
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
 }
 
 dependencies {

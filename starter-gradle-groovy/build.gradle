@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.16.7'
+    implementation 'io.nats:jnats:2.16.10'
 
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'

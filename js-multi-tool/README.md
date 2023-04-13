@@ -46,7 +46,7 @@ you can simply run java with the correct classpath, which includes the location 
 At a minimum, you will need to provide `<my-code-path>` and `<my-repo-path>`
 
 ```shell
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/target/classes;<my-repo-path>/io/nats/jnats/2.16.5/jnats-2.16.5.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/target/classes;<my-repo-path>/io/nats/jnats/2.16.10/jnats-2.16.10.jar io.nats.jsmulti.JsMulti -a PubSync -s nats://localhost:4222 -u sub -m 10_000
 ```
 
 You could also use a gradle task to build an uber jar. This jar will contain all necessary classes and the jnats library.
