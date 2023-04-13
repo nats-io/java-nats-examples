@@ -5,6 +5,8 @@ plugins {
 version = "1.0.0"
 group = 'nats'
 
+description = "Server Pool"
+
 repositories {
     mavenLocal()
     mavenCentral()

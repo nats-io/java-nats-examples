@@ -95,12 +95,12 @@ jobs:
           chmod +x gradlew
           ./gradlew compileJava
           popd
-      - name: Server List Provider
-        run: |
-          pushd server-list-provider
-          chmod +x gradlew
-          ./gradlew compileJava
-          popd
+#      - name: Server Pool
+#        run: |
+#          pushd server-pool
+#          chmod +x gradlew
+#          ./gradlew compileJava
+#          popd
       - name: Starter Gradle Groovy
         run: |
           pushd starter-gradle-groovy

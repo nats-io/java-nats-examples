@@ -4,6 +4,10 @@
 
 Example how the developer can provide the connection/reconnection info themselves / dynamically.
 
+__TODO: FIX!!!__
+
+CURRENTLY NON-FUNCTIONAL AGAINST LATEST VERSION AS INITIAL IMPLEMENTATION WAS EXPERIMENTAL
+
 ## License
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)

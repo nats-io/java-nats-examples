@@ -3,7 +3,6 @@ package io.nats.slp;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
-import io.nats.client.ServerListProvider;
 import io.nats.client.api.ServerInfo;
 
 import java.util.Arrays;
@@ -11,7 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-class ProvideServersList implements ServerListProvider {
+class ProvideServersList { // implements ServerListProvider {
     // TO DEMONSTRATE I STARTED A 3 CLUSTER SERVER LOCALLY on ports 4222, 5222 and 6222
     // The ServerListProvider implementation in this case is a simple randomization
 
@@ -20,7 +19,8 @@ class ProvideServersList implements ServerListProvider {
     public static void main(String[] args) {
         Options options = new Options.Builder()
             .servers(BOOTSTRAP)
-            .serverListProvider(new ProvideServersList()).build();
+//            .serverListProvider(new ProvideServersList())
+            .build();
 
         System.out.println("CONNECTING");
         try (Connection nc = Nats.connect(options)) {
@@ -40,10 +40,8 @@ class ProvideServersList implements ServerListProvider {
         catch (Exception e) {
             e.printStackTrace();
         }
-
     }
 
-    @Override
     public List<String> getServerList(String currentServer, List<String> optionsServersUnprocessed, List<String> discoveredServersUnprocessed) {
         System.out.println("GET SERVER LIST");
         System.out.println("  current server: " + currentServer);
