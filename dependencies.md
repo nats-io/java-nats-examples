@@ -12,7 +12,7 @@ This file lists the dependencies used in this repository.
 | com.google.code.gson:gson:2.8.5                               | Apache 2.0 License |
 | io.github.hakky54:sslcontext-kickstart-for-pem:jar:6.7.0      | Apache 2.0 License |
 | io.github.hakky54:sslcontext-kickstart:jar:6.7.0              | Apache 2.0 License |
-| io.nats:jnats:2.16.10                                         | Apache 2.0 License |
+| io.nats:jnats:2.16.13                                         | Apache 2.0 License |
 | net.i2p.crypto:eddsa:0.3.0                                    | CC 1.0 Universal |
 | org.apiguardian:apiguardian-api:1.1.2                         | Apache 2.0 License |
 | org.bouncycastle:bcutil-jdk15on:jar:1.69                      | MIT |
