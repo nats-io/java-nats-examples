@@ -1,8 +1,13 @@
 ![NATS](../images/large-logo.png)
 
-# Encoding Examples
+# Tuning Examples
 
-Some examples that encoded/decode message payload
+Example code to help you tune your system.
+
+##
+
+The [Consumer Create](src/main/java/io/nats/tuning/consumercreate/Main.java) example show how you might tune when starting up a large number of ephemeral consumers when your app starts up 
+as large number of these may take some time to complete, depending on your parallelization and volume. 
 
 ## License
 
