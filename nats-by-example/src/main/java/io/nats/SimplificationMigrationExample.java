@@ -156,7 +156,7 @@ public class SimplificationMigrationExample {
             // The `StreamContext` can be created from the `Connection` similar to
             // the legacy API.
             System.out.println("\nD. Simplification StreamContext");
-            StreamContext streamContext = conn.streamContext(streamName);
+            StreamContext streamContext = conn.getStreamContext(streamName);
             StreamInfo streamInfo = streamContext.getStreamInfo(StreamInfoOptions.allSubjects());
 
             System.out.println("   Stream Name: " + streamInfo.getConfiguration().getName());
@@ -181,11 +181,11 @@ public class SimplificationMigrationExample {
             // If your consumer already exists as a durable, you can create a
             // `ConsumerContext` for that consumer from the stream context or directly
             // from the connection by providing the stream and consumer name.
-            consumerContext = streamContext.consumerContext(consumerName);
+            consumerContext = streamContext.getConsumerContext(consumerName);
             consumerInfo = consumerContext.getCachedConsumerInfo();
             System.out.println("   The ConsumerContext for \"" + consumerName + "\" was loaded from the StreamContext for \"" + consumerInfo.getStreamName() + "\"");
 
-            consumerContext = conn.consumerContext(streamName, consumerName);
+            consumerContext = conn.getConsumerContext(streamName, consumerName);
             consumerInfo = consumerContext.getCachedConsumerInfo();
             System.out.println("   The ConsumerContext for \"" + consumerName + "\" was loaded from the Connection on the stream \"" + consumerInfo.getStreamName() + "\"");
 
@@ -230,7 +230,7 @@ public class SimplificationMigrationExample {
             // delete the consumer.
             // However, the consumer will be automatically deleted by the server when the
             // `inactiveThreshold` is reached.
-            messageConsumer.stop(100);
+            messageConsumer.stop();
             System.out.println("   stop was called.");
 
             // #### IterableConsumer
@@ -251,14 +251,14 @@ public class SimplificationMigrationExample {
             // operations. For instance, it is possible, but unlikely, that the consumer
             // could be deleted by another application in your ecosystem and if that happens
             // in the middle of the consumer, the exception would be thrown.
-            IterableConsumer iterableConsumer = consumerContext.consume();
+            IterableConsumer iterableConsumer = consumerContext.iterate();
             try {
                 for (int x = 0; x < 3; x++) {
                     Message msg = iterableConsumer.nextMessage(100);
                     System.out.println("   Received " + msg.getSubject());
                     msg.ack();
                 }
-                iterableConsumer.stop(100);
+                iterableConsumer.stop();
                 System.out.println("   stop was called.");
             }
             catch (JetStreamStatusCheckedException se) {
