@@ -51,7 +51,7 @@ public class Main {
                     settings.appStrategy = asy;
                     settings.subStrategy = ssy;
                     settings.timeoutMs = 180_000;
-                    settings.autoReportFrequency();
+//                    settings.autoReportFrequency();
 
                     if (settings.isValid()) { // just skip invalid settings when strategies don't work together.
                         Report r = run(title, settings);

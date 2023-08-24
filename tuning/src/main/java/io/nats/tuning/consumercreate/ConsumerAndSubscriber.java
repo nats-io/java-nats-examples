@@ -113,12 +113,12 @@ public class ConsumerAndSubscriber implements Runnable {
             jsm.addOrUpdateConsumer(settings.streamName, cc);
             createTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                Utils.report("Create Consumer " + name + " | " + settings.time(createTime[conIx]) + settings.timeLabel());
+                Utils.report("Create Consumer | " + name + " | " + settings.time(createTime[conIx]) + settings.timeLabel());
             }
             return cc;
         }
         catch (Exception e) {
-            System.err.println("Create Consumer Exception " + name + " | " + e);
+            System.err.println("Create Consumer Exception | " + name + " | " + e);
             return null;
         }
     }
@@ -157,11 +157,16 @@ public class ConsumerAndSubscriber implements Runnable {
             }
             subscribeTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                Utils.report("SUB #" + conIx + " | " + subs[conIx].getConsumerName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+                if (name.equals(subs[conIx].getConsumerName())) {
+                    Utils.report("Subscribe | " + name + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+                }
+                else {
+                    Utils.report("Subscribe | " + name + " / " + subs[conIx].getConsumerName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+                }
             }
         }
         catch (Exception e) {
-            System.err.println("SUB EX #" + conIx + " | " + e);
+            System.err.println("Subscribe Exception | " + name + " | " + e);
             subscribeTime[conIx] = -1;
         }
     }
