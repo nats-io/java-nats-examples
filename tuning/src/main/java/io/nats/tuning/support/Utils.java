@@ -15,6 +15,9 @@ package io.nats.tuning.support;
 
 import io.nats.client.Connection;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /*
     Code to help tune Consumer Create on startup
  */
@@ -34,5 +37,19 @@ public class Utils
             }
         }
         return false;
+    }
+
+    public static void report(Object o) {
+        System.out.println(stamp() + " [INFO] " + o);
+    }
+
+    public static void reportEx(Object o) {
+        System.err.println(stamp() + " [ERROR] " + o);
+    }
+
+    public static final SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+    private static String stamp() {
+        return FORMATTER.format(new Date());
     }
 }

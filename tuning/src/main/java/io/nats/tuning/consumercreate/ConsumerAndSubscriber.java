@@ -15,6 +15,7 @@ package io.nats.tuning.consumercreate;
 
 import io.nats.client.*;
 import io.nats.client.api.ConsumerConfiguration;
+import io.nats.tuning.support.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,7 +113,7 @@ public class ConsumerAndSubscriber implements Runnable {
             jsm.addOrUpdateConsumer(settings.streamName, cc);
             createTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                System.out.println("Create Consumer " + name + " | " + settings.time(createTime[conIx]) + settings.timeLabel());
+                Utils.report("Create Consumer " + name + " | " + settings.time(createTime[conIx]) + settings.timeLabel());
             }
             return cc;
         }
@@ -134,7 +135,7 @@ public class ConsumerAndSubscriber implements Runnable {
     private void apiSubscribe(int conIx, String name) {
         try {
         sleep(settings.beforeCreateDelayMs);
-            ConsumerConfiguration cc = createConsumerConfiguration(name, conIx, settings.subStrategy.pull);
+            ConsumerConfiguration cc = createConsumerConfiguration(null, conIx, settings.subStrategy.pull);
             long start = System.nanoTime();
             switch (settings.subStrategy) {
                 case Push_Without_Stream:
@@ -156,11 +157,12 @@ public class ConsumerAndSubscriber implements Runnable {
             }
             subscribeTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                System.out.println("SUB " + name + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+                Utils.report("SUB #" + conIx + " | " + subs[conIx].getConsumerName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
             }
         }
         catch (Exception e) {
-            System.err.println("SUB EX " + name + " | " + e);
+            System.err.println("SUB EX #" + conIx + " | " + e);
+            subscribeTime[conIx] = -1;
         }
     }
 
@@ -199,7 +201,7 @@ public class ConsumerAndSubscriber implements Runnable {
             }
             subscribeTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                System.out.println("SUB " + cc.getName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+                Utils.report("SUB " + cc.getName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
             }
         }
         catch (Exception e) {

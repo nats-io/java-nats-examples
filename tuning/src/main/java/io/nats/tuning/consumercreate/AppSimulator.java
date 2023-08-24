@@ -17,6 +17,8 @@ import io.nats.client.*;
 
 import java.time.Duration;
 
+import static io.nats.tuning.support.Utils.reportEx;
+
 public class AppSimulator extends Thread {
     private final Settings settings;
     private final int appId;
@@ -52,7 +54,7 @@ public class AppSimulator extends Thread {
             }
         }
         catch (Exception e) {
-            System.out.println(e);
+            reportEx(e);
         }
     }
 }

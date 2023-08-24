@@ -36,11 +36,12 @@ public class Main {
 
         settings.optionsBuilder = () -> Options.builder().server("localhost:4222,localhost:5222,localhost:6222");
 
-        int[] threadsPerApp = new int[]{1, 2, 5, 10};
-        AppStrategy[] appStrategies = new AppStrategy[]{AppStrategy.Client_Api_Subscribe, AppStrategy.Individual_Immediately, AppStrategy.Individual_After_Creates};
+        int[] threadsPerApp = new int[]{50};
+        AppStrategy[] appStrategies = new AppStrategy[]{AppStrategy.Client_Api_Subscribe}; // , AppStrategy.Individual_Immediately, AppStrategy.Individual_After_Creates};
+        SubStrategy[] subStrategies = new SubStrategy[]{SubStrategy.Pull_Provide_Stream}; // SubStrategy.values();
 
         for (AppStrategy asy : appStrategies) {
-            for (SubStrategy ssy : SubStrategy.values()) {
+            for (SubStrategy ssy : subStrategies) {
                 for (int tpa : threadsPerApp) {
                     Thread.sleep(1000);
                     String title = tpa + " " + asy.name().toLowerCase().replace("_", " ");
@@ -49,12 +50,13 @@ public class Main {
                     settings.threadsPerApp = tpa;
                     settings.appStrategy = asy;
                     settings.subStrategy = ssy;
+                    settings.timeoutMs = 180_000;
                     settings.autoReportFrequency();
 
                     if (settings.isValid()) { // just skip invalid settings when strategies don't work together.
                         Report r = run(title, settings);
                         reports.add(r);
-                        cleanupAfterRun(settings);
+//                        cleanupAfterRun(settings);
                     }
                 }
             }
