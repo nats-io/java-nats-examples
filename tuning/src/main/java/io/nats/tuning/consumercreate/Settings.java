@@ -52,6 +52,7 @@ public class Settings {
     public float autoReportFactor = 0.2f;
 
     public boolean reportNanos = false;
+    public boolean cleanupAfterRun = true;
 
     public long time(long t) {
         return reportNanos ? t : t / 1_000_000;

@@ -69,11 +69,13 @@ public class Main {
     }
 
     private static void cleanupAfterRun(Settings settings) {
-        try (Connection nc = Nats.connect(settings.optionsBuilder.getBuilder().build())) {
-            JetStreamManagement jsm = nc.jetStreamManagement();
-            jsm.deleteStream(settings.streamName);
+        if (settings.cleanupAfterRun) {
+            try (Connection nc = Nats.connect(settings.optionsBuilder.getBuilder().build())) {
+                JetStreamManagement jsm = nc.jetStreamManagement();
+                jsm.deleteStream(settings.streamName);
+            }
+            catch (Exception ignore) {}
         }
-        catch (Exception ignore) {}
     }
 
     public static Report run(String title, Settings settings) {
