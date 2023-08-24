@@ -56,7 +56,7 @@ public class Main {
                     if (settings.isValid()) { // just skip invalid settings when strategies don't work together.
                         Report r = run(title, settings);
                         reports.add(r);
-//                        cleanupAfterRun(settings);
+                        cleanupAfterRun(settings);
                     }
                 }
             }
