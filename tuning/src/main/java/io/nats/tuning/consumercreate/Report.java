@@ -138,7 +138,6 @@ public class Report {
             value("Longest " + tl);
             value("Average " + tl);
             value("Median " + tl);
-            section("Combined");
         }
         else {
             value("Count", finishedCons + dnfCons);
@@ -147,9 +146,9 @@ public class Report {
             value("Longest " + tl, settings.time(longestCon));
             value("Average " + tl, settings.time(totalCons / finishedCons));
             value("Median " + tl, settings.time(median(forMedianCons)));
-            section("Subscribe");
         }
 
+        section("Subscribe");
         if (forMedianSubs.isEmpty()) {
             value("Count");
             value("Finished");
