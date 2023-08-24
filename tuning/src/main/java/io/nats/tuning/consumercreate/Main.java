@@ -36,7 +36,7 @@ public class Main {
 
         settings.optionsBuilder = () -> Options.builder().server("localhost:4222,localhost:5222,localhost:6222");
 
-        int[] threadsPerApp = new int[]{50};
+        int[] threadsPerApp = new int[]{100};
         AppStrategy[] appStrategies = new AppStrategy[]{AppStrategy.Client_Api_Subscribe}; // , AppStrategy.Individual_Immediately, AppStrategy.Individual_After_Creates};
         SubStrategy[] subStrategies = new SubStrategy[]{SubStrategy.Pull_Provide_Stream}; // SubStrategy.values();
 
@@ -55,7 +55,9 @@ public class Main {
 
                     if (settings.isValid()) { // just skip invalid settings when strategies don't work together.
                         Report r = run(title, settings);
-                        reports.add(r);
+                        if (r != null) {
+                            reports.add(r);
+                        }
                         cleanupAfterRun(settings);
                     }
                 }
@@ -134,7 +136,6 @@ public class Main {
             System.err.println("MAIN RUN EX");
             //noinspection CallToPrintStackTrace
             e.printStackTrace();
-            System.exit(-1);
             return null;
         }
     }
