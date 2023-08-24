@@ -16,6 +16,9 @@ package io.nats.tuning.consumercreate;
 import io.nats.client.*;
 import io.nats.client.api.ConsumerConfiguration;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ConsumerAndSubscriber implements Runnable {
     Settings settings;
     JetStreamManagement jsm;
@@ -39,6 +42,11 @@ public class ConsumerAndSubscriber implements Runnable {
         subscribeTime = new long[consumersEach];
         this.appId = appId;
         this.threadId = threadId;
+
+        for (int conIx = 0; conIx < consumersEach; conIx++) {
+            createTime[conIx] = Long.MIN_VALUE;
+            subscribeTime[conIx] = Long.MIN_VALUE;
+        }
     }
 
     public void close() {
@@ -64,59 +72,138 @@ public class ConsumerAndSubscriber implements Runnable {
 
     @Override
     public void run() {
-        for (int conIx = 0; conIx < consumersEach; conIx++) {
-            String name = getName(conIx);
-            subscribeTime[conIx] = Long.MIN_VALUE;
-            createConsumer(conIx, name);
-            if (settings.subBehavior == SubBehavior.Immediately) {
-                subscribe(conIx, name);
-            }
-        }
-        if (settings.subBehavior == SubBehavior.After_Creates) {
-            for (int conIx = 0; conIx < consumersEach; conIx++) {
-                subscribe(conIx, getName(conIx));
-            }
+        switch (settings.appStrategy) {
+            case Individual_Immediately:
+                for (int conIx = 0; conIx < consumersEach; conIx++) {
+                    String name = getName(conIx);
+                    subscribeBind(conIx, createConsumer(conIx, name));
+                }
+                break;
+
+            case Individual_After_Creates:
+                List<ConsumerConfiguration> ccs = new ArrayList<>();
+                for (int conIx = 0; conIx < consumersEach; conIx++) {
+                    ccs.add(createConsumer(conIx, getName(conIx)));
+                }
+                for (int conIx = 0; conIx < consumersEach; conIx++) {
+                    subscribeBind(conIx, ccs.get(conIx));
+                }
+                break;
+
+            case Client_Api_Subscribe:
+                for (int conIx = 0; conIx < consumersEach; conIx++) {
+                    apiSubscribe(conIx, getName(conIx));
+                }
+                break;
+
+            case Do_Not_Sub:
+                for (int conIx = 0; conIx < consumersEach; conIx++) {
+                    createConsumer(conIx, getName(conIx));
+                }
+                break;
         }
     }
 
-    private void createConsumer(int conIx, String name) {
+    private ConsumerConfiguration createConsumer(int conIx, String name) {
         try {
             sleep(settings.beforeCreateDelayMs);
-            createTime[conIx] = System.nanoTime();
-            ConsumerConfiguration cc = ConsumerConfiguration.builder()
-                .name(name)
-                .inactiveThreshold(settings.inactiveThresholdMs)
-                .deliverSubject(NUID.nextGlobal())
-                .build();
+            long start = System.nanoTime();
+            ConsumerConfiguration cc = createConsumerConfiguration(name, conIx, settings.subStrategy.pull);
             jsm.addOrUpdateConsumer(settings.streamName, cc);
-            createTime[conIx] = System.nanoTime() - createTime[conIx];
+            createTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                System.out.println("CON " + name + " | " + (createTime[conIx] / 1_000_000) + "ms");
+                System.out.println("Create Consumer " + name + " | " + settings.time(createTime[conIx]) + settings.timeLabel());
             }
+            return cc;
         }
         catch (Exception e) {
-            System.err.println("CON EX " + name + " | " + e);
-            createTime[conIx] = -1;
+            System.err.println("Create Consumer Exception " + name + " | " + e);
+            return null;
         }
     }
 
-    private void subscribe(int conIx, String name) {
-        if (createTime[conIx] == -1) {
-            return;
-        } // create failed, can't subscribe
+    private ConsumerConfiguration createConsumerConfiguration(String name, int conIx, boolean pull) {
+        return ConsumerConfiguration.builder()
+            .name(name)
+            .filterSubject(settings.subjectGenerator.getSubject(conIx))
+            .inactiveThreshold(settings.inactiveThresholdMs)
+            .deliverSubject(pull ? null : settings.subjectGenerator.getNextDeliverSubject())
+            .build();
+    }
+
+    private void apiSubscribe(int conIx, String name) {
         try {
-            sleep(settings.beforeSubDelayMs);
-            PushSubscribeOptions pso = PushSubscribeOptions.bind(settings.streamName, name);
-            subscribeTime[conIx] = System.nanoTime();
-            subs[conIx] = js.subscribe(null, d, Message::ack, false, pso);
-            subscribeTime[conIx] = System.nanoTime() - subscribeTime[conIx];
+        sleep(settings.beforeCreateDelayMs);
+            ConsumerConfiguration cc = createConsumerConfiguration(name, conIx, settings.subStrategy.pull);
+            long start = System.nanoTime();
+            switch (settings.subStrategy) {
+                case Push_Without_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(), d, Message::ack, false,
+                        PushSubscribeOptions.builder().configuration(cc).build());
+                    break;
+                case Push_Provide_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(), d, Message::ack, false,
+                        PushSubscribeOptions.builder().configuration(cc).stream(settings.streamName).build());
+                    break;
+                case Pull_Without_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(),
+                        PullSubscribeOptions.builder().configuration(cc).build());
+                    break;
+                case Pull_Provide_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(),
+                        PullSubscribeOptions.builder().configuration(cc).stream(settings.streamName).build());
+                    break;
+            }
+            subscribeTime[conIx] = System.nanoTime() - start;
             if (conIx == 0 || conIx % settings.reportFrequency == 0) {
-                System.out.println("SUB " + name + " | " + (subscribeTime[conIx] / 1_000_000) + "ms");
+                System.out.println("SUB " + name + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
             }
         }
         catch (Exception e) {
             System.err.println("SUB EX " + name + " | " + e);
-            subscribeTime[conIx] = -1;
+        }
+    }
+
+    private void subscribeBind(int conIx, ConsumerConfiguration cc) {
+        if (cc == null || createTime[conIx] == -1) { // create failed, can't subscribe
+            return;
+        }
+
+        try {
+            sleep(settings.beforeSubDelayMs);
+            long start = System.nanoTime();
+            switch (settings.subStrategy) {
+                case Push_Without_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(), d, Message::ack, false,
+                        PushSubscribeOptions.builder().configuration(cc).build());
+                    break;
+                case Push_Provide_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(), d, Message::ack, false,
+                        PushSubscribeOptions.builder().stream(settings.streamName).configuration(cc).build());
+                    break;
+                case Push_Bind:
+                    subs[conIx] = js.subscribe(null, d, Message::ack, false,
+                        PushSubscribeOptions.bind(settings.streamName, cc.getName()));
+                    break;
+                case Pull_Without_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(),
+                        PullSubscribeOptions.builder().configuration(cc).build());
+                    break;
+                case Pull_Provide_Stream:
+                    subs[conIx] = js.subscribe(cc.getFilterSubject(),
+                        PullSubscribeOptions.builder().stream(settings.streamName).configuration(cc).build());
+                    break;
+                case Pull_Bind:
+                    subs[conIx] = js.subscribe(null, PullSubscribeOptions.bind(settings.streamName, cc.getName()));
+                    break;
+            }
+            subscribeTime[conIx] = System.nanoTime() - start;
+            if (conIx == 0 || conIx % settings.reportFrequency == 0) {
+                System.out.println("SUB " + cc.getName() + " | " + settings.time(subscribeTime[conIx]) + settings.timeLabel());
+            }
+        }
+        catch (Exception e) {
+            System.err.println("SUB EX " + cc.getName() + " | " + e);
         }
     }
 

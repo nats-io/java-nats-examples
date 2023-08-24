@@ -87,7 +87,7 @@ public class Report {
                     if (conAndSub.createTime[x] == -1) {
                         dnfCons++;
                     }
-                    else {
+                    else if (conAndSub.createTime[x] != Long.MIN_VALUE) {
                         finishedCons++;
                         totalCons += conAndSub.createTime[x];
                         longestCon = Math.max(longestCon, conAndSub.createTime[x]);
@@ -106,52 +106,65 @@ public class Report {
             }
         }
 
-        long medianCons = median(forMedianCons) / 1_000_000;
+        String tl = settings.timeLabel();
+//        section("General");
+//        value("Stream Name", settings.streamName);
+//        value("Subject Prefix", settings.subjectGenerator.getSubjectPrefix());
+//        value("Storage Type", settings.storageType);
+//        value("Replicas", settings.replicas);
+//        value("Timeout " + tl, settings.timeoutMs);
+//        value("Inactive Threshold " + tl, settings.inactiveThresholdMs);
+//        value("Before Create Delay " + tl, settings.beforeCreateDelayMs);
+//        value("Before Sub Delay " + tl, settings.beforeSubDelayMs);
+//        value("Publish Instances", settings.publishInstances);
+//        value("Payload Size", settings.payloadSize);
+//        value("Report Frequency", settings.reportFrequency);
 
         section("Settings");
-        value("Stream Name", settings.streamName);
-        value("Subject Prefix", settings.subjectGenerator.getPrefix());
-        value("Storage Type", settings.storageType);
-        value("Replicas", settings.replicas);
-        value("Timeout ms", settings.timeoutMs);
+        value("App Strategy", settings.appStrategy.name().replace("_", " "));
+        value("Sub Strategy", settings.subStrategy.name().replace("_", " "));
         value("App Instances", settings.appInstances);
         value("Threads Per App", settings.threadsPerApp);
         value("Consumers Per App", settings.consumersPerApp);
-        value("Inactive Threshold ms", settings.inactiveThresholdMs);
-        value("Before Create Delay ms", settings.beforeCreateDelayMs);
-        value("Sub Behavior", settings.subBehavior.name().replace("_", " "));
-        value("Before Sub Delay ms", settings.beforeSubDelayMs);
-        value("Publish Instances", settings.publishInstances);
-        value("Payload Size", settings.payloadSize);
-        value("Report Frequency", settings.reportFrequency);
 
-        section("Time");
-        value("Elapsed ms", time / 1_000_000);
+//        section("Time");
+//        value("Elapsed " + tl, settings.time(time));
 
         section("Create Consumer");
-        value("Count", finishedCons + dnfCons);
-        value("Finished", finishedCons);
-        value("Did Not Finish", dnfCons);
-        value("Longest ms", (longestCon / 1_000_000));
-        value("Average ms", ((totalCons / finishedCons) / 1_000_000));
-        value("Median ms", medianCons);
+        if (forMedianCons.isEmpty()) {
+            value("Count");
+            value("Finished");
+            value("Did Not Finish");
+            value("Longest " + tl);
+            value("Average " + tl);
+            value("Median " + tl);
+            section("Combined");
+        }
+        else {
+            value("Count", finishedCons + dnfCons);
+            value("Finished", finishedCons);
+            value("Did Not Finish", dnfCons);
+            value("Longest " + tl, settings.time(longestCon));
+            value("Average " + tl, settings.time(totalCons / finishedCons));
+            value("Median " + tl, settings.time(median(forMedianCons)));
+            section("Subscribe");
+        }
 
-        section("Subscribe");
         if (forMedianSubs.isEmpty()) {
-            noValue("Count");
-            noValue("Finished");
-            noValue("Did Not Finish");
-            noValue("Longest ms");
-            noValue("Average ms");
-            noValue("Median ms");
+            value("Count");
+            value("Finished");
+            value("Did Not Finish");
+            value("Longest " + tl);
+            value("Average " + tl);
+            value("Median " + tl);
         }
         else {
             value("Count", finishedSubs + dnfSubs);
             value("Finished", finishedSubs);
             value("Did Not Finish", dnfSubs);
-            value("Longest ms", longestSub / 1_000_000);
-            value("Average ms", (totalSub / finishedSubs) / 1_000_000);
-            value("Median ms", median(forMedianSubs) / 1_000_000);
+            value("Longest " + tl, settings.time(longestSub));
+            value("Average " + tl, settings.time(totalSub / finishedSubs));
+            value("Median " + tl, settings.time(median(forMedianSubs)));
         }
     }
 
@@ -208,7 +221,7 @@ public class Report {
         descriptionWidth = Math.max(descriptionWidth, description.length());
     }
 
-    void noValue(String description) {
+    void value(String description) {
         value(description, "");
     }
 }

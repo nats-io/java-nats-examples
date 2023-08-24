@@ -32,20 +32,51 @@ public class Settings {
 
     public SubjectGenerator subjectGenerator = new UniqueSubjectGenerator();
 
-    public long timeoutMs = 120_000; // 2 minutes
+    public long timeoutMs = 20_000; // 20 seconds
 
     public int appInstances = 10;
-    public int threadsPerApp = 1;
+    public int threadsPerApp = 10;
     public int consumersPerApp = 100;
     public long beforeCreateDelayMs = 20;
     public long beforeSubDelayMs = 20;
 
     public long inactiveThresholdMs = timeoutMs * 2;
-    public SubBehavior subBehavior = SubBehavior.After_Creates;
+    public AppStrategy appStrategy = AppStrategy.Client_Api_Subscribe;
+    public SubStrategy subStrategy = SubStrategy.Push_Provide_Stream;
 
     public int publishInstances = 10;
     public int payloadSize = 100;
     public int pauseAfterStartPublishingMs = 2000;
 
-    public int reportFrequency = Math.max(1, (int) (consumersPerApp / threadsPerApp * 0.1));
+    public int reportFrequency = 1;
+    public float autoReportFactor = 0.2f;
+
+    public boolean reportNanos = false;
+
+    public long time(long t) {
+        return reportNanos ? t : t / 1_000_000;
+    }
+
+    public String timeLabel() {
+        return reportNanos ? "ns" : "ms";
+    }
+
+    public void autoReportFrequency() {
+        reportFrequency = Math.max(1, (int) (consumersPerApp / threadsPerApp * autoReportFactor));
+    }
+
+    public void validate() {
+        if (!isValid()) {
+            System.err.println(subStrategy.name().replace("_", " ") + " not allowed for " + appStrategy.name().replace("_", " "));
+            System.exit(-1);
+        }
+    }
+    public boolean isValid() {
+        if (appStrategy == AppStrategy.Client_Api_Subscribe) {
+            if (subStrategy == SubStrategy.Push_Bind || subStrategy == SubStrategy.Pull_Bind) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

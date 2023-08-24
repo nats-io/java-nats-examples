@@ -11,11 +11,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io.nats.tuning.support;
+package io.nats.tuning.consumercreate;
 
-public interface SubjectGenerator {
-    String getSubjectPrefix();
-    String getStreamSubject();
-    String getSubject(Object id);
-    String getNextDeliverSubject();
+public enum AppStrategy {
+    Individual_Immediately,
+    Individual_After_Creates,
+    Client_Api_Subscribe,
+    Do_Not_Sub
 }

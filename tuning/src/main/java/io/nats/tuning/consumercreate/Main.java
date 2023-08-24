@@ -34,26 +34,29 @@ public class Main {
         List<Report> reports = new ArrayList<>();
         Settings settings = new Settings();
 
-        settings.optionsBuilder = () -> Options.builder()
-            .server("localhost:4222,localhost:5222,localhost:6222");
+        settings.optionsBuilder = () -> Options.builder().server("localhost:4222,localhost:5222,localhost:6222");
 
         int[] threadsPerApp = new int[]{1, 2, 5, 10};
-        SubBehavior[] subBehaviors = new SubBehavior[]{SubBehavior.After_Creates, SubBehavior.Immediately};
+        AppStrategy[] appStrategies = new AppStrategy[]{AppStrategy.Client_Api_Subscribe, AppStrategy.Individual_Immediately, AppStrategy.Individual_After_Creates};
 
-        boolean first = true;
-        for (int tpa : threadsPerApp) {
-            for (SubBehavior sb : subBehaviors) {
-                if (first) { first = false; } else { Thread.sleep(5000); }
+        for (AppStrategy asy : appStrategies) {
+            for (SubStrategy ssy : SubStrategy.values()) {
+                for (int tpa : threadsPerApp) {
+                    Thread.sleep(1000);
+                    String title = tpa + " " + asy.name().toLowerCase().replace("_", " ");
+                    settings.streamName = title.replace(" ", "-");
+                    settings.subjectGenerator = new UniqueSubjectGenerator();
+                    settings.threadsPerApp = tpa;
+                    settings.appStrategy = asy;
+                    settings.subStrategy = ssy;
+                    settings.autoReportFrequency();
 
-                String title = tpa + " " + sb.name().toLowerCase().replace("_", " ");
-                settings.streamName = title.replace(" ", "-");
-                settings.subjectGenerator = new UniqueSubjectGenerator();
-                settings.threadsPerApp = tpa;
-                settings.subBehavior = sb;
-
-                Report r = run(title, settings);
-                reports.add(r);
-                cleanupAfterRun(settings);
+                    if (settings.isValid()) { // just skip invalid settings when strategies don't work together.
+                        Report r = run(title, settings);
+                        reports.add(r);
+                        cleanupAfterRun(settings);
+                    }
+                }
             }
         }
 
@@ -70,8 +73,9 @@ public class Main {
     }
 
     public static Report run(String title, Settings settings) {
-        try (Connection nc = Nats.connect(settings.optionsBuilder.getBuilder().build())) {
+        settings.validate();
 
+        try (Connection nc = Nats.connect(settings.optionsBuilder.getBuilder().build())) {
             if (settings.verifyConnectMs > 0) {
                 if (!Utils.waitForStatus(nc, settings.verifyConnectMs, Connection.Status.CONNECTED)) {
                     throw new RuntimeException("Connection not established within verify time of " + settings.verifyConnectMs + "ms");

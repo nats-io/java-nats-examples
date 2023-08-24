@@ -16,25 +16,32 @@ package io.nats.tuning.support;
 import io.nats.client.NUID;
 
 public class UniqueSubjectGenerator implements SubjectGenerator {
-    public final String prefix;
+    public final String subjectPrefix;
+    public final String deliverPrefix;
 
     public UniqueSubjectGenerator() {
-        this("sub-" + NUID.nextGlobalSequence() + ".");
+        this("sub-" + NUID.nextGlobalSequence() + ".", "del-");
     }
 
-    public UniqueSubjectGenerator(String prefix) {
-        this.prefix = prefix;
+    public UniqueSubjectGenerator(String subjectPrefix, String deliverPrefix) {
+        this.subjectPrefix = subjectPrefix;
+        this.deliverPrefix = deliverPrefix;
     }
 
-    public String getPrefix() {
-        return prefix;
+    public String getSubjectPrefix() {
+        return subjectPrefix;
     }
 
     public String getStreamSubject() {
-        return prefix + ">";
+        return subjectPrefix + ">";
     }
 
     public String getSubject(Object id) {
-        return prefix + id;
+        return subjectPrefix + id;
+    }
+
+    @Override
+    public String getNextDeliverSubject() {
+        return deliverPrefix + NUID.nextGlobal();
     }
 }

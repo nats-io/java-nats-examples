@@ -13,8 +13,17 @@
 
 package io.nats.tuning.consumercreate;
 
-public enum SubBehavior {
-    Immediately,
-    After_Creates,
-    Not_At_All
+public enum SubStrategy {
+    Push_Without_Stream(false),
+    Push_Provide_Stream(false),
+    Push_Bind(false),
+    Pull_Without_Stream(true),
+    Pull_Provide_Stream(true),
+    Pull_Bind(true);
+
+    public final boolean pull;
+
+    SubStrategy(boolean pull) {
+        this.pull = pull;
+    }
 }
