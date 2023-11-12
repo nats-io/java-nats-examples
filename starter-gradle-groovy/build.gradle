@@ -14,15 +14,22 @@ plugins {
     id 'application'
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 repositories {
     mavenLocal()
     mavenCentral()
     maven { url 'https://oss.sonatype.org/content/repositories/releases/' }
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.16.14'
+    implementation 'io.nats:jnats:2.17.1'
+    implementation 'io.synadia:flink-connector-nats:0.0.1-SNAPSHOT'
 
     // Use JUnit Jupiter API for testing.
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'

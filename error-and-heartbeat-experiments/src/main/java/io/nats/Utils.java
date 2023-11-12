@@ -33,9 +33,25 @@ public class Utils {
 
         StreamConfiguration sc = StreamConfiguration.builder()
             .name(STREAM)
-            .storageType(StorageType.Memory)
+            .storageType(StorageType.File)
             .subjects(SUBJECT)
             .build();
         jsm.addStream(sc);
+    }
+
+    public static Thread publishThread(JetStream js, long delay) {
+        return new Thread(() -> {
+            int id = 0;
+            while (true) {
+                try {
+                    js.publish(SUBJECT, ("data-" + (++id)).getBytes());
+                    //noinspection BusyWait
+                    Thread.sleep(delay);
+                }
+                catch (Exception ignore) {
+                    break;
+                }
+            }
+        });
     }
 }

@@ -13,24 +13,84 @@
 
 package io.nats;
 
-import io.nats.client.Connection;
-import io.nats.client.JetStreamSubscription;
-import io.nats.client.impl.ErrorListenerLoggerImpl;
+import io.nats.client.*;
+import io.nats.client.api.ServerInfo;
 import io.nats.client.support.Status;
 
-public class ExampleErrorListener extends ErrorListenerLoggerImpl {
+import java.util.logging.Level;
+
+public class ExampleErrorListener implements ErrorListener {
+    public void errorOccurred(final Connection conn, final String error) {
+        report(Level.SEVERE, "errorOccurred", conn, null, null, "Error: ", error);
+    }
+
     @Override
-    public void heartbeatAlarm(Connection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
-        System.err.println("Error Listener: Heartbeat Alarm for '" + sub.getConsumerName() + "', lastStreamSequence=" + lastStreamSequence + ", lastConsumerSequence=" + lastConsumerSequence);
+    public void exceptionOccurred(final Connection conn, final Exception exp) {
+        report(Level.SEVERE, "exceptionOccurred", conn, null, null, "Exception: ", exp);
+    }
+
+    @Override
+    public void slowConsumerDetected(final Connection conn, final Consumer consumer) {
+        report(Level.WARNING, "slowConsumerDetected", conn, consumer, null);
+    }
+
+    @Override
+    public void messageDiscarded(final Connection conn, final Message msg) {
+        report(Level.INFO, "messageDiscarded", conn, null, null, "Message: ", msg);
+    }
+
+    @Override
+    public void heartbeatAlarm(final Connection conn, final JetStreamSubscription sub,
+                               final long lastStreamSequence, final long lastConsumerSequence) {
+        report(Level.SEVERE, "heartbeatAlarm", conn, null, sub, "lastStreamSequence: ", lastStreamSequence, "lastConsumerSequence: ", lastConsumerSequence);
+    }
+
+    @Override
+    public void unhandledStatus(final Connection conn, final JetStreamSubscription sub, final Status status) {
+        report(Level.WARNING, "unhandledStatus", conn, null, sub, "Status:", status);
     }
 
     @Override
     public void pullStatusWarning(Connection conn, JetStreamSubscription sub, Status status) {
-        System.out.println("Error Listener: Pull Status Warning for '" + sub.getConsumerName() + "', " + status);
+        report(Level.WARNING, "pullStatusWarning", conn, null, sub, "Status:", status);
     }
 
     @Override
     public void pullStatusError(Connection conn, JetStreamSubscription sub, Status status) {
-        System.err.println("Error Listener: Pull Status Error for '" + sub.getConsumerName() + "', " + status);
+        report(Level.SEVERE, "pullStatusError", conn, null, sub, "Status:", status);
+    }
+
+    @Override
+    public void flowControlProcessed(Connection conn, JetStreamSubscription sub, String id, FlowControlSource source) {
+        report(Level.INFO, "flowControlProcessed", conn, null, sub, "FlowControlSource:", source);
+    }
+
+    private void report(Level level, String label, Connection conn, Consumer consumer, Subscription sub, Object... pairs) {
+        StringBuilder sb = new StringBuilder("Error Listener: ").append(level.toString()).append(": ").append(label);
+        if (conn != null) {
+            ServerInfo si = conn.getServerInfo();
+            if (si != null) {
+                sb.append(", Connection: ").append(conn.getServerInfo().getClientId());
+            }
+        }
+        if (consumer != null) {
+            sb.append(", Consumer: ").append(consumer.hashCode());
+        }
+        if (sub != null) {
+            sb.append(", Subscription: ").append(sub.hashCode());
+            if (sub instanceof JetStreamSubscription) {
+                JetStreamSubscription jssub = (JetStreamSubscription)sub;
+                sb.append(", Consumer Name: ").append(jssub.getConsumerName());
+            }
+        }
+        for (int x = 0; x < pairs.length; x++) {
+            sb.append(", ").append(pairs[x]).append(pairs[++x]);
+        }
+        if (level == Level.SEVERE) {
+            System.err.println(sb);
+        }
+        else {
+            System.out.println(sb);
+        }
     }
 }

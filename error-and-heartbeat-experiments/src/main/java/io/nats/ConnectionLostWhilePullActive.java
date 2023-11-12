@@ -16,9 +16,11 @@ package io.nats;
 import io.nats.client.*;
 
 public class ConnectionLostWhilePullActive {
+    static long EXPIRATION = 60000;
     public static void main(String[] args) {
         Options options = new Options.Builder()
             .server(Options.DEFAULT_URL)
+            .connectionListener((conn, type) -> System.out.println("Connection Listener: " + type))
             .errorListener(new ExampleErrorListener())
             .build();
 
@@ -40,11 +42,14 @@ public class ConnectionLostWhilePullActive {
                 PullSubscribeOptions.builder()
                     .name(Utils.CALLBACK_CONSUMER).build());
 
+            Thread publishThread = Utils.publishThread(js, 5000);
+            publishThread.start();
+
             // Pull with long expiration.
             // No messages have been published to the subject,
             // so it will just wait to expire.
-            PullRequestOptions pro = PullRequestOptions.builder(1)
-                .expiresIn(30000)
+            PullRequestOptions pro = PullRequestOptions.builder(1000)
+                .expiresIn(EXPIRATION)
                 .idleHeartbeat(1000)
                 .build();
             syncSub.pull(pro);
@@ -52,30 +57,41 @@ public class ConnectionLostWhilePullActive {
 
             System.out.println("\n" +
                 "------------------------------------------------------------------------------------------------------\n" +
+                "What happens when you kill and restart a server?\n" +
+                "------------------------------------------------------------------------------------------------------\n" +
                 "Experiment 1. Kill server with the consumer leader if it's not the same server you are connected to...\n" +
                 "Look at the console for something like\n" +
                 "    \"JetStream cluster new consumer leader for '$G > TheStream > SyncConsumer'\"\n" +
                 "or use the NATS Cli 'nats c info' command\n" +
                 "------------------------------------------------------------------------------------------------------\n" +
-                "Experiment 2. Kill server with you are connected to if it's not the same as the consumer leader...\n" +
+                "Experiment 2. Kill server you are connected to if it's not the same as the consumer leader...\n" +
                 "------------------------------------------------------------------------------------------------------\n" +
-                "Experiment 3. Kill server with you are connected if it is the same as the consumer leader...\n" +
+                "Experiment 3. Kill server you are connected if it is the same as the consumer leader...\n" +
                 "------------------------------------------------------------------------------------------------------\n"
             );
-            Thread.sleep(10000);
 
             // Both Sync and Callback subscriptions get messages sent to the error listener.
             // Sync subscriptions throw exceptions on errors.
-            try {
-                syncSub.nextMessage(1000);
+            int x = 0;
+            long time = System.currentTimeMillis();
+            long stop = time + EXPIRATION + 1000;
+            while (time < stop) {
+                System.out.println("Sync Attempt " + (++x) + " @ " + time + " < " + stop);
+                try {
+                    Message m = syncSub.nextMessage(10000);
+                    System.out.println("    " + m);
+                    if (m != null) {
+                        m.ack();
+                    }
+                }
+                catch (JetStreamStatusException jsse) {
+                    System.out.println("    Status Exception (" + x + ") " + jsse.getStatus());
+                }
+                catch (Exception e) {
+                    System.out.println("    Exception (" + x + ") " + e);
+                }
+                time = System.currentTimeMillis();
             }
-            catch (JetStreamStatusException e) {
-                System.err.println("Sync Exception: " + e.getStatus().toString());
-            }
-
-            // Make sure the error listener has time to get the errors
-            // and alarms before closing the connection.
-            Thread.sleep(1000);
         }
         catch (Exception e) {
             e.printStackTrace();
