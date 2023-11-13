@@ -33,7 +33,7 @@ public class AdvancedSubscription implements MessageHandler {
     public final String subject;
     public final AtomicLong lastAckedSequence;
     public final AtomicReference<CompletableFuture<Boolean>> drainFuture;
-    
+
     public PushSubscribeOptions pso;
     public JetStreamSubscription sub;
     public int subid;
@@ -48,7 +48,7 @@ public class AdvancedSubscription implements MessageHandler {
 
     @Override
     public void onMessage(Message msg) throws InterruptedException {
-        System.out.println("MSG to " + asid + "-" + subid + " on " + msg.getSubject() + " ==> " + new String(msg.getData()));
+        PushApp.println(asid + "-" + subid, "Message " + msg.getSubject() + " / " + new String(msg.getData()));
         msg.ack();
         lastAckedSequence.set(msg.metaData().streamSequence());
     }
@@ -61,8 +61,8 @@ public class AdvancedSubscription implements MessageHandler {
     public PushSubscribeOptions getPso() {
         ConsumerConfiguration.Builder ccb = ConsumerConfiguration.builder()
             .filterSubject(subject)
-            .flowControl(Rps.IDLE_HEARTBEAT)
-            .inactiveThreshold(Rps.INACTIVE_THRESHOLD);
+            .flowControl(PushApp.IDLE_HEARTBEAT)
+            .inactiveThreshold(PushApp.INACTIVE_THRESHOLD);
 
         if (lastAckedSequence.get() > 0) {
             ccb.deliverPolicy(DeliverPolicy.ByStartSequence)

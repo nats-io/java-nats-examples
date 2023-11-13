@@ -24,12 +24,12 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Rps implements ConnectionListener, ErrorListener {
+public class PushApp implements ConnectionListener, ErrorListener {
 
-    public static String STREAM = "rps-stream";
-    public static String STREAM_SUBJECT = "rps-subject.>";
-    public static String SUBJECT_1 = "rps-subject.1";
-    public static String SUBJECT_2 = "rps-subject.2";
+    public static String STREAM = "pshstrm";
+    public static String STREAM_SUBJECT = "pshsbj.>";
+    public static String SUBJECT_1 = "pshsbj.1";
+    public static String SUBJECT_2 = "pshsbj.2";
     public static final int PUBLISH_DELAY = 5000;
 
     // inactive threshold should be less than 3 times the idle heartbeat
@@ -43,18 +43,18 @@ public class Rps implements ConnectionListener, ErrorListener {
     private Dispatcher dispatcher;
 
     public static void main(String[] args) {
-        Rps rps = new Rps();
+        PushApp pushApp = new PushApp();
         Options options = Options.builder()
-            .connectionListener(rps)
-            .errorListener(rps)
+            .connectionListener(pushApp)
+            .errorListener(pushApp)
             .build();
 
         try (Connection conn = Nats.connect(options)) {
-            System.out.println("Connected to: " + conn.getServerInfo().getPort());
+            println("Connected to: " + conn.getServerInfo().getPort());
             setupStream(conn);
-            JetStream js = conn.jetStream(); rps.js = js;
+            JetStream js = conn.jetStream(); pushApp.js = js;
 
-            Dispatcher dispatcher = conn.createDispatcher(); rps.dispatcher = dispatcher;
+            Dispatcher dispatcher = conn.createDispatcher(); pushApp.dispatcher = dispatcher;
 
             AdvancedSubscription asub1 = new AdvancedSubscription(STREAM, SUBJECT_1);
             asub1.setSub(js.subscribe(null, dispatcher, asub1, false, asub1.getPso()));
@@ -71,7 +71,7 @@ public class Rps implements ConnectionListener, ErrorListener {
             int retry2 = 0;
             //noinspection InfiniteLoopStatement
             while (true) {
-                System.out.println("Attempting Publish on " + conn.getServerInfo().getPort());
+                println("Attempting Publish on " + conn.getServerInfo().getPort());
                 try {
                     ++count1;
                     js.publish(SUBJECT_1, ("S1-" + count1 + "-" + retry1).getBytes());
@@ -102,8 +102,8 @@ public class Rps implements ConnectionListener, ErrorListener {
     @Override
     public void heartbeatAlarm(Connection conn, JetStreamSubscription sub, long lastStreamSequence, long lastConsumerSequence) {
         for (AdvancedSubscription asub : SUBS) {
-            if (asub.sub.equals(sub)) {
-                System.out.println("heartbeatAlarm for " + sub.getConsumerName());
+            println("heartbeatAlarm (1) for " + sub.getConsumerName() + " =?= " + asub.sub.getConsumerName());
+            if (asub.sub.getConsumerName().equals(sub.getConsumerName())) {
                 // unsubscribe the old one, and ignore any error since it's probably already gone
                 try {
                     asub.sub.unsubscribe();
@@ -113,7 +113,9 @@ public class Rps implements ConnectionListener, ErrorListener {
 
                 // make a new subscription
                 try {
+                    println("heartbeatAlarm (2) for " + asub.sub.getConsumerName());
                     asub.setSub(js.subscribe(null, dispatcher, asub, false, asub.getPso()));
+                    println("heartbeatAlarm (3) for " + asub.sub.getConsumerName() + " " + asub.pso);
                 }
                 catch (Exception e) {
                     // probably should do something here
@@ -124,7 +126,7 @@ public class Rps implements ConnectionListener, ErrorListener {
     }
 
     public void connectionEvent(Connection conn, Events event) {
-        System.out.println(event.name() + " " + conn.getServerInfo().getPort());
+        println(event.name() + " " + conn.getServerInfo().getPort());
         switch (event) {
             case CONNECTED:
             case RECONNECTED:
@@ -151,12 +153,12 @@ public class Rps implements ConnectionListener, ErrorListener {
 
     @Override
     public void errorOccurred(Connection conn, String error) {
-        System.out.println("errorOccurred " + error);
+        println("errorOccurred " + error);
     }
 
     @Override
     public void exceptionOccurred(Connection conn, Exception exp) {
-        System.out.println("exceptionOccurred " + exp);
+        println("exceptionOccurred " + exp);
     }
 
     private static void setupStream(Connection conn) throws IOException, JetStreamApiException {
@@ -166,5 +168,14 @@ public class Rps implements ConnectionListener, ErrorListener {
         }
         catch (Exception ignore) {}
         jsm.addStream(StreamConfiguration.builder().name(STREAM).subjects(STREAM_SUBJECT).storageType(StorageType.File).build());
+    }
+
+    private static void println(String s) {
+        println("APP", s);
+    }
+
+    public static void println(String id, String s) {
+        String t = "" + System.currentTimeMillis();
+        System.out.println("[" + t.substring(t.length() - 9) + "] " + id + " | " + s);
     }
 }
