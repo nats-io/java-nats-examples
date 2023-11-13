@@ -61,8 +61,8 @@ public class AdvancedSubscription implements MessageHandler {
     public PushSubscribeOptions getPso() {
         ConsumerConfiguration.Builder ccb = ConsumerConfiguration.builder()
             .filterSubject(subject)
-            .flowControl(3000)
-            .inactiveThreshold(10000);
+            .flowControl(Rps.IDLE_HEARTBEAT)
+            .inactiveThreshold(Rps.INACTIVE_THRESHOLD);
 
         if (lastAckedSequence.get() > 0) {
             ccb.deliverPolicy(DeliverPolicy.ByStartSequence)
