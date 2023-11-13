@@ -25,7 +25,10 @@ jobs:
         with:
           go-version: '1.19.9'
       - name: Install Nats Server
-        uses: scottf/install-nats-io-server-ubuntu@v1
+        run: |
+          curl -sf https://binaries.nats.dev/nats-io/nats-server/v2@main | PREFIX=. sh
+          sudo mv nats-server /usr/local/bin
+          nats-server -v
       - name: Check out code
         uses: actions/checkout@v3
       - name: Chain of Command
@@ -43,6 +46,12 @@ jobs:
       - name: Encoding
         run: |
           pushd encoding
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Error And Heartbeat Experiments
+        run: |
+          pushd error-and-heartbeat-experiments
           chmod +x gradlew
           ./gradlew compileJava
           popd
@@ -89,9 +98,27 @@ jobs:
           chmod +x gradlew
           ./gradlew clean compileJava
           popd
+      - name: Nats By Example
+        run: |
+          pushd nats-by-example
+          chmod +x gradlew
+          ./gradlew clean compileJava
+          popd
       - name: OCSP
         run: |
           pushd ocsp
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Recreate Consumer
+        run: |
+          pushd recreate-consumer
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: Robust Push Subscription
+        run: |
+          pushd robust-push-subscription
           chmod +x gradlew
           ./gradlew compileJava
           popd
