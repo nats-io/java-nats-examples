@@ -27,7 +27,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * This example will demonstrate a basic micro service
  */
-public class IntroToMicroFramework {
+public class IntroToServiceFramework {
 
     public static void main(String[] args) {
         String natsURL = System.getenv("NATS_URL");

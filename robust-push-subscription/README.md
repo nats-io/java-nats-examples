@@ -1,12 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Nats By Example
+# Robust Push App Example
 
-[Nats By Example Website](https://natsbyexample.com/)
-
-* Key Value Intro
-  * [KeyValueIntro.java](src/main/java/io/nats/KeyValueIntro.java)
-  * [Nats By Example Key Value Intro Java](https://natsbyexample.com/examples/kv/intro/java) 
+Application with more robust error handler including recreating the consumer if heartbeat alarm occurs.
 
 ## License
 
