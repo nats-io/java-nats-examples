@@ -77,7 +77,10 @@ public class Usage {
         + "\n-kp ack policy (explicit|none|all) for subscriptions, defaults to explicit"
         + "\n-kf ack all frequency (number), applies to ack policy all, ack after kf messages"
         + "\n      defaults to 1, maximum 100"
-        + "\n-bs batch size (number) for subPull*, defaults to 10, maximum 200";
+        + "\n-bs batch size (number) for subPull*, defaults to 10, maximum 200"
+        + "\n-rqwms request wait millis, time to wait for any JetStream request to complete, default is 1000 milliseconds"
+        + "\n-rtoms read timeout wait millis, time to wait for an individual synchronous message read (next or fetch), default is 1000 milliseconds"
+        + "\n-rmxwms read max wait millis, when reading messages in a loop, stop if there are no messages in this time, default is 10 seconds (10000ms)";
 
     public static final String SSEP =
         "---------------------------";

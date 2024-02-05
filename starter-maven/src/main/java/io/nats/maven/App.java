@@ -1,4 +1,4 @@
-package io.nats.jsmulti;
+package io.nats.maven;
 
 import io.nats.client.Connection;
 import io.nats.client.Nats;

@@ -24,6 +24,7 @@ public interface Application {
 
     default void reportEx(Exception e) {
         System.err.println(format(e.getMessage()));
+        //noinspection CallToPrintStackTrace
         e.printStackTrace();
     }
 

@@ -11,5 +11,5 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.17.1'
+    implementation 'io.nats:jnats:2.17.3'
 }

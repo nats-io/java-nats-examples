@@ -22,7 +22,13 @@ repositories {
 }
 
 dependencies {
+    implementation 'io.nats:nkeys-java:2.0.0'
+    implementation 'io.nats:jnats-json:1.5.2'
+    implementation 'io.nats:jwt-java:1.5.2'
     implementation 'io.nats:jnats:2.17.3'
+
+    testImplementation(platform('org.junit:junit-bom:5.8.2'))
+    testImplementation('org.junit.jupiter:junit-jupiter')
 }
 
 test {

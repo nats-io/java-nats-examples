@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
 }
 
-version = "1.5.2"
+version = "1.5.3"
 group = 'io.nats'
 
 repositories {
@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.17.1'
+    implementation 'io.nats:jnats:2.17.3'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
 }
 

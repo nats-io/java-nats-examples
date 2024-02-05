@@ -34,6 +34,11 @@ import static io.nats.jsmulti.shared.Utils.randomString;
 
 public class Context {
 
+    public static final long DEFAULT_READ_TIMEOUT_MS = 1000;
+    public static final long DEFAULT_REQUEST_WAIT_MS = 1000;
+    public static final long DEFAULT_MAX_WAIT_MS = 10000;
+    public static final int MIN_WAIT_MS = 100;
+
     // ----------------------------------------------------------------------------------------------------
     // Settings
     // ----------------------------------------------------------------------------------------------------
@@ -62,13 +67,16 @@ public class Context {
     public final int batchSize;
     public final int reportFrequency;
 
+    public final Duration requestWaitDuration;
+    public final Duration readTimeoutDuration;
+    public final Duration readMaxWaitDuration;
+
     // once per context for now
     public final String queueName;
 
     // constant now but might change in the future
     public final int maxPubRetries = 10;
     public final int ackWaitSeconds = 120;
-    public final Duration requestWaitMillis = Duration.ofMillis(1000);
     public final long postPubWaitMillis = 1000;
 
     // ----------------------------------------------------------------------------------------------------
@@ -126,6 +134,7 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     // ToString
     // ----------------------------------------------------------------------------------------------------
+    @SuppressWarnings("unused")
     public void print() {
         System.out.println(this + "\n");
     }
@@ -144,6 +153,11 @@ public class Context {
         append(sb, "action", "lf", "Yes", latencyFlag);
         append(sb, "options factory", "of", _optionsFactory.getClass().getTypeName(), true);
         append(sb, "report frequency", "rf", reportFrequency < 1 ? "no reporting" : "" + reportFrequency, true);
+
+        append(sb, "request wait millis", "rqwms", requestWaitDuration, requestWaitDuration.toMillis() != DEFAULT_REQUEST_WAIT_MS);
+        append(sb, "read timeout millis", "rtoms", readTimeoutDuration, readTimeoutDuration.toMillis() != DEFAULT_READ_TIMEOUT_MS);
+        append(sb, "read max wait millis", "rmxwms", readMaxWaitDuration, readMaxWaitDuration.toMillis() != DEFAULT_MAX_WAIT_MS);
+
         append(sb, "subject", "u", subject, true);
         append(sb, "message count", "m", messageCount, true);
         append(sb, "threads", "d", threads, true);
@@ -199,13 +213,16 @@ public class Context {
         boolean _connShared = true;
         long _jitter = 0;
         int _payloadSize = 128;
-        int _roundSize = 100;
+        int _roundSize = MIN_WAIT_MS;
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
         int _batchSize = 10;
         String _lcsv = null;
         String _queueName = "qn" + randomString();
         String _subDurableWhenQueue = "qd" + randomString();
+        long _requestWaitMillis = DEFAULT_REQUEST_WAIT_MS;
+        long _readTimeoutMillis = DEFAULT_READ_TIMEOUT_MS;
+        long _readMaxWaitMillis = DEFAULT_MAX_WAIT_MS;
 
         if (args != null && args.length > 0) {
             try {
@@ -261,7 +278,7 @@ public class Context {
                             }
                             break;
                         case "-kf":
-                            _ackAllFrequency = asNumber("ack frequency", args[++x], 100);
+                            _ackAllFrequency = asNumber("ack frequency", args[++x], MIN_WAIT_MS);
                             break;
                         case "-rf":
                             _reportFrequency = asNumber("report frequency", args[++x]);
@@ -281,6 +298,15 @@ public class Context {
                         case "-sdwq":
                             _subDurableWhenQueue = asString(args[++x]);
                             break;
+                        case "-rqwms":
+                            _requestWaitMillis = asNumber("request wait millis", args[++x]);
+                            break;
+                        case "-rtoms":
+                            _readTimeoutMillis = asNumber("read timeout wait millis", args[++x]);
+                            break;
+                        case "-rmxwms":
+                            _readMaxWaitMillis = asNumber("read max wait millis", args[++x]);
+                            break;
                         case "":
                             break;
                         default:
@@ -294,16 +320,27 @@ public class Context {
             }
         }
 
-        if (_messageCount < 1) {
+        // all errors exit
+        if (_action == null) {
+            error("Valid action required!");
+        }
+        else if (_messageCount < 1) {
             error("Message count required!");
         }
-
-        if (_threads == 1 && _action.isQueue()) {
+        else if (_threads == 1 && _action.isQueue()) {
             error("Queue subscribing requires multiple threads!");
         }
-
-        if (_action.isPull() && _ackPolicy != AckPolicy.Explicit) {
+        else if (_action.isPull() && _ackPolicy != AckPolicy.Explicit) {
             error("Pull subscribing requires AckPolicy.Explicit!");
+        }
+        else if (_requestWaitMillis < MIN_WAIT_MS) {
+            error("Request wait millis is too short!");
+        }
+        else if (_readTimeoutMillis < MIN_WAIT_MS) {
+            error("Request read timeout millis is too short!");
+        }
+        else if (_readMaxWaitMillis < _readTimeoutMillis) {
+            error("Request max wait millis is too short!");
         }
 
         action = _action;
@@ -323,6 +360,10 @@ public class Context {
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
         batchSize = _batchSize;
+
+        requestWaitDuration = Duration.ofMillis(_requestWaitMillis);
+        readTimeoutDuration = Duration.ofMillis(_readTimeoutMillis);
+        readMaxWaitDuration = Duration.ofMillis(_readMaxWaitMillis);
 
         if (_reportFrequency == null) {
             reportFrequency = messageCount / 10;
@@ -363,6 +404,7 @@ public class Context {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private Object classForName(String className, String label) {
         try {
             Class<?> c = Class.forName(className);

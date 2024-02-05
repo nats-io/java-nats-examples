@@ -174,6 +174,18 @@ public class Arguments {
         return add("bs", batchSize);
     }
 
+    public Arguments requestWaitMillis(long requestWaitMillis) {
+        return add("rqwms", requestWaitMillis);
+    }
+
+    public Arguments readTimeoutMillis(long readTimeoutMillis) {
+        return add("rtoms", readTimeoutMillis);
+    }
+
+    public Arguments readMaxWaitMillis(long readMaxWaitMillis) {
+        return add("rmxwms", readMaxWaitMillis);
+    }
+
     public String[] toStringArray() {
         return args.toArray(new String[0]);
     }

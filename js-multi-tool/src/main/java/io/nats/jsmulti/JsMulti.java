@@ -49,8 +49,6 @@ import static io.nats.jsmulti.shared.Utils.sleep;
  */
 public class JsMulti {
 
-    static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(1);
-
     public static void main(String[] args) throws Exception {
         run(new Context(args), false, true);
     }
@@ -131,6 +129,7 @@ public class JsMulti {
             throw new Exception("Invalid Action");
         }
         catch (Exception e) {
+            //noinspection CallToPrintStackTrace
             e.printStackTrace();
             System.exit(-1);
             return null;
@@ -147,13 +146,8 @@ public class JsMulti {
         report(published, "Begin RTT", ctx.app);
         while (published < pubTarget) {
             jitter(ctx);
-            try {
-                stats.manualElapsed(nc.RTT().toNanos(), 1);
-                unReported = reportMaybe(ctx, ++published, ++unReported, "RTTs so far");
-            }
-            catch (Exception e) {
-                throw e;
-            }
+            stats.manualElapsed(nc.RTT().toNanos(), 1);
+            unReported = reportMaybe(ctx, ++published, ++unReported, "RTTs so far");
         }
         report(published, "RTTs completed", ctx.app);
     }
@@ -199,7 +193,7 @@ public class JsMulti {
             _pub(ctx, stats, id, nc::request, cfm -> {});
         }
         else {
-            _pub(ctx, stats, id, (s, p) -> nc.request(s, p, ctx.requestWaitMillis), m -> {});
+            _pub(ctx, stats, id, (s, p) -> nc.request(s, p, ctx.requestWaitDuration), m -> {});
         }
     }
 
@@ -307,7 +301,7 @@ public class JsMulti {
 
     private static void processFutures(List<CompletableFuture<PublishAck>> futures, Stats stats) {
         stats.start();
-        while (futures.size() > 0) {
+        while (!futures.isEmpty()) {
             CompletableFuture<PublishAck> f = futures.remove(0);
             if (!f.isDone()) {
                 futures.add(f);
@@ -334,7 +328,7 @@ public class JsMulti {
             sub = nc.subscribe(ctx.subject);
         }
 
-        _corePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> nc.publish(m.getReplyTo(), m.getData()));
+        _coreReadLikePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> nc.publish(m.getReplyTo(), m.getData()));
     }
 
     private static void subCore(Context ctx, Connection nc, Stats stats, int id) throws Exception {
@@ -350,23 +344,30 @@ public class JsMulti {
             sub = nc.subscribe(ctx.subject);
         }
 
-        _corePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> {});
+        _coreReadLikePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> {});
     }
 
-    private static void _corePush(Context ctx, Stats stats, String subName, SimpleReader reader, ResultHandler<Message> rh) throws InterruptedException {
+    private static void _coreReadLikePush(Context ctx, Stats stats, String subName, SimpleReader reader, ResultHandler<Message> rh) throws InterruptedException {
         int rcvd = 0;
         int unReported = 0;
+        long noMessageTotalElapsed = 0;
         AtomicLong counter = ctx.getSubscribeCounter(subName);
         report(rcvd, "Begin Reading", ctx.app);
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            Message m = reader.nextMessage(DEFAULT_TIMEOUT);
+            Message m = reader.nextMessage(ctx.readTimeoutDuration);
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
+                noMessageTotalElapsed += hold;
+                if (noMessageTotalElapsed > ctx.readMaxWaitDuration.toMillis()) {
+                    report(rcvd, "Stopped At Max Wait, Finished Reading Messages", ctx.app);
+                    return;
+                }
                 acceptHoldOnceStarted(stats, rcvd, hold, ctx.app);
             }
             else {
+                noMessageTotalElapsed = 0;
                 rh.handle(m);
                 stats.manualElapsed(hold);
                 stats.count(m, received);
@@ -418,17 +419,24 @@ public class JsMulti {
         Message lastUnAcked = null;
         int unAckedCount = 0;
         int unReported = 0;
+        long noMessageTotalElapsed = 0;
         AtomicLong counter = ctx.getSubscribeCounter(durable);
         report(rcvd, "Begin Reading", ctx.app);
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            Message m = reader.nextMessage(DEFAULT_TIMEOUT);
+            Message m = reader.nextMessage(ctx.readTimeoutDuration);
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
+                noMessageTotalElapsed += hold;
+                if (noMessageTotalElapsed > ctx.readMaxWaitDuration.toMillis()) {
+                    report(rcvd, "Stopped At Max Wait, Finished Reading Messages", ctx.app);
+                    return;
+                }
                 acceptHoldOnceStarted(stats, rcvd, hold, ctx.app);
             }
             else {
+                noMessageTotalElapsed = 0;
                 stats.manualElapsed(hold);
                 stats.count(m, received);
                 counter.incrementAndGet();
@@ -480,7 +488,7 @@ public class JsMulti {
         report(rcvd, "Begin Reading", ctx.app);
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            List<Message> list = sub.fetch(ctx.batchSize, DEFAULT_TIMEOUT);
+            List<Message> list = sub.fetch(ctx.batchSize, ctx.readTimeoutDuration);
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             int lc = list.size();

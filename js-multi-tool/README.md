@@ -58,10 +58,10 @@ gradle uberJar
 At that point you can run directly the programs you can run with the gradle tasks 
 
 ```shell
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.JsMulti [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
-> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.2-uber.jar io.nats.jsmulti.examples.Rtt [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.3-uber.jar io.nats.jsmulti.JsMulti [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.3-uber.jar io.nats.jsmulti.examples.Producer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.3-uber.jar io.nats.jsmulti.examples.Consumer [arguments] 
+> java -cp <my-code-path>/java-nats-examples/js-multi-tool/build/libs/js-multi-tool-1.5.3-uber.jar io.nats.jsmulti.examples.Rtt [arguments] 
 ```
 
 ### Running from an IDE
@@ -86,6 +86,7 @@ to make it more readable. So these are all valid for 1 million `1000000`, `1,000
 * `PubSync` publish synchronously
 * `PubAsync` publish asynchronously
 * `PubCore` publish synchronously using the core api
+* `SubCore` core subscribe read messages (synchronously)
 * `SubPush` push subscribe read messages (synchronously)
 * `SubQueue` push subscribe read messages with queue (synchronously)
 * `SubPull` pull subscribe fetch messages (different durable if threaded)
@@ -105,6 +106,7 @@ Context ctx = Arguments.rtt() ... .build();
 Context ctx = Arguments.pubSync("subject-name") ... .build();
 Context ctx = Arguments.pubAsync("subject-name") ... .build();
 Context ctx = Arguments.pubCore("subject-name") ... .build();
+Context ctx = Arguments.subCore("subject-name") ... .build();
 Context ctx = Arguments.subPush("subject-name") ... .build();
 Context ctx = Arguments.subQueue("subject-name") ... .build();
 Context ctx = Arguments.subPull("subject-name") ... .build();
@@ -121,6 +123,14 @@ public class MyMulti {
         JsMulti.run(new Arguments(args));
     }
 }
+```
+
+Here are some variations of `JsMulti.run(...)` that are available. 
+```shell
+public static List<Stats> run(String[] args) throws Exception
+public static List<Stats> run(String[] args, boolean printArgs, boolean reportWhenDone) throws Exception
+public static List<Stats> run(Arguments args) throws Exception
+public static List<Stats> run(Arguments args, boolean printArgs, boolean reportWhenDone) throws Exception
 ```
 
 ### Server Argument
@@ -483,6 +493,9 @@ General Arguments
 -kf ack all frequency (number), applies to ack policy all, ack after kf messages
       defaults to 1, maximum 100
 -bs batch size (number) for subPull*, defaults to 10, maximum 200
+-rqwms request wait millis, time to wait for a JetStream request to complete, default is 1000 milliseconds
+-rtoms read timeout wait millis, time to wait for a individual synchronous message read (next or fetch), default is 1000 milliseconds
+-rmxwms rmxwms read max wait millis, when reading messages in a loop, stop if there are no messages in this time, default is 10 seconds (10000ms) 
 
 Notes
 -----

@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.17.1'
+    implementation 'io.nats:jnats:2.17.3'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
 }
