@@ -66,18 +66,12 @@ public class AuthCalloutServiceExample {
             // \/ Real service will do something like this \/
             // serviceStoppedFuture.get();
 
-//            test("alice", "alice", "test", "should connect, publish and receive");
-//            test("alice", "wrong", "n/a", "should not connect");
-//            test("bob", "bob", "bob.test", "should connect, publish and receive");
-//            test("bob", "bob", "test", "should connect, publish but not receive");
+            test("alice", "alice", "test", "should connect, publish and receive");
+            test("alice", "wrong", "n/a", "should not connect");
+            test("bob", "bob", "bob.test", "should connect, publish and receive");
+            test("bob", "bob", "test", "should connect, publish but not receive");
 
-            Thread.sleep(10000000);
-//            for (int x = 0; x < 10_000_000; x++) {
-//                String msg = "data-" + x;
-//                nc.publish("alice.test", msg.getBytes());
-//                System.out.println(msg);
-//                Thread.sleep(1000);
-//            }
+            Thread.sleep(2000);
         }
         catch (Exception e) {
             //noinspection CallToPrintStackTrace

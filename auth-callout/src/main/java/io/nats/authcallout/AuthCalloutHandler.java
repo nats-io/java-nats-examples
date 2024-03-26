@@ -14,9 +14,9 @@
 package io.nats.authcallout;
 
 import io.nats.client.Connection;
-import io.nats.client.NKey;
 import io.nats.client.impl.Headers;
 import io.nats.jwt.*;
+import io.nats.nkey.NKey;
 import io.nats.service.ServiceMessage;
 import io.nats.service.ServiceMessageHandler;
 
