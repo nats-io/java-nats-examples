@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.17.3'
+    implementation 'io.nats:jnats:2.17.4'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.2'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2'
 
