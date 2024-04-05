@@ -1,6 +1,9 @@
 package io.nats.ocsp;
 
-import io.nats.client.*;
+import io.nats.client.Connection;
+import io.nats.client.ErrorListener;
+import io.nats.client.Nats;
+import io.nats.client.Options;
 import nl.altindag.ssl.util.CertificateUtils;
 import nl.altindag.ssl.util.KeyStoreUtils;
 import nl.altindag.ssl.util.PemUtils;
@@ -8,8 +11,8 @@ import nl.altindag.ssl.util.PemUtils;
 import javax.net.ssl.*;
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -20,6 +23,7 @@ import java.util.List;
 /**
  * This example will run against the test "TestOCSPServerExample" in the "ocsp-test" branch in the NATS server
  */
+@SuppressWarnings({"unused", "CallToPrintStackTrace"})
 public class OcspExample
 {
 
@@ -68,7 +72,7 @@ public class OcspExample
     {
         // enableStatusRequestExtension is turned on but checkRevocation is not, otherwise it
         // would affect the entire system. This example builds a siloed SSLContext that
-        // does not need the checkRevocation system wide setting.
+        // does not need the checkRevocation system-wide setting.
         System.setProperty("jdk.tls.client.enableStatusRequestExtension", "true");
         System.setProperty("com.sun.net.ssl.checkRevocation", "false");
 
@@ -126,18 +130,8 @@ public class OcspExample
     public static void connect(SSLContext sslContext, String uri) {
         ErrorListener el = new ErrorListener() {
             @Override
-            public void errorOccurred(Connection conn, String error) {
-
-            }
-
-            @Override
             public void exceptionOccurred(Connection conn, Exception exp) {
                 exp.printStackTrace();
-            }
-
-            @Override
-            public void slowConsumerDetected(Connection conn, Consumer consumer) {
-
             }
         };
 
@@ -191,7 +185,7 @@ public class OcspExample
 
     private static KeyStore loadKeystore(String file) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
         KeyStore store = KeyStore.getInstance("JKS");
-        try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(getFile(file)))) {
+        try (BufferedInputStream in = new BufferedInputStream(Files.newInputStream(getFile(file).toPath()))) {
             store.load(in, password());
         }
         return store;
