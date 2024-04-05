@@ -101,3 +101,26 @@ Determine the location of the `ssl-files` folder on your machine and replace all
 2\. In the `FactoryExample.java` source code there are 2 placeholder, in the values for `KEYSTORE_PATH` and the `TRUSTSTORE_PATH`.
 
 3\. Run the nats-server with the config file i.e. `nats-server -c <path-to>/server.conf`
+
+
+### Example output
+
+```text
+Calling FactoryUsesPropertiesFromConnectionOptions.createSSLContext(...)
+  These properties are passed in from the Options being used to create the connection:
+    keystorePath:       ~/dev/java-nats-examples/ssl-context-factory/ssl-files/keystore.jks
+    keystorePassword:   password
+    truststorePath:     ~/dev/java-nats-examples/ssl-context-factory/ssl-files/truststore.jks
+    truststorePassword: password
+    tlsAlgorithm:       SunX509
+Connected using FactoryUsesPropertiesFromConnectionOptions
+
+Calling FactoryUsesPropertiesFromSystemProperties.createSSLContext(...)
+  These properties are read from the system.
+    keystorePath:       ~/dev/java-nats-examples/ssl-context-factory/ssl-files/keystore.jks
+    keystorePassword:   password
+    truststorePath:     ~/dev/java-nats-examples/ssl-context-factory/ssl-files/truststore.jks
+    truststorePassword: password
+    tlsAlgorithm:       SunX509
+Connected using FactoryUsesPropertiesFromSystemProperties
+```

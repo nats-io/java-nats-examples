@@ -29,7 +29,7 @@ class FactoryUsesPropertiesFromSystemProperties implements SSLContextFactory {
         String tlsAlgorithm = System.getProperty(PROPERTY_NATS_TLS_ALGO);
 
         System.out.println("Calling FactoryUsesPropertiesFromSystemProperties.createSSLContext(...)");
-        System.out.println("  These properties are read from the environment.");
+        System.out.println("  These properties are read from the system.");
         System.out.println("    keystorePath:       " + keystorePath);
         System.out.println("    keystorePassword:   " + keystorePassword);
         System.out.println("    truststorePath:     " + truststorePath);
