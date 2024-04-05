@@ -22,8 +22,6 @@ public class FactoryExample {
 
     public static final String KEYSTORE_PATH = "<path-to>/keystore.jks";
     public static final String TRUSTSTORE_PATH = "<path-to>/truststore.jks";
-//    public static final String KEYSTORE_PATH = "C:\\nats\\nats.java\\src\\test\\resources\\keystore.jks";
-//    public static final String TRUSTSTORE_PATH = "C:\\nats\\nats.java\\src\\test\\resources\\truststore.jks";
     public static final String TLS_ALGORITHM = "SunX509";
 
     public static String PASSWORD = "password";
