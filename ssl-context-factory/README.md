@@ -2,6 +2,86 @@
 
 # SSLContextFactory Example
 
+### SSLContextFactory interface
+
+The `SSLContextFactory` interface contains one method
+
+```java
+public interface SSLContextFactory {
+    SSLContext createSSLContext(SSLContextFactoryProperties properties);
+}
+```
+
+Here is an excerpt from `SSLContextFactoryProperties`
+
+```java
+public class SSLContextFactoryProperties {
+    public final String keystorePath;
+    public final char[] keystorePassword;
+    public final String truststorePath;
+    public final char[] truststorePassword;
+    public final String tlsAlgorithm;
+
+    public String getKeystorePath() {
+        return keystorePath;
+    }
+
+    public char[] getKeystorePassword() {
+        return keystorePassword;
+    }
+
+    public String getTruststorePath() {
+        return truststorePath;
+    }
+
+    public char[] getTruststorePassword() {
+        return truststorePassword;
+    }
+
+    public String getTlsAlgorithm() {
+        return tlsAlgorithm;
+    }
+    
+    ...
+}
+```
+
+These properties are populated from the information used to create the connection `Options` class.
+The class is designed so the values can be directly accessed via their public final fields or public getters, based on your personal style of coding.
+
+```java
+Options options = new Options.Builder()
+    .server(SERVER_URL)
+    .keystorePath("path/to/keystore")
+    .keystorePassword("keystore-password".toCharArray())
+    .truststorePath("path/to/truststore")
+    .truststorePassword("truststore-password".toCharArray())
+    .tlsAlgorithm("SunX509") // SunX509 is the default if this is not provided 
+    .sslContextFactory(new MySSLContextFactory())
+    ...
+    .build();
+```
+
+There is no requirement that your factory use these properties, but since they exist they were passed on.
+You could get them from the environment or maybe get them from a vault.
+
+### Example Factories
+
+The project provides 2 different example factories.
+
+1\. The implementation in `FactoryUsesPropertiesFromConnectionOptions`
+
+This implementation uses the instance of `SSLContextFactoryProperties` that is passed to the factory.
+
+2\. The implementation in `FactoryUsesPropertiesFromSystemProperties` gets those same values via `System.getProperty(String key)`
+
+Some other ways to get those values:
+
+1\. You could get properties directly from the runtime environment using `System.getenv(String name)`
+
+2\. You could get properties directly from something like a vault.
+
+### Running the Example
 Running this example requires some setup.
 There are several files located in the `ssl-files` directory.
 
@@ -13,7 +93,6 @@ server.pem
 keystore.jks
 truststore.jks
 ```
-
 
 Determine the location of the `ssl-files` folder on your machine and replace all the `<path-to>` placeholders:
 

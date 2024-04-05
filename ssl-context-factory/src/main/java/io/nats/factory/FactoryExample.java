@@ -58,19 +58,19 @@ public class FactoryExample {
 
     private static void factoryUsesPropertiesFromEnvironment() {
         // THIS IS SIMULATING WHAT WOULD ACTUALLY BE DONE IN THE ENVIRONMENT
-        System.setProperty(FactoryUsesPropertiesFromEnvironment.PROPERTY_NATS_TLS_KEY_STORE,            KEYSTORE_PATH);
-        System.setProperty(FactoryUsesPropertiesFromEnvironment.PROPERTY_NATS_TLS_KEY_STORE_PASSWORD,   PASSWORD);
-        System.setProperty(FactoryUsesPropertiesFromEnvironment.PROPERTY_NATS_TLS_TRUST_STORE,          TRUSTSTORE_PATH);
-        System.setProperty(FactoryUsesPropertiesFromEnvironment.PROPERTY_NATS_TLS_TRUST_STORE_PASSWORD, PASSWORD);
-        System.setProperty(FactoryUsesPropertiesFromEnvironment.PROPERTY_NATS_TLS_ALGO,                 TLS_ALGORITHM);
+        System.setProperty(FactoryUsesPropertiesFromSystemProperties.PROPERTY_NATS_TLS_KEY_STORE,            KEYSTORE_PATH);
+        System.setProperty(FactoryUsesPropertiesFromSystemProperties.PROPERTY_NATS_TLS_KEY_STORE_PASSWORD,   PASSWORD);
+        System.setProperty(FactoryUsesPropertiesFromSystemProperties.PROPERTY_NATS_TLS_TRUST_STORE,          TRUSTSTORE_PATH);
+        System.setProperty(FactoryUsesPropertiesFromSystemProperties.PROPERTY_NATS_TLS_TRUST_STORE_PASSWORD, PASSWORD);
+        System.setProperty(FactoryUsesPropertiesFromSystemProperties.PROPERTY_NATS_TLS_ALGO,                 TLS_ALGORITHM);
 
         Options options = new Options.Builder()
             .server(SERVER_URL)
-            .sslContextFactory(new FactoryUsesPropertiesFromEnvironment())
+            .sslContextFactory(new FactoryUsesPropertiesFromSystemProperties())
             .build();
 
         try (Connection nc = Nats.connect(options)) {
-            System.out.println("Connected using FactoryUsesPropertiesFromEnvironment");
+            System.out.println("Connected using FactoryUsesPropertiesFromSystemProperties");
         }
         catch (Exception e) {
             //noinspection CallToPrintStackTrace

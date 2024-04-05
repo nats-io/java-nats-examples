@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 
-class FactoryUsesPropertiesFromEnvironment implements SSLContextFactory {
+class FactoryUsesPropertiesFromSystemProperties implements SSLContextFactory {
     public static String PROPERTY_NATS_TLS_KEY_STORE            = "NATS_TLS_KEY_STORE";
     public static String PROPERTY_NATS_TLS_KEY_STORE_PASSWORD   = "NATS_TLS_KEY_STORE_PASSWORD";
     public static String PROPERTY_NATS_TLS_TRUST_STORE          = "NATS_TLS_TRUST_STORE";
@@ -28,7 +28,7 @@ class FactoryUsesPropertiesFromEnvironment implements SSLContextFactory {
         String truststorePassword = System.getProperty(PROPERTY_NATS_TLS_KEY_STORE_PASSWORD);
         String tlsAlgorithm = System.getProperty(PROPERTY_NATS_TLS_ALGO);
 
-        System.out.println("Calling FactoryUsesPropertiesFromEnvironment.createSSLContext(...)");
+        System.out.println("Calling FactoryUsesPropertiesFromSystemProperties.createSSLContext(...)");
         System.out.println("  These properties are read from the environment.");
         System.out.println("    keystorePath:       " + keystorePath);
         System.out.println("    keystorePassword:   " + keystorePassword);
