@@ -69,41 +69,39 @@ You could get them from the environment or maybe get them from a vault.
 
 The project provides 2 different example factories.
 
-1\. The implementation in `FactoryUsesPropertiesFromConnectionOptions`
+- The class `FactoryUsesPropertiesFromConnectionOptions` uses the instance of `SSLContextFactoryProperties` that is passed to the factory.
 
-This implementation uses the instance of `SSLContextFactoryProperties` that is passed to the factory.
-
-2\. The implementation in `FactoryUsesPropertiesFromSystemProperties` gets those same values via `System.getProperty(String key)`
+- The class `FactoryUsesPropertiesFromSystemProperties` gets those same values via `System.getProperty(String key)`
 
 Some other ways to get those values:
 
-1\. You could get properties directly from the runtime environment using `System.getenv(String name)`
+- Get properties directly from the runtime environment using `System.getenv(String name)`
 
-2\. You could get properties directly from something like a vault.
+- Get properties directly from something like a vault.
 
 ### Running the Example
 Running this example requires some setup.
-There are several files located in the `ssl-files` directory.
+There are six files located in the `ssl-files` directory.
 
-```text
-server.conf
-ca.pem
-key.pem
-server.pem
-keystore.jks
-truststore.jks
-```
+- `server.conf`
+- `ca.pem`
+- `key.pem`
+- `server.pem`
+- `keystore.jks`
+- `truststore.jks`
 
-Determine the location of the `ssl-files` folder on your machine and replace all the `<path-to>` placeholders:
+You should determine the location of the `ssl-files` folder on your machine and replace all the `<path-to>` placeholders. Fix those.
 
-1\. In the `server.conf` file, there are 3 placeholders under the tls section. See `cert_file`, `key_file` and `ca_file`.
+1. In the `server.conf` file, there are 3 placeholders under the tls section. See `cert_file`, `key_file` and `ca_file`.
 
-2\. In the `FactoryExample.java` source code there are 2 placeholder, in the values for `KEYSTORE_PATH` and the `TRUSTSTORE_PATH`.
+2. In the `FactoryExample` source code there are 2 placeholders found in the string values for `KEYSTORE_PATH` and `TRUSTSTORE_PATH`.
 
-3\. Run the nats-server with the config file i.e. `nats-server -c <path-to>/server.conf`
+You can then run the nats-server with the config file i.e. `nats-server -c <path-to>/server.conf`
 
 
 ### Example output
+
+Here is a sample run output:
 
 ```text
 Calling FactoryUsesPropertiesFromConnectionOptions.createSSLContext(...)
