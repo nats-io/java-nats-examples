@@ -45,7 +45,7 @@ jobs:
           popd
       - name: Core Reply Request Patterns
         run: |
-          pushd core-reply-request-patterns
+          pushd core-request-reply-patterns
           chmod +x gradlew
           ./gradlew compileJava
           popd
