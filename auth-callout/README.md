@@ -2,15 +2,15 @@
 
 # Auth Callout
 
-An example that demonstrates basic Auth Callout handling. Run the main from the AuthCalloutServiceExample class.
+An example that demonstrates a basic Auth Callout handler. Run the main from the AuthCalloutServiceExample class.
 
 ## Example Notes
 
-1. You must start the NATS server using the auth-callout-no-encrypt.conf configuration file found in the example-server-configs directory.
+1. You must start the NATS server using the auth-callout-no-encrypt.conf configuration file found in this directory.
    For example:
 
     ```shell
-    nats-server -c /<nats-stuff>/java-nats-examples/example-server-configs/auth-callout-no-encrypt.conf
+    nats-server -c /<nats-stuff>/java-nats-examples/auth-callout/auth-callout-no-encrypt.conf
     ```
 
 1. The Java NKeys and JWT libraries do not yet support encrypted auth callout.
@@ -37,8 +37,3 @@ The dependency tree looks like this:
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 Unless otherwise noted, the NATS source files are distributed under the Apache Version 2.0 license found in the LICENSE file.
-
-
-
-
-https://github.com/nats-io/json.java

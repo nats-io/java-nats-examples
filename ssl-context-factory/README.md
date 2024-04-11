@@ -2,6 +2,9 @@
 
 # SSLContextFactory Example
 
+This example demonstrates how to implement the SSLContextFactory, 
+an alternative way to provide an SSL Context to the Connection Options.
+
 ### SSLContextFactory interface
 
 The `SSLContextFactory` interface contains one method

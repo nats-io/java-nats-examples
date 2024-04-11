@@ -4,7 +4,7 @@
 
 ## About this Tooling
 
-This is a tool to provide complete exercising and benchmarking specific to the NATS Java client with the intent of establishing a baseline for client performance and behavior.
+This is a tool to assist exercising and benchmarking of the NATS Java client in your own environment.
 
 Administration and server related benchmarking of NATS should prefer the [NATS CLI](https://docs.nats.io/nats-tools/natscli) tooling, especially in production environments.
 

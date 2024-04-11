@@ -31,6 +31,12 @@ jobs:
           nats-server -v
       - name: Check out code
         uses: actions/checkout@v3
+      - name: Auth Callout
+        run: |
+          pushd auth-callout
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
       - name: Chain of Command
         run: |
           pushd chain-of-command
@@ -92,6 +98,12 @@ jobs:
           chmod +x gradlew
           ./gradlew clean compileJava
           popd
+      - name: Many Subjects
+        run: |
+          pushd many-subjects
+          chmod +x gradlew
+          ./gradlew clean compileJava
+          popd
       - name: Multi Subject Worker
         run: |
           pushd multi-subject-worker
@@ -122,12 +134,18 @@ jobs:
           chmod +x gradlew
           ./gradlew compileJava
           popd
-#      - name: Server Pool
-#        run: |
-#          pushd server-pool
-#          chmod +x gradlew
-#          ./gradlew compileJava
-#          popd
+      - name: Server Pool
+        run: |
+          pushd server-pool
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
+      - name: SSL Context Factory
+        run: |
+          pushd ssl-context-factory
+          chmod +x gradlew
+          ./gradlew compileJava
+          popd
       - name: Starter Gradle Groovy
         run: |
           pushd starter-gradle-groovy

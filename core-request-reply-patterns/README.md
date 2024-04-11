@@ -1,8 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Error and Heartbeat Experiments
+# Core Reply Request Patterns
 
-Experiments to demonstrate how heartbeats and error listening works.
+Demonstrating that using core nats, there are multiple ways to do request reply. 
 
 ## License
 

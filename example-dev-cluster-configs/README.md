@@ -1,9 +1,14 @@
 ![NATS](../images/large-logo.png)
 
-# Core Reply Request Patterns
+# Example Dev Cluster Configs
 
-Using core nats, there are multiple ways to do reply request. 
+The files in this directory are templates for building a simple dev cluster
 
+```text
+clusterjx3s4.conf
+clusterjx3s5.conf
+clusterjx3s6.conf
+```
 ## License
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)

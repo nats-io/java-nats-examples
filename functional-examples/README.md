@@ -1,8 +1,8 @@
 ![NATS](../images/large-logo.png)
 
-# Error and Heartbeat Experiments
+# Original Functional Examples
 
-Experiments to demonstrate how heartbeats and error listening works.
+The functional examples demonstrate a core feature one at a time.
 
 ## License
 
