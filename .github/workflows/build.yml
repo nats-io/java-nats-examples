@@ -98,12 +98,6 @@ jobs:
           chmod +x gradlew
           ./gradlew clean compileJava
           popd
-      - name: Many Subjects
-        run: |
-          pushd many-subjects
-          chmod +x gradlew
-          ./gradlew clean compileJava
-          popd
       - name: Multi Subject Worker
         run: |
           pushd multi-subject-worker
