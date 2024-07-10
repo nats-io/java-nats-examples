@@ -13,6 +13,6 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.19.0'
+    implementation 'io.nats:jnats:2.19.1'
     implementation 'com.google.code.gson:gson:2.8.5'
 }

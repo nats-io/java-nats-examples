@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.nats:jnats:2.19.0'
+    implementation 'io.nats:jnats:2.19.1'
 }
 
 test {
