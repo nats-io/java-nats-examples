@@ -66,10 +66,12 @@ public class AuthCalloutServiceExample {
             // \/ Real service will do something like this \/
             // serviceStoppedFuture.get();
 
-            test("alice", "alice", "test", "should connect, publish and receive");
-            test("alice", "wrong", "n/a", "should not connect");
-            test("bob", "bob", "bob.test", "should connect, publish and receive");
-            test("bob", "bob", "test", "should connect, publish but not receive");
+            test("alice", "alice", null, "test", "should connect, publish and receive");
+            test("alice", "wrongPass", null, "n/a", "should not connect");
+            test(null, null, "token", "test", "should connect, publish and receive");
+            test(null, null, "wrongToken", "n/a", "should not connect");
+            test("bob", "bob", null, "bob.test", "should connect, publish and receive");
+            test("bob", "bob", null, "test", "should connect, publish but not receive");
 
             Thread.sleep(2000);
         }
@@ -79,22 +81,39 @@ public class AuthCalloutServiceExample {
         }
     }
 
-    public static void test(String u, String p, String subject, String behavior) {
+    public static void test(String user, String pass, String authToken, String subject, String behavior) {
         System.out.println("\n--------------------------------------------------------------------------------");
-        System.out.println("[TEST] user     : " + u);
+        if (authToken == null) {
+            System.out.println("[TEST] user     : " + user);
+        }
+        else {
+            System.out.println("[TEST] token    : " + authToken);
+        }
         System.out.println("[TEST] subject  : " + subject);
         System.out.println("[TEST] behavior : " + behavior);
 
-        Options options = new Options.Builder()
+        Options.Builder builder = new Options.Builder()
             .server(NATS_URL)
             .errorListener(new ErrorListener() {})
-            .userInfo(u, p)
-            .maxReconnects(3)
-            .build();
+            .maxReconnects(3);
+
+        if (authToken == null) {
+            builder.userInfo(user, pass);
+        }
+        else {
+            builder.token(authToken.toCharArray());
+        }
+
+        Options options = builder.build();
 
         boolean connected = false;
         try (Connection nc = Nats.connect(options)) {
-            System.out.println("[TEST] connected " + u);
+            if (authToken == null) {
+                System.out.println("[TEST] connected with user/pass: " + user);
+            }
+            else {
+                System.out.println("[TEST] connected with auth token: " + authToken);
+            }
             connected = true;
 
             AtomicBoolean gotMessage = new AtomicBoolean(false);
@@ -104,7 +123,7 @@ public class AuthCalloutServiceExample {
             });
             d.subscribe(subject);
 
-            nc.publish(subject, (u + "-publish-" + System.currentTimeMillis()).getBytes());
+            nc.publish(subject, (user + "-publish-" + System.currentTimeMillis()).getBytes());
             System.out.println("[TEST] published to '" + subject + "'");
 
             Thread.sleep(1000); // just giving time for publish to work

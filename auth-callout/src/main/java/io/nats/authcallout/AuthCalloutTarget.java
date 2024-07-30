@@ -16,46 +16,52 @@ package io.nats.authcallout;
 import io.nats.jwt.Permission;
 import io.nats.jwt.ResponsePermission;
 
-public class AuthCalloutUser {
+public class AuthCalloutTarget {
     public String user;
     public String pass;
+    public String authToken;
     public String account;
     public Permission pub;
     public Permission sub;
     public ResponsePermission resp;
 
-    public AuthCalloutUser userPass(String userPass) {
+    public AuthCalloutTarget userPass(String userPass) {
         this.user = userPass;
         this.pass = userPass;
         return this;
     }
 
-    public AuthCalloutUser user(String user) {
+    public AuthCalloutTarget authToken(String authToken) {
+        this.authToken = authToken;
+        return this;
+    }
+
+    public AuthCalloutTarget user(String user) {
         this.user = user;
         return this;
     }
 
-    public AuthCalloutUser pass(String pass) {
+    public AuthCalloutTarget pass(String pass) {
         this.pass = pass;
         return this;
     }
 
-    public AuthCalloutUser account(String account) {
+    public AuthCalloutTarget account(String account) {
         this.account = account;
         return this;
     }
 
-    public AuthCalloutUser pub(Permission pub) {
+    public AuthCalloutTarget pub(Permission pub) {
         this.pub = pub;
         return this;
     }
 
-    public AuthCalloutUser sub(Permission sub) {
+    public AuthCalloutTarget sub(Permission sub) {
         this.sub = sub;
         return this;
     }
 
-    public AuthCalloutUser resp(ResponsePermission resp) {
+    public AuthCalloutTarget resp(ResponsePermission resp) {
         this.resp = resp;
         return this;
     }

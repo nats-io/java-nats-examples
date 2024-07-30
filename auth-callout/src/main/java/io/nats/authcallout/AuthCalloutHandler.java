@@ -31,7 +31,7 @@ import static io.nats.jwt.JwtUtils.getClaimBody;
 class AuthCalloutHandler implements ServiceMessageHandler {
     static String ISSUER_NSEED = "SAANDLKMXL6CUS3CP52WIXBEDN6YJ545GDKC65U5JZPPV6WH6ESWUA6YAI";
 
-    static final Map<String, AuthCalloutUser> NATS_USERS;
+    static final Map<String, AuthCalloutTarget> NATS_AUTH_TARGETS;
 
     static final NKey USER_SIGNING_KEY;
     static final String PUB_USER_SIGNING_KEY;
@@ -48,16 +48,17 @@ class AuthCalloutHandler implements ServiceMessageHandler {
         // This sets up a map of users to simulate a back end auth system
         //   sys/sys, SYS
         //   alice/alice, APP
+        //   token, APP
         //   bob/bob, APP, pub allow "bob.>", sub allow "bob.>", response max 1
-        NATS_USERS = new HashMap<>();
-        NATS_USERS.put("sys", new AuthCalloutUser().userPass("sys").account("SYS"));
-        Permission pa = new Permission().allow("alice.>");
-        NATS_USERS.put("alice", new AuthCalloutUser().userPass("alice").account("APP")); // .sub(pa));
+        NATS_AUTH_TARGETS = new HashMap<>();
+        NATS_AUTH_TARGETS.put("sys", new AuthCalloutTarget().userPass("sys").account("SYS"));
+        NATS_AUTH_TARGETS.put("alice", new AuthCalloutTarget().userPass("alice").account("APP"));
+        NATS_AUTH_TARGETS.put("token", new AuthCalloutTarget().authToken("token").account("APP"));
         Permission pb = new Permission().allow("bob.>");
         ResponsePermission r = new ResponsePermission().max(1);
-        NATS_USERS.put("bob", new AuthCalloutUser().userPass("bob").account("APP").pub(pb).sub(pb).resp(r));
-        NATS_USERS.put("pub", new AuthCalloutUser().userPass("pub").account("APP"));
-        NATS_USERS.put("reset", new AuthCalloutUser().userPass("reset").account("APP"));
+        NATS_AUTH_TARGETS.put("bob", new AuthCalloutTarget().userPass("bob").account("APP").pub(pb).sub(pb).resp(r));
+        NATS_AUTH_TARGETS.put("pub", new AuthCalloutTarget().userPass("pub").account("APP"));
+        NATS_AUTH_TARGETS.put("reset", new AuthCalloutTarget().userPass("reset").account("APP"));
     }
 
     Connection nc;
@@ -86,37 +87,49 @@ class AuthCalloutHandler implements ServiceMessageHandler {
             printJson("[HANDLER] Auth Request  : ", ar.toJson(), "server_id", "user_nkey", "client_info", "connect_opts", "client_tls", "request_nonce");
 
             // Check if the user exists.
-            AuthCalloutUser acUser = NATS_USERS.get(ar.connectOpts.user);
-            if (acUser == null) {
-                respond(smsg, ar, null, "User Not Found: " + ar.connectOpts.user);
-                return;
+            AuthCalloutTarget acTarget;
+            if (ar.connectOpts.authToken != null) {
+                acTarget = NATS_AUTH_TARGETS.get(ar.connectOpts.authToken);
+                if (acTarget == null) {
+                    respond(smsg, ar, null, "Token Not Found: " + ar.connectOpts.authToken);
+                    return;
+                }
             }
-            if (!acUser.pass.equals(ar.connectOpts.pass)) {
-                respond(smsg, ar, null, "Password does not match: " + acUser.pass + " != " + ar.connectOpts.pass);
-                return;
+            else {
+                acTarget = NATS_AUTH_TARGETS.get(ar.connectOpts.user);
+                if (acTarget == null) {
+                    respond(smsg, ar, null, "User Not Found: " + ar.connectOpts.user);
+                    return;
+                }
+                if (!acTarget.pass.equals(ar.connectOpts.pass)) {
+                    respond(smsg, ar, null, "Password does not match: " + acTarget.pass + " != " + ar.connectOpts.pass);
+                    return;
+                }
             }
 
             UserClaim uc = new UserClaim()
-                .pub(acUser.pub)
-                .sub(acUser.sub)
-                .resp(acUser.resp);
+                .pub(acTarget.pub)
+                .sub(acTarget.sub)
+                .resp(acTarget.resp);
 
             Duration expiresIn = null;
-            if (ar.connectOpts.user.equals("reset")) {
-                flag = true;
-                System.out.println("[ DEBUG ] reset\n\n\n\n");
-            }
-            else if (ar.connectOpts.user.equals("alice") && flag) {
-                expiresIn = Duration.ofMillis(5000);
-                flag = false;
-                System.out.println("[ DEBUG ] AUTH ALICE 10 secs");
-            }
-            else {
-                System.out.println("[ DEBUG ] AUTH " + ar.connectOpts.user);
+            if (ar.connectOpts.user != null) {
+                if (ar.connectOpts.user.equals("reset")) {
+                    flag = true;
+                    System.out.println("[ DEBUG ] reset\n\n\n\n");
+                }
+                else if (ar.connectOpts.user.equals("alice") && flag) {
+                    expiresIn = Duration.ofMillis(5000);
+                    flag = false;
+                    System.out.println("[ DEBUG ] AUTH ALICE 10 secs");
+                }
+                else {
+                    System.out.println("[ DEBUG ] AUTH " + ar.connectOpts.user);
+                }
             }
 
             String userJwt = new ClaimIssuer()
-                .aud(acUser.account)
+                .aud(acTarget.account)
                 .name(ar.connectOpts.user)
                 .iss(PUB_USER_SIGNING_KEY)
                 .sub(ar.userNkey)
