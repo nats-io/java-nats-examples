@@ -20,6 +20,26 @@
   * [RequestReply.java](src/main/java/io/nats/RequestReply.java)
   * [Nats By Example - Request-Reply in Messaging](https://natsbyexample.com/examples/messaging/request-reply/java)
 
+* JSON
+  * [Json.java](src/main/java/io/nats/Json.java)
+  * [Nats By Example - JSON for Message Payloads in Messaging](https://natsbyexample.com/examples/messaging/json/java)
+
+* Concurrent
+  * [Concurrent.java](src/main/java/io/nats/Concurrent.java)
+  * [Nats By Example - Concurrent Message Processing in Messaging](https://natsbyexample.com/examples/messaging/concurrent/java)
+
+* Iterating Multiple Subscriptions
+  * [IteratingMultipleSubscriptions.java](src/main/java/io/nats/IteratingMultipleSubscriptions.java)
+  * [Nats By Example - Iterating Over Multiple Subscriptions in Messaging](https://natsbyexample.com/examples/messaging/iterating-multiple-subscriptions/java)
+
+* Limits Stream
+  * [LimitsStream.java](src/main/java/io/nats/LimitsStream.java)
+  * [Nats By Example - Limits-based Stream in JetStream](https://natsbyexample.com/examples/jetstream/limits-stream/java)
+
+* Interest Stream
+  * [InterestStream.java](src/main/java/io/nats/InterestStream.java)
+  * [Nats By Example - Interest-based Stream in JetStream](https://natsbyexample.com/examples/jetstream/interest-stream/java)
+
 * Simplification Fetch Example
   * [SimplificationFetchExample.java](src/main/java/io/nats/SimplificationFetchExample.java)
   * [Nats By Example - Consumer - Fetch Messages in JetStream](https://natsbyexample.com/examples/jetstream/consumer-fetch-messages/java)
