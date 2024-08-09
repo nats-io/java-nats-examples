@@ -34,11 +34,11 @@
 
 * Limits Stream
   * [LimitsStream.java](src/main/java/io/nats/LimitsStream.java)
-  * [Nats By Example - Limits-based Stream in JetStream](https://natsbyexample.com/examples/messaging/limits-stream/java)
+  * [Nats By Example - Limits-based Stream in JetStream](https://natsbyexample.com/examples/jetstream/limits-stream/java)
 
 * Interest Stream
   * [InterestStream.java](src/main/java/io/nats/InterestStream.java)
-  * [Nats By Example - Interest-based Stream in JetStream](https://natsbyexample.com/examples/messaging/interest-stream/java)
+  * [Nats By Example - Interest-based Stream in JetStream](https://natsbyexample.com/examples/jetstream/interest-stream/java)
 
 * Simplification Fetch Example
   * [SimplificationFetchExample.java](src/main/java/io/nats/SimplificationFetchExample.java)
