@@ -533,10 +533,10 @@ public class Context {
 
 
     private boolean bool(String name, String val, String trueChoice, String falseChoice) {
-        return choice(name, val, trueChoice, falseChoice) == 0;
+        return choiceInt(name, val, trueChoice, falseChoice) == 0;
     }
 
-    private int choice(String name, String val, String... choices) {
+    private int choiceInt(String name, String val, String... choices) {
         String value = asString(val);
         for (int x = 0; x < choices.length; x++) {
             if (value.equalsIgnoreCase(choices[x])) {
@@ -546,5 +546,10 @@ public class Context {
 
         error("Invalid choice for " + name + " [" + value + "]. Must be one of " + Arrays.toString(choices));
         return -1;
+    }
+
+    private String choice(String name, String val, String... choices) {
+        return choices[choiceInt(name, val, choices)];
+
     }
 }

@@ -19,14 +19,17 @@ import io.nats.jsmulti.settings.Context;
 import java.time.Duration;
 
 public interface OptionsFactory {
-    default Options getOptions(Context ctx) throws Exception {
+    default Options.Builder getOptionsBuilder(Context ctx) throws Exception {
         return new Options.Builder()
             .server(getServer(ctx))
             .authHandler(getAuthHandler(ctx))
             .connectionTimeout(getConnectionTimeout(ctx))
             .reconnectWait(getReconnectWait(ctx))
-            .errorListener(getErrorListener())
-            .build();
+            .errorListener(getErrorListener());
+    }
+
+    default Options getOptions(Context ctx) throws Exception {
+        return getOptionsBuilder(ctx).build();
     }
 
     default String getServer(Context ctx) {
