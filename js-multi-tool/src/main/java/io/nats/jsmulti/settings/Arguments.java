@@ -232,10 +232,23 @@ public class Arguments {
         for (String a : args) {
             ps.print(a + " ");
         }
-        ps.println("");
+        ps.println();
+    }
+
+    public void printCommandLineFormatted(PrintStream ps) {
+        for (int i = 0; i < args.size(); i++) {
+            String k = args.get(i);
+            String v = args.get(++i);
+            ps.println(k + " " + v);
+        }
+        ps.println();
     }
 
     public void printCommandLine() {
         printCommandLine(System.out);
+    }
+
+    public void printCommandLineFormatted() {
+        printCommandLineFormatted(System.out);
     }
 }
