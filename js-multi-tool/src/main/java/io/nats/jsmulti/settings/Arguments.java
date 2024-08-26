@@ -60,7 +60,18 @@ public class Arguments {
     private Arguments _addJsonConfig(JsonValue jv) {
         if (jv.map != null) {
             for (Map.Entry<String, JsonValue> entry : jv.map.entrySet()) {
-                add(entry.getKey(), entry.getValue().toString());
+                JsonValue value = entry.getValue();
+                switch (value.type) {
+                    case STRING:
+                        add(entry.getKey(), value.string);
+                        break;
+                    case INTEGER:
+                        add(entry.getKey(), value.i.toString());
+                        break;
+                    case LONG:
+                        add(entry.getKey(), value.l.toString());
+                        break;
+                }
             }
         }
         return this;

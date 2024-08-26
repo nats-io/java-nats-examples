@@ -124,6 +124,10 @@ public class Context {
         }
     }
 
+    public String getFirstServer() {
+        return servers[0];
+    }
+
     final ReentrantLock nextServerLock = new ReentrantLock();
     public String getNextServer() {
         nextServerLock.lock();
@@ -276,7 +280,7 @@ public class Context {
                             _lcsv = asString(args[++x]);
                             break;
                         case "-of":
-                        case "-options_factor_class_name":
+                        case "-options_factory_class_name":
                             _optionsFactoryClassName = asString(args[++x]);
                             break;
                         case "-a":
