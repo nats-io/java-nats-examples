@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -82,6 +83,24 @@ public class JsMulti {
         List<Stats> statsList = ctx.connShared
             ? runShared(ctx, runner)
             : runIndividual(ctx, runner);
+
+        try (Connection nc = connect(ctx)) {
+            JetStreamManagement jsm = nc.jetStreamManagement(ctx.getJetStreamOptions());
+            List<String> streams = jsm.getStreamNames();
+            for (String stream : streams) {
+                try {
+                    List<String> cons = jsm.getConsumerNames(stream);
+                    for (String con : cons) {
+                        if (ctx.subDurables.contains(con)) {
+                            ctx.subDurables.remove(con);
+                            jsm.deleteConsumer(stream, con);
+                        }
+                    }
+                }
+                catch (Exception ignore) {}
+            }
+        }
+        catch (Exception ignore) {}
 
         if (reportWhenDone && ctx.action != Action.REPLY) {
             Stats.report(statsList);
@@ -302,9 +321,14 @@ public class JsMulti {
     private static void processFutures(List<CompletableFuture<PublishAck>> futures, Stats stats) {
         stats.start();
         while (!futures.isEmpty()) {
-            CompletableFuture<PublishAck> f = futures.remove(0);
-            if (!f.isDone()) {
-                futures.add(f);
+            try {
+                futures.remove(0).get();
+            }
+            catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
         stats.stop();
@@ -577,6 +601,7 @@ public class JsMulti {
 
     private static Connection connect(Context ctx) throws Exception {
         Options options = ctx.getOptions();
+        System.out.println("connect: " + options.getServers());
         Connection nc = Nats.connect(options);
         for (long x = 0; x < 100; x++) { // waits up to 10 seconds (100 * 100 = 10000) millis to be connected
             sleep(100);

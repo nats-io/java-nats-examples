@@ -247,13 +247,11 @@ Does not apply to Ack Policy `none`
 
 ### Subscribe Pull Optional Arguments
 
-`-pt` pull type (fetch|iterate) defaults to iterate
-
 `-bs` batch size (number) for subPull*, defaults to 10, maximum 256
 
 ```shell
-... JsMulti ... -pt fetch -kp explicit -kf 100 -bs 50 
-... JsMulti ... -pt iterate -kp explicit -kf 100 -bs 50 
+... JsMulti ... -kp explicit -kf 100 -bs 50 
+... JsMulti ... -kp explicit -kf 100 -bs 50 
 ... JsMulti ... -kp all -kf 100 
 ... JsMulti ... -kp none 
 ```

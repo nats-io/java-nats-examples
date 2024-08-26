@@ -37,7 +37,16 @@ public interface Application {
     }
 
     default String format(Object o) {
-        return System.currentTimeMillis() + " [" + Thread.currentThread().getName() + "] " + o.toString();
+        return time() + " [" + threadInfo() + "] " + o.toString();
+    }
+
+    default String time() {
+        String t = "" + System.currentTimeMillis();
+        return t.substring(t.length() - 9);
+    }
+
+    default String threadInfo() {
+        return Thread.currentThread().getName();
     }
 
     default OptionsFactory getOptionsFactory() {

@@ -21,11 +21,10 @@ import io.nats.jsmulti.shared.OptionsFactory;
 
 import java.lang.reflect.Constructor;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static io.nats.jsmulti.settings.Arguments.INDIVIDUAL;
 import static io.nats.jsmulti.settings.Arguments.SHARED;
@@ -49,7 +48,6 @@ public class Context {
     public final String lcsv;
 
     // connection options
-    public final String server;
     public final String credsFile;
     public final long connectionTimeoutMillis;
     public final long reconnectWaitMillis;
@@ -61,6 +59,7 @@ public class Context {
     public final boolean connShared;
     public final long jitter;
     public final int payloadSize;
+    public final int payloadVariants;
     public final int roundSize;
     public final AckPolicy ackPolicy;
     public final int ackAllFrequency;
@@ -80,18 +79,25 @@ public class Context {
     public final long postPubWaitMillis = 1000;
 
     // ----------------------------------------------------------------------------------------------------
-    // Application allows the J
+    // Application
     // ----------------------------------------------------------------------------------------------------
     public final Application app;
 
     // ----------------------------------------------------------------------------------------------------
+    // macros / state / vars allow direct access. Be careful though
+    // ----------------------------------------------------------------------------------------------------
+    public final List<String> subDurables = new ArrayList<>();
+
+    // ----------------------------------------------------------------------------------------------------
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
+    private final String[] servers;
     private final OptionsFactory _optionsFactory;
     private final int[] perThread;
-    private final byte[] payload; // private and with getter in case I want to do more with payload later
+    private final List<byte[]> payloads; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
     private final String subNameWhenQueue;
+    private int lastServerIndex;
 
     public Options getOptions() throws Exception {
         return _optionsFactory.getOptions(this);
@@ -101,8 +107,35 @@ public class Context {
         return _optionsFactory.getJetStreamOptions(this);
     }
 
+    final ReentrantLock gplock = new ReentrantLock();
     public byte[] getPayload() {
-        return payload;
+        if (payloadVariants == 1) {
+            return payloads.get(0);
+        }
+
+        gplock.lock();
+        try {
+            byte[] payload = payloads.remove(0);
+            payloads.add(payload);
+            return payload;
+        }
+        finally {
+            gplock.unlock();
+        }
+    }
+
+    final ReentrantLock nextServerLock = new ReentrantLock();
+    public String getNextServer() {
+        nextServerLock.lock();
+        try {
+            if (++lastServerIndex >= servers.length) {
+                lastServerIndex = 0;
+            }
+            return servers[lastServerIndex];
+        }
+        finally {
+            nextServerLock.unlock();
+        }
     }
 
     private String _getSubName(String pfx, int id) {
@@ -116,7 +149,9 @@ public class Context {
     }
 
     public String getSubDurable(int durableId) {
-        return _getSubName("dur", durableId);
+        String sd = _getSubName("dur", durableId);
+        subDurables.add(sd);
+        return sd;
     }
 
     public int getPubCount(int id) {
@@ -150,7 +185,7 @@ public class Context {
     public String toString() {
         StringBuilder sb = new StringBuilder("JetStream Multi-Tool Run Config:");
         append(sb, "action", "a", action, true);
-        append(sb, "action", "lf", "Yes", latencyFlag);
+        append(sb, "latency flag", "lf", "Yes", latencyFlag);
         append(sb, "options factory", "of", _optionsFactory.getClass().getTypeName(), true);
         append(sb, "report frequency", "rf", reportFrequency < 1 ? "no reporting" : "" + reportFrequency, true);
 
@@ -164,6 +199,8 @@ public class Context {
         append(sb, "connection strategy", "n", connShared ? SHARED : INDIVIDUAL, threads > 1);
 
         append(sb, "payload size", "p", payloadSize + " bytes", action.isPubAction());
+        append(sb, "payload variants", "p", payloadVariants, payloadVariants > 1 && action.isPubAction());
+
         append(sb, "jitter", "j", jitter, action.isPubAction());
 
         append(sb, "round size", "r", roundSize, action.isPubAsync());
@@ -201,7 +238,7 @@ public class Context {
 
         Action _action = null;
         boolean _latencyFlag = false;
-        String _server = Options.DEFAULT_URL;
+        String[] _servers = new String[]{Options.DEFAULT_URL};
         String _credsFile = null;
         long _connectionTimeoutMillis = 5000;
         long _reconnectWaitMillis = 1000;
@@ -213,6 +250,7 @@ public class Context {
         boolean _connShared = true;
         long _jitter = 0;
         int _payloadSize = 128;
+        int _payloadVariants = 1;
         int _roundSize = MIN_WAIT_MS;
         AckPolicy _ackPolicy = AckPolicy.Explicit;
         int _ackAllFrequency = 1;
@@ -230,81 +268,110 @@ public class Context {
                     String arg = args[x].trim();
                     switch (arg) {
                         case "-s":
-                            _server = asString(args[++x]);
+                        case "-server":
+                            _servers = asString(args[++x]).split(",");
                             break;
                         case "-lcsv":
+                        case "-latency_csv_file_spec":
                             _lcsv = asString(args[++x]);
                             break;
                         case "-of":
+                        case "-options_factor_class_name":
                             _optionsFactoryClassName = asString(args[++x]);
                             break;
                         case "-a":
+                        case "-action":
                             _action = Action.getInstance(asString(args[++x]));
                             if (_action == null) {
                                 error("Valid action required!");
                             }
                             break;
                         case "-lf":
+                        case "-latency_flag":
                             _latencyFlag = true;
                             break;
                         case "-u":
+                        case "-subject":
                             _subject = asString(args[++x]);
                             break;
                         case "-m":
+                        case "-message_count":
                             _messageCount = asNumber("total messages", args[++x], -1);
                             break;
                         case "-ps":
+                        case "-payload_size":
                             _payloadSize = asNumber("payload size", args[++x], 64 * 1024 * 1024); // 67108864
                             break;
+                        case "-pv":
+                        case "-payload_variants":
+                            _payloadVariants = asNumber("payload variants", args[++x], 100); // 67108864
+                            break;
                         case "-bs":
+                        case "-batch_size":
                             _batchSize = asNumber("batch size", args[++x], 200);
                             break;
                         case "-rs":
+                        case "-round_size":
                             _roundSize = asNumber("round size", args[++x], 1000);
                             break;
                         case "-d":
+                        case "-threads":
                             _threads = asNumber("number of threads", args[++x], 20);
                             break;
                         case "-j":
+                        case "-jitter":
                             _jitter = asNumber("jitter", args[++x], 10_000);
                             break;
                         case "-n":
+                        case "-connection_strategy":
                             _connShared = bool("connection strategy", args[++x], SHARED, INDIVIDUAL);
                             break;
                         case "-kp":
+                        case "-ack_policy":
                             _ackPolicy = AckPolicy.get(asString(args[++x]).toLowerCase());
                             if (_ackPolicy == null) {
                                 error("Invalid Ack Policy, must be one of [explicit, none, all]");
                             }
                             break;
                         case "-kf":
+                        case "-ack_all_frequency":
                             _ackAllFrequency = asNumber("ack frequency", args[++x], MIN_WAIT_MS);
                             break;
                         case "-rf":
+                        case "-report_frequency":
                             _reportFrequency = asNumber("report frequency", args[++x]);
                             break;
                         case "-cf":
+                        case "-creds_file":
                             _credsFile = asString(args[++x]);
                             break;
                         case "-ctms":
+                        case "-connection_timeout_millis":
                             _connectionTimeoutMillis = asNumber("connection timeout millis", args[++x]);
                             break;
                         case "-rwms":
+                        case "-recconect_wait_millis":
                             _reconnectWaitMillis = asNumber("reconnect wait millis", args[++x]);
                             break;
                         case "-q":
+                        case "-queue":
+                        case "-queue_name":
                             _queueName = asString(args[++x]);
                             break;
                         case "-sdwq":
+                        case "-sub_durable_when_queue":
                             _subDurableWhenQueue = asString(args[++x]);
                             break;
                         case "-rqwms":
+                        case "-request_wait_Millis":
                             _requestWaitMillis = asNumber("request wait millis", args[++x]);
                             break;
                         case "-rtoms":
+                        case "-read_timeout_millis":
                             _readTimeoutMillis = asNumber("read timeout wait millis", args[++x]);
                             break;
                         case "-rmxwms":
+                        case "-read_max_wait_millis":
                             _readMaxWaitMillis = asNumber("read max wait millis", args[++x]);
                             break;
                         case "":
@@ -330,9 +397,6 @@ public class Context {
         else if (_threads == 1 && _action.isQueue()) {
             error("Queue subscribing requires multiple threads!");
         }
-        else if (_action.isPull() && _ackPolicy != AckPolicy.Explicit) {
-            error("Pull subscribing requires AckPolicy.Explicit!");
-        }
         else if (_requestWaitMillis < MIN_WAIT_MS) {
             error("Request wait millis is too short!");
         }
@@ -345,7 +409,7 @@ public class Context {
 
         action = _action;
         latencyFlag = _latencyFlag;
-        server = _server;
+        servers = _servers;
         credsFile = _credsFile;
         connectionTimeoutMillis = _connectionTimeoutMillis;
         reconnectWaitMillis = _reconnectWaitMillis;
@@ -356,6 +420,7 @@ public class Context {
         connShared = _connShared;
         jitter = _jitter;
         payloadSize = _payloadSize;
+        payloadVariants = _payloadVariants;
         roundSize = _roundSize;
         ackPolicy = _ackPolicy;
         ackAllFrequency = _ackAllFrequency;
@@ -374,6 +439,7 @@ public class Context {
 
         queueName = _queueName;
         subNameWhenQueue = _subDurableWhenQueue;
+        lastServerIndex = servers.length;   // will roll to 0 first use, see getNextServer
 
         if (_optionsFactoryClassName == null) {
             OptionsFactory appOf = app.getOptionsFactory();
@@ -388,7 +454,18 @@ public class Context {
             _optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "OptionsFactory");
         }
 
-        payload = new byte[payloadSize];
+
+        payloads = new ArrayList<>();
+        if (payloadVariants == 1) {
+            payloads.add(new byte[payloadSize]);
+        }
+        else {
+            int lower = payloadSize - (payloadSize / 10);
+            int upper = payloadSize + (payloadSize / 10);
+            for (int i = 0; i < payloadVariants; i++) {
+                payloads.add(new byte[ThreadLocalRandom.current().nextInt(lower, upper)]);
+            }
+        }
 
         int total = 0;
         perThread = new int[threads];

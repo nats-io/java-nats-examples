@@ -14,11 +14,17 @@
 package io.nats.jsmulti.settings;
 
 import io.nats.client.api.AckPolicy;
+import io.nats.client.support.JsonParser;
+import io.nats.client.support.JsonValue;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static io.nats.jsmulti.settings.Action.*;
 
@@ -42,6 +48,23 @@ public class Arguments {
     public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
     public static Arguments subPullRead(String subject) { return instance().action(SUB_PULL_READ).subject(subject); }
     public static Arguments subPullReadQueue(String subject) { return instance().action(SUB_PULL_READ_QUEUE).subject(subject); }
+
+    public Arguments addJsonConfigFile(String jsonFileSpec) throws IOException {
+        return _addJsonConfig(JsonParser.parse(Files.readAllBytes(Paths.get(jsonFileSpec))));
+    }
+
+    public Arguments addJsonConfig(String json) throws IOException {
+        return _addJsonConfig(JsonParser.parse(json));
+    }
+
+    private Arguments _addJsonConfig(JsonValue jv) {
+        if (jv.map != null) {
+            for (Map.Entry<String, JsonValue> entry : jv.map.entrySet()) {
+                add(entry.getKey(), entry.getValue().toString());
+            }
+        }
+        return this;
+    }
 
     public Arguments add(String option) {
         args.add("-" + option);
@@ -144,6 +167,10 @@ public class Arguments {
 
     public Arguments payloadSize(int payloadSize) {
         return add("ps", payloadSize);
+    }
+
+    public Arguments payloadVariants(int payloadVariants) {
+        return add("pv", payloadVariants);
     }
 
     public Arguments roundSize(int roundSize) {

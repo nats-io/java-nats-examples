@@ -30,7 +30,7 @@ public interface OptionsFactory {
     }
 
     default String getServer(Context ctx) {
-        return ctx.server;
+        return ctx.getNextServer();
     }
 
     default AuthHandler getAuthHandler(Context ctx) {
