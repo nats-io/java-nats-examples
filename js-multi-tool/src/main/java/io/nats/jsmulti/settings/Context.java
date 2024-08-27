@@ -16,6 +16,7 @@ package io.nats.jsmulti.settings;
 import io.nats.client.JetStreamOptions;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
+import io.nats.jsmulti.shared.ActionRunner;
 import io.nats.jsmulti.shared.Application;
 import io.nats.jsmulti.shared.OptionsFactory;
 
@@ -42,6 +43,7 @@ public class Context {
     // Settings
     // ----------------------------------------------------------------------------------------------------
     public final Action action;
+    public final ActionRunner customActionRunner;
 
     // latency
     public final boolean latencyFlag;
@@ -92,7 +94,7 @@ public class Context {
     // macros / state / vars to access through methods instead of direct
     // ----------------------------------------------------------------------------------------------------
     private final String[] servers;
-    private final OptionsFactory _optionsFactory;
+    private final OptionsFactory optionsFactory;
     private final int[] perThread;
     private final List<byte[]> payloads; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
@@ -100,11 +102,11 @@ public class Context {
     private int lastServerIndex;
 
     public Options getOptions() throws Exception {
-        return _optionsFactory.getOptions(this);
+        return optionsFactory.getOptions(this);
     }
 
     public JetStreamOptions getJetStreamOptions() throws Exception {
-        return _optionsFactory.getJetStreamOptions(this);
+        return optionsFactory.getJetStreamOptions(this);
     }
 
     final ReentrantLock gplock = new ReentrantLock();
@@ -190,7 +192,7 @@ public class Context {
         StringBuilder sb = new StringBuilder("JetStream Multi-Tool Run Config:");
         append(sb, "action", "a", action, true);
         append(sb, "latency flag", "lf", "Yes", latencyFlag);
-        append(sb, "options factory", "of", _optionsFactory.getClass().getTypeName(), true);
+        append(sb, "options factory", "of", optionsFactory.getClass().getTypeName(), true);
         append(sb, "report frequency", "rf", reportFrequency < 1 ? "no reporting" : "" + reportFrequency, true);
 
         append(sb, "request wait millis", "rqwms", requestWaitDuration, requestWaitDuration.toMillis() != DEFAULT_REQUEST_WAIT_MS);
@@ -241,6 +243,7 @@ public class Context {
         }
 
         Action _action = null;
+        String _customActionClassName = null;
         boolean _latencyFlag = false;
         String[] _servers = new String[]{Options.DEFAULT_URL};
         String _credsFile = null;
@@ -289,6 +292,11 @@ public class Context {
                             if (_action == null) {
                                 error("Valid action required!");
                             }
+                            break;
+                        case "-ca":
+                        case "-_custom_action_class_name":
+                            _action = Action.CUSTOM;
+                            _customActionClassName = asString(args[++x]);
                             break;
                         case "-lf":
                         case "-latency_flag":
@@ -411,7 +419,21 @@ public class Context {
             error("Request max wait millis is too short!");
         }
 
-        action = _action;
+        if (_action == Action.CUSTOM) {
+            if (_customActionClassName == null) {
+                action = null;
+                customActionRunner = null;
+            }
+            else {
+                action = _action;
+                customActionRunner = (ActionRunner)classForName(_customActionClassName, "Custom Action Runner");
+            }
+        }
+        else {
+            action = _action;
+            customActionRunner = null;
+        }
+
         latencyFlag = _latencyFlag;
         servers = _servers;
         credsFile = _credsFile;
@@ -448,16 +470,15 @@ public class Context {
         if (_optionsFactoryClassName == null) {
             OptionsFactory appOf = app.getOptionsFactory();
             if (appOf == null) {
-                _optionsFactory = new OptionsFactory() {};
+                optionsFactory = new OptionsFactory() {};
             }
             else {
-                _optionsFactory = appOf;
+                optionsFactory = appOf;
             }
         }
         else {
-            _optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "OptionsFactory");
+            optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "Options Factory");
         }
-
 
         payloads = new ArrayList<>();
         if (payloadVariants == 1) {

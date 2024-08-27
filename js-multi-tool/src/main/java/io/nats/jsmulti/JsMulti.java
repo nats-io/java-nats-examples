@@ -20,6 +20,7 @@ import io.nats.client.impl.NatsMessage;
 import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Arguments;
 import io.nats.jsmulti.settings.Context;
+import io.nats.jsmulti.shared.ActionRunner;
 import io.nats.jsmulti.shared.Application;
 import io.nats.jsmulti.shared.Stats;
 
@@ -29,11 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
-import static io.nats.jsmulti.shared.Utils.sleep;
+import static io.nats.jsmulti.shared.Utils.*;
 
 /**
  * The JsMulti Main class
@@ -79,7 +78,7 @@ public class JsMulti {
             System.out.println(ctx);
         }
 
-        Runner runner = getRunner(ctx);
+        ActionRunner runner = getRunner(ctx);
         List<Stats> statsList = ctx.connShared
             ? runShared(ctx, runner)
             : runIndividual(ctx, runner);
@@ -108,42 +107,40 @@ public class JsMulti {
         return statsList;
     }
 
-    private static Runner getRunner(Context ctx) {
+    private static ActionRunner getRunner(final Context ctx) {
         try {
             switch (ctx.action) {
-                case PUB_SYNC:
-                    return (nc, stats, id) -> pubSync(ctx, nc, stats, id);
-                case PUB_ASYNC:
-                    return (nc, stats, id) -> pubAsync(ctx, nc, stats, id);
-                case PUB_CORE:
-                    return (nc, stats, id) -> pubCore(ctx, nc, stats, id);
-                case PUB:
-                    return (nc, stats, id) -> pub(ctx, nc, stats, id);
-                case REQUEST:
-                // case REQUEST_ASYNC:
-                    return (nc, stats, id) -> request(ctx, nc, stats, id);
-                case REPLY:
-                    return (nc, stats, id) -> reply(ctx, nc, stats, id);
-                case SUB_CORE:
-                    return (nc, stats, id) -> subCore(ctx, nc, stats, id);
-                case SUB_PUSH:
-                    return (nc, stats, id) -> subPush(ctx, nc, stats, id);
+                case CUSTOM:    return ctx.customActionRunner;
+
+                case PUB_SYNC:  return JsMulti::pubSync;
+                case PUB_ASYNC: return JsMulti::pubAsync;
+                case PUB_CORE:  return JsMulti::pubCore;
+                case PUB:       return JsMulti::pub;
+
+                case RTT:       return JsMulti::rtt;
+
+                case REQUEST:   return JsMulti::request;
+                case REPLY:     return JsMulti::reply;
+
+                case SUB_CORE:  return JsMulti::subCore;
+                case SUB_PUSH:  return JsMulti::subPush;
+
                 case SUB_PULL:
                 case SUB_PULL_READ:
-                    return (nc, stats, id) -> subPull(ctx, nc, stats, id);
+                    return JsMulti::subPull;
+
                 case SUB_QUEUE:
                     if (ctx.threads > 1) {
-                        return (nc, stats, id) -> subPush(ctx, nc, stats, id);
+                        return JsMulti::subPush;
                     }
                     break;
+
                 case SUB_PULL_QUEUE:
                 case SUB_PULL_READ_QUEUE:
                     if (ctx.threads > 1) {
-                        return (nc, stats, id) -> subPull(ctx, nc, stats, id);
+                        return JsMulti::subPull;
                     }
                     break;
-                case RTT:
-                    return (nc, stats, id) -> rtt(ctx, nc, stats, id);
             }
             throw new Exception("Invalid Action");
         }
@@ -581,27 +578,8 @@ public class JsMulti {
         stats.stop();
     }
 
-    private static void report(int total, String message, Application jsmApp) {
-        jsmApp.report(message + " " + Stats.format(total));
-    }
-
-    private static int reportMaybe(Context ctx, int total, int unReported, String message) {
-        if (unReported >= ctx.reportFrequency) {
-            report(total, message, ctx.app);
-            return 0; // there are 0 unreported now
-        }
-        return unReported;
-    }
-
-    private static void jitter(Context ctx) {
-        if (ctx.jitter > 0) {
-            sleep(ThreadLocalRandom.current().nextLong(ctx.jitter));
-        }
-    }
-
     private static Connection connect(Context ctx) throws Exception {
         Options options = ctx.getOptions();
-        System.out.println("connect: " + options.getServers());
         Connection nc = Nats.connect(options);
         for (long x = 0; x < 100; x++) { // waits up to 10 seconds (100 * 100 = 10000) millis to be connected
             sleep(100);
@@ -612,14 +590,7 @@ public class JsMulti {
         return nc;
     }
 
-    // ----------------------------------------------------------------------------------------------------
-    // Runners
-    // ----------------------------------------------------------------------------------------------------
-    interface Runner {
-        void run(Connection nc, Stats stats, int id) throws Exception;
-    }
-
-    private static List<Stats> runShared(Context ctx, Runner runner) throws Exception {
+    private static List<Stats> runShared(Context ctx, ActionRunner runner) throws Exception {
         try (Connection nc = connect(ctx)) {
             List<Stats> statsList = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
@@ -629,7 +600,7 @@ public class JsMulti {
                 statsList.add(stats);
                 Thread t = new Thread(() -> {
                     try {
-                        runner.run(nc, stats, id);
+                        runner.run(ctx, nc, stats, id);
                     } catch (Exception e) {
                         ctx.app.reportEx(e);
                     }
@@ -640,7 +611,7 @@ public class JsMulti {
         }
     }
 
-    private static List<Stats> runIndividual(Context ctx, Runner runner) throws Exception {
+    private static List<Stats> runIndividual(Context ctx, ActionRunner runner) throws Exception {
         List<Stats> statsList = new ArrayList<>();
         List<Thread> threads = new ArrayList<>();
         for (int x = 0; x < ctx.threads; x++) {
@@ -649,7 +620,7 @@ public class JsMulti {
             statsList.add(stats);
             Thread t = new Thread(() -> {
                 try (Connection nc = connect(ctx)) {
-                    runner.run(nc, stats, id);
+                    runner.run(ctx, nc, stats, id);
                 } catch (Exception e) {
                     ctx.app.reportEx(e);
                 }

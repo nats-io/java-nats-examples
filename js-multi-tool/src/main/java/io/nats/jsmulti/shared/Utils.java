@@ -14,10 +14,31 @@
 package io.nats.jsmulti.shared;
 
 import io.nats.client.NUID;
+import io.nats.jsmulti.settings.Context;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class Utils {
 
     public static final String HDR_PUB_TIME = "pt";
+
+    public static void report(int total, String message, Application jsmApp) {
+        jsmApp.report(message + " " + Stats.format(total));
+    }
+
+    public static int reportMaybe(Context ctx, int total, int unReported, String message) {
+        if (unReported >= ctx.reportFrequency) {
+            report(total, message, ctx.app);
+            return 0; // there are 0 unreported now
+        }
+        return unReported;
+    }
+
+    public static void jitter(Context ctx) {
+        if (ctx.jitter > 0) {
+            sleep(ThreadLocalRandom.current().nextLong(ctx.jitter));
+        }
+    }
 
     public static String randomString() {
         return new NUID().next();

@@ -33,7 +33,8 @@ public enum Action {
     SUB_PULL_QUEUE(      "SubPullQueue",        false, false, false, false, true),
     SUB_PULL_READ_QUEUE( "SubPullReadQueue",    false, false, false, false, false),
 
-    RTT(                 "RTT",                 true,  true,  true,  false, false);
+    RTT(                 "RTT",                 true,  true,  true,  false, false),
+    CUSTOM(              "CUSTOM",              false, false, false, false, false);
 
     private final String label;
     private final boolean pubAction;

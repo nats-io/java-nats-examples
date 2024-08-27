@@ -97,6 +97,10 @@ public class Arguments {
         return add("a", action);
     }
 
+    public Arguments customAction(String customActionClassName) {
+        return add("ca", customActionClassName);
+    }
+
     public Arguments server(String server) {
         return add("s", server);
     }
