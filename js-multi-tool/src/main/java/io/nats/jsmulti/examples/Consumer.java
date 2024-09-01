@@ -34,50 +34,36 @@ import io.nats.jsmulti.settings.Context;
  */
 public class Consumer {
 
+    static final String STREAM = "strm";
+    static final String SUBJECT = "sub";
+    static final String SERVER = "nats://localhost:4222";
+
     public static void main(String[] args) throws Exception {
-        //        while (true) {
-//            main("nats://localhost:4222");
-//            Thread.sleep(10_000);
-//            System.gc();
-//            Thread.sleep(5_000);
-//        }
-
-        while (true) {
-            Thread t4 = new Thread(() -> main("nats://localhost:4222"));
-            t4.start();
-            Thread t5 = new Thread(() -> main("nats://localhost:5222"));
-            t5.start();
-            Thread t6 = new Thread(() -> main("nats://localhost:6222"));
-            t6.start();
-
-            t4.join();
-            t5.join();
-            t6.join();
-
-            Thread.sleep(10_000);
-        }
-    }
-
-    private static void main(String server) {
+        // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
-            .server(server)
-            .subject("sub")
-            .action(Action.SUB_PULL)
-            .messageCount(1_000_000)
-            .ackExplicit()
-//            .ackPolicy(AckPolicy.All)
-//            .ackAllFrequency(50)
-            .batchSize(100)
-            .individualConnection()
-            .reportFrequency(25_000)
+            .server(SERVER)
+            .subject(SUBJECT)
+            .action(Action.SUB_PULL_QUEUE)  // could be Action.SUB_PULL_READ for example
+            .messageCount(50_000)           // default is 100_000. Consumer needs this to know when to stop.
+            // .ackPolicy(AckPolicy.None)   // default is AckPolicy.Explicit which is the only policy allowed for PULL at the moment
+            // .ackAllFrequency(20)         // for AckPolicy.All how many message to wait before acking, DEFAULT IS 1
+            .batchSize(20)                  // default is 10 only used with pull subs
+            .threads(3)                     // default is 1
+            .individualConnection()         // versus .sharedConnection()
+            // .reportFrequency(500)        // default is 10% of message count
+            // .latencyCsv("C:\\temp\\latency.csv") // write latency data to a csv file
             ;
+
         a.printCommandLine();
+
         Context ctx = new Context(a);
-        try {
-            JsMulti.run(ctx, false, true);
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
+        // -----------------------------------------------------
+        // Uncomment for latency runs. The stream needs to exist
+        // before the consumers start.
+        // -----------------------------------------------------
+        StreamUtils.setupStream(STREAM, ctx);
+
+        JsMulti.run(ctx, true, true);
     }
 }
