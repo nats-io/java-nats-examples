@@ -16,10 +16,10 @@ package io.nats.jsmulti.shared;
 import io.nats.jsmulti.settings.Context;
 
 public interface Application {
-    default void init(Context ctx) throws Exception {
+    default void init(Context ctx) {
     }
 
-    default void track(Stats stats, boolean isFinal) throws Exception {
+    default void track(Stats stats, boolean isFinal) {
     }
 
     default void report(Object o) {

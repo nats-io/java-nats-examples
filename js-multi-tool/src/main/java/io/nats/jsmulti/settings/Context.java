@@ -448,13 +448,6 @@ public class Context {
             customActionRunner = null;
         }
 
-        if (_customAppClassName == null) {
-            app = new Application() {};
-        }
-        else {
-            app = (Application)classForName(_customActionClassName, "Custom Application");
-        }
-
         latencyFlag = _latencyFlag;
         servers = _servers;
         credsFile = _credsFile;
@@ -488,19 +481,6 @@ public class Context {
         subNameWhenQueue = _subDurableWhenQueue;
         lastServerIndex = servers.length;   // will roll to 0 first use, see getNextServer
 
-        if (_optionsFactoryClassName == null) {
-            OptionsFactory appOf = app.getOptionsFactory();
-            if (appOf == null) {
-                optionsFactory = new OptionsFactory() {};
-            }
-            else {
-                optionsFactory = appOf;
-            }
-        }
-        else {
-            optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "Options Factory");
-        }
-
         payloads = new ArrayList<>();
         if (payloadVariants == 1) {
             payloads.add(new byte[payloadSize]);
@@ -520,11 +500,37 @@ public class Context {
             total += perThread[x];
         }
 
-        int ix = 0;
+        int ix = -1;
         while (total < messageCount) {
-            perThread[ix++]++;
+            if (++ix == threads) {
+                ix = 0;
+            }
+            perThread[ix]++;
             total++;
         }
+
+        //
+        if (_customAppClassName == null) {
+            app = new Application() {};
+        }
+        else {
+            app = (Application)classForName(_customActionClassName, "Custom Application");
+        }
+
+        if (_optionsFactoryClassName == null) {
+            OptionsFactory appOf = app.getOptionsFactory();
+            if (appOf == null) {
+                optionsFactory = new OptionsFactory() {};
+            }
+            else {
+                optionsFactory = appOf;
+            }
+        }
+        else {
+            optionsFactory = (OptionsFactory)classForName(_optionsFactoryClassName, "Options Factory");
+        }
+
+        app.init(this);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -536,8 +542,8 @@ public class Context {
         }
         catch (Exception e) {
             error("Error creating " + label + ": " + e);
+            throw new RuntimeException();
         }
-        return null;
     }
 
     private void error(String errMsg) {
