@@ -19,21 +19,36 @@ import io.nats.jsmulti.settings.Context;
 import java.time.Duration;
 
 public interface OptionsFactory {
-    default Options.Builder getOptionsBuilder(Context ctx) throws Exception {
+    public enum OptionsType { ADMIN, DEFAULT}
+
+    default Options.Builder getOptionsBuilder(Context ctx) {
+        return getOptionsBuilder(ctx, OptionsType.DEFAULT);
+    }
+
+    default Options.Builder getOptionsBuilder(Context ctx, OptionsType ot) {
+        String server = ot == OptionsType.ADMIN ? null : getServer(ctx);
         return new Options.Builder()
-            .server(getServer(ctx))
+            .server(server)
             .authHandler(getAuthHandler(ctx))
             .connectionTimeout(getConnectionTimeout(ctx))
             .reconnectWait(getReconnectWait(ctx))
             .errorListener(getErrorListener());
     }
 
-    default Options getOptions(Context ctx) throws Exception {
-        return getOptionsBuilder(ctx).build();
+    default Options getOptions(Context ctx) {
+        return getOptionsBuilder(ctx, OptionsType.DEFAULT).build();
+    }
+
+    default Options getOptions(Context ctx, OptionsType ot) {
+        return getOptionsBuilder(ctx, ot).build();
     }
 
     default String getServer(Context ctx) {
-        return ctx.getNextServer();
+        return getServer(ctx, OptionsType.DEFAULT);
+    }
+
+    default String getServer(Context ctx, OptionsType ot) {
+        return ot == OptionsType.ADMIN ? ctx.getFirstServer() : ctx.getNextServer();
     }
 
     default AuthHandler getAuthHandler(Context ctx) {

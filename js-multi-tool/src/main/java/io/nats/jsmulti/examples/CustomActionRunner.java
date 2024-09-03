@@ -21,7 +21,7 @@ import io.nats.jsmulti.shared.ActionRunner;
 import io.nats.jsmulti.shared.Stats;
 
 import static io.nats.jsmulti.shared.Utils.report;
-import static io.nats.jsmulti.shared.Utils.reportMaybe;
+import static io.nats.jsmulti.shared.Utils.reportAndTrackMaybe;
 
 public class CustomActionRunner implements ActionRunner {
     public static void main(String[] args) throws Exception {
@@ -42,11 +42,11 @@ public class CustomActionRunner implements ActionRunner {
     public void run(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         int round = 0;
         int unReported = 0;
-        report(round, "Begin Custom", ctx.app);
+        report(ctx, round, "Begin Custom");
         while (round < ctx.messageCount) {
             stats.manualElapsed(nc.RTT().toNanos(), 1);
-            unReported = reportMaybe(ctx, ++round, ++unReported, "Customs so far");
+            unReported = reportAndTrackMaybe(ctx, ++round, ++unReported, "Customs so far", stats);
         }
-        report(round, "Customs completed", ctx.app);
+        report(ctx, round, "Customs completed");
     }
 }

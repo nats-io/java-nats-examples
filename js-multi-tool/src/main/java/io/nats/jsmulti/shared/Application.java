@@ -13,7 +13,15 @@
 
 package io.nats.jsmulti.shared;
 
+import io.nats.jsmulti.settings.Context;
+
 public interface Application {
+    default void init(Context ctx) throws Exception {
+    }
+
+    default void track(Stats stats, boolean isFinal) throws Exception {
+    }
+
     default void report(Object o) {
         System.out.println(format(o));
     }
@@ -37,12 +45,7 @@ public interface Application {
     }
 
     default String format(Object o) {
-        return time() + " [" + threadInfo() + "] " + o.toString();
-    }
-
-    default String time() {
-        String t = "" + System.currentTimeMillis();
-        return t.substring(t.length() - 9);
+        return Debug.time() + " [" + threadInfo() + "] " + o.toString();
     }
 
     default String threadInfo() {

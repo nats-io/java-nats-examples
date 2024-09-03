@@ -22,13 +22,25 @@ public abstract class Utils {
 
     public static final String HDR_PUB_TIME = "pt";
 
-    public static void report(int total, String message, Application jsmApp) {
-        jsmApp.report(message + " " + Stats.format(total));
+    public static String makeId(String name) {
+        return name + "-" + NUID.nextGlobalSequence();
     }
 
-    public static int reportMaybe(Context ctx, int total, int unReported, String message) {
+    public static void report(Context ctx, int total, String message) {
+        ctx.app.report(message + " " + Stats.format(total));
+    }
+
+    public static int reportAndTrackMaybe(Context ctx, int total, int unReported, String message, Stats stats) {
         if (unReported >= ctx.reportFrequency) {
-            report(total, message, ctx.app);
+            report(ctx, total, message);
+            if (stats != null) {
+                try {
+                    ctx.app.track(stats, false);
+                }
+                catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
             return 0; // there are 0 unreported now
         }
         return unReported;
@@ -45,7 +57,9 @@ public abstract class Utils {
     }
 
     public static void sleep(long ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) { /* ignored */ }
+        try { Thread.sleep(ms); } catch (InterruptedException ignored) {
+            System.exit(-1);
+        }
     }
 
     public static int parseInt(String val) {

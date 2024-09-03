@@ -5,9 +5,7 @@ import io.nats.client.impl.Headers;
 import io.nats.jsmulti.settings.Action;
 import io.nats.jsmulti.settings.Context;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.List;
@@ -16,8 +14,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static io.nats.jsmulti.shared.Utils.HDR_PUB_TIME;
+import static io.nats.jsmulti.shared.Utils.makeId;
 
-public class Stats {
+public class Stats implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private static final double MILLIS_PER_SECOND = 1000;
     private static final double NANOS_PER_MILLI = 1000000;
 
@@ -65,21 +66,28 @@ public class Stats {
     private long milliNow;
 
     // Misc
-    private final Context ctx;
+    private final String id;
     private final String hdrLabel;
+    public final String subject;
+    private String exceptionMessage;
 
-    private final ExecutorService countService = Executors.newSingleThreadExecutor();
-    private final FileOutputStream lout;
+    private transient final Context ctx;
+    private transient final ExecutorService countService = Executors.newSingleThreadExecutor();
+    private transient final FileOutputStream lout;
 
     public Stats() {
+        id = makeId("stats");
         ctx = null;
         hdrLabel = "";
+        subject = "";
         lout = null;
     }
 
     public Stats(Context ctx) throws IOException {
+        id = makeId("stats");
         this.ctx = ctx;
         hdrLabel = ctx.action.getLabel();
+        subject = hdrLabel + "."  + ctx.id + "." + id;
         if (ctx.lcsv == null) {
             lout = null;
         }
@@ -87,6 +95,14 @@ public class Stats {
             lout = new FileOutputStream(ctx.lcsv);
             lout.write(LCSV_HEADER.getBytes(StandardCharsets.US_ASCII));
         }
+    }
+
+    public void setException(Exception e){
+        exceptionMessage = e.getMessage();
+    }
+
+    public String getException() {
+        return exceptionMessage;
     }
 
     public void shutdown() {
@@ -358,5 +374,22 @@ public class Stats {
             return f + "." + ZEROS.substring(0, 3);
         }
         return (f + ZEROS).substring(0, at + 3 + 1);
+    }
+
+    public static byte[] serialize(Stats stats) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(baos);
+        objectOutputStream.writeObject(stats);
+        objectOutputStream.flush();
+        objectOutputStream.close();
+        return baos.toByteArray();
+    }
+
+    public static Stats deserialize(byte[] bytes) throws ClassNotFoundException, IOException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        ObjectInputStream objectInputStream = new ObjectInputStream(bais);
+        Stats stats = (Stats) objectInputStream.readObject();
+        objectInputStream.close();
+        return stats;
     }
 }
