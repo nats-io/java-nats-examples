@@ -22,7 +22,7 @@ public interface OptionsFactory {
     enum OptionsType { ADMIN, DEFAULT}
 
     default Options.Builder getOptionsBuilder(Context ctx, OptionsType ot) {
-        String server = ot == OptionsType.ADMIN ? null : getServer(ctx);
+        String server = getServer(ctx, ot);
         return new Options.Builder()
             .server(server)
             .authHandler(getAuthHandler(ctx))
