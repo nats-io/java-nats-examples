@@ -19,11 +19,7 @@ import io.nats.jsmulti.settings.Context;
 import java.time.Duration;
 
 public interface OptionsFactory {
-    public enum OptionsType { ADMIN, DEFAULT}
-
-    default Options.Builder getOptionsBuilder(Context ctx) {
-        return getOptionsBuilder(ctx, OptionsType.DEFAULT);
-    }
+    enum OptionsType { ADMIN, DEFAULT}
 
     default Options.Builder getOptionsBuilder(Context ctx, OptionsType ot) {
         String server = ot == OptionsType.ADMIN ? null : getServer(ctx);
