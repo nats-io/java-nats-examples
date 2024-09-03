@@ -514,7 +514,7 @@ public class Context {
             app = new Application() {};
         }
         else {
-            app = (Application)classForName(_customActionClassName, "Custom Application");
+            app = (Application)classForName(_customAppClassName, "Custom Application");
         }
 
         if (_optionsFactoryClassName == null) {
@@ -541,7 +541,7 @@ public class Context {
             return cons.newInstance();
         }
         catch (Exception e) {
-            error("Error creating " + label + ": " + e);
+            System.err.println("Error creating " + label + ": " + e);
             throw new RuntimeException();
         }
     }
