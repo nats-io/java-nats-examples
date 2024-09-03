@@ -101,6 +101,10 @@ public class Arguments {
         return add("ca", customActionClassName);
     }
 
+    public Arguments appClass(String customAppClass) {
+        return add("app", customAppClass);
+    }
+
     public Arguments server(String server) {
         return add("s", server);
     }
