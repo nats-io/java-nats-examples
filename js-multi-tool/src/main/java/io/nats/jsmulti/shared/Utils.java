@@ -1,4 +1,4 @@
-// Copyright 2021-2022 The NATS Authors
+// Copyright 2021-2024 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at:
@@ -22,8 +22,12 @@ public abstract class Utils {
 
     public static final String HDR_PUB_TIME = "pt";
 
+    public static String makeId() {
+        return NUID.nextGlobalSequence();
+    }
+
     public static String makeId(String name) {
-        return name + "-" + NUID.nextGlobalSequence();
+        return name + NUID.nextGlobalSequence();
     }
 
     public static void report(Context ctx, int total, String message) {
