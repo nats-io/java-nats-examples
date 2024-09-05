@@ -45,7 +45,12 @@ public interface Application {
     }
 
     default String format(Object o) {
-        return Debug.time() + " [" + threadInfo() + "] " + o.toString();
+        return time() + " [" + threadInfo() + "] " + o.toString();
+    }
+
+    default String time() {
+        String t = "" + System.currentTimeMillis();
+        return t.substring(t.length() - 9);
     }
 
     default String threadInfo() {
