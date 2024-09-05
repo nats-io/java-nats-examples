@@ -16,6 +16,7 @@ package io.nats.jsmulti.shared;
 import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
 
+import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -26,25 +27,40 @@ import java.util.Map;
 
 import static io.nats.jsmulti.shared.Utils.makeId;
 
-public class RunStat {
-    public final String id;
-    public final long maxMemory;
-    public final long allocatedMemory;
-    public final long freeMemory;
-    public final long heapInit;
-    public final long heapUsed;
-    public final long heapCommitted;
-    public final long heapMax;
-    public final long nonHeapInit;
-    public final long nonHeapUsed;
-    public final long nonHeapCommitted;
-    public final long nonHeapMax;
-    public final int threadCount;
-    public final List<String> deadThreads;
-    public final List<String> liveThreads;
+public class ProfileStats {
+    private static final int VERSION = 1;
 
-    public RunStat() {
+    private final int version;
+    private final String id;
+    private String action;
+    private String contextId;
+
+    private long maxMemory;
+    private long allocatedMemory;
+    private long freeMemory;
+    private long heapInit;
+    private long heapUsed;
+    private long heapCommitted;
+    private long heapMax;
+    private long nonHeapInit;
+    private long nonHeapUsed;
+    private long nonHeapCommitted;
+    private long nonHeapMax;
+    private int threadCount;
+    private List<String> deadThreads;
+    private List<String> liveThreads;
+
+    private ProfileStats() {
+        version = VERSION;
         id = makeId();
+        deadThreads = new ArrayList<>();
+        liveThreads = new ArrayList<>();
+    }
+
+    public ProfileStats(String contextId, String action) {
+        this();
+        this.action = action;
+        this.contextId = contextId;
 
         MemoryMXBean memBean = ManagementFactory.getMemoryMXBean();
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
@@ -53,7 +69,6 @@ public class RunStat {
         allocatedMemory = runtime.totalMemory();
         freeMemory = runtime.freeMemory();
 
-        System.out.println("Mem");
         MemoryUsage usage = memBean.getHeapMemoryUsage();
         heapInit = usage.getInit();
         heapUsed = usage.getUsed();
@@ -66,8 +81,6 @@ public class RunStat {
         nonHeapCommitted = usage.getCommitted();
         nonHeapMax = usage.getMax();
 
-        deadThreads = new ArrayList<>();
-        liveThreads = new ArrayList<>();
         threadCount = threadBean.getThreadCount();
         long[] deadThreadIds = threadBean.findDeadlockedThreads();
         if (deadThreadIds == null) {
@@ -84,8 +97,11 @@ public class RunStat {
         }
     }
 
-    public RunStat(JsonValue jv) {
+    public ProfileStats(JsonValue jv) {
+        version = JsonValueUtils.readInteger(jv, "version", 0);
         id = JsonValueUtils.readString(jv, "id", null);
+        action = JsonValueUtils.readString(jv, "action", null);
+        contextId = JsonValueUtils.readString(jv, "contextId", null);
         maxMemory = JsonValueUtils.readLong(jv, "maxMemory", 0);
         allocatedMemory = JsonValueUtils.readLong(jv, "allocatedMemory", 0);
         freeMemory = JsonValueUtils.readLong(jv, "freeMemory", 0);
@@ -113,7 +129,10 @@ public class RunStat {
         }
 
         return JsonValueUtils.mapBuilder()
+            .put("version", version)
             .put("id", id)
+            .put("action", action)
+            .put("contextId", contextId)
             .put("maxMemory", maxMemory)
             .put("allocatedMemory", allocatedMemory)
             .put("freeMemory", freeMemory)
@@ -131,6 +150,14 @@ public class RunStat {
             .toJsonValue().map;
     }
 
+    public String getAction() {
+        return action;
+    }
+
+    public String getContextId() {
+        return contextId;
+    }
+
     private static boolean isAlive(long id, long[] deadThreadIds) {
         for (long dead : deadThreadIds) {
             if (dead == id) {
@@ -145,27 +172,29 @@ public class RunStat {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        RunStat runStat = (RunStat) o;
-        return maxMemory == runStat.maxMemory
-            && allocatedMemory == runStat.allocatedMemory
-            && freeMemory == runStat.freeMemory
-            && heapInit == runStat.heapInit
-            && heapUsed == runStat.heapUsed
-            && heapCommitted == runStat.heapCommitted
-            && heapMax == runStat.heapMax
-            && nonHeapInit == runStat.nonHeapInit
-            && nonHeapUsed == runStat.nonHeapUsed
-            && nonHeapCommitted == runStat.nonHeapCommitted
-            && nonHeapMax == runStat.nonHeapMax
-            && threadCount == runStat.threadCount
-            && id.equals(runStat.id)
-            && equivalent(deadThreads, runStat.deadThreads)
-            && equivalent(liveThreads, runStat.liveThreads);
+        ProfileStats that = (ProfileStats) o;
+        return version == that.version
+            && maxMemory == that.maxMemory
+            && allocatedMemory == that.allocatedMemory
+            && freeMemory == that.freeMemory
+            && heapInit == that.heapInit
+            && heapUsed == that.heapUsed
+            && heapCommitted == that.heapCommitted
+            && heapMax == that.heapMax
+            && nonHeapInit == that.nonHeapInit
+            && nonHeapUsed == that.nonHeapUsed
+            && nonHeapCommitted == that.nonHeapCommitted
+            && nonHeapMax == that.nonHeapMax
+            && threadCount == that.threadCount
+            && id.equals(that.id)
+            && equivalent(deadThreads, that.deadThreads)
+            && equivalent(liveThreads, that.liveThreads);
     }
 
     @Override
     public int hashCode() {
         int result = id.hashCode();
+        result = 31 * result + Long.hashCode(version);
         result = 31 * result + Long.hashCode(maxMemory);
         result = 31 * result + Long.hashCode(allocatedMemory);
         result = 31 * result + Long.hashCode(freeMemory);
@@ -199,5 +228,67 @@ public class RunStat {
             }
         }
         return true;
+    }
+
+    private static final String REPORT_SEP_LINE = "| --------------- | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------- | ------- |";
+    private static final String REPORT_LINE_HEADER = "| %-15s |          max |    allocated |         free |    heap init |    heap used |    heap cmtd |     heap max |     non init |     non used |     non cmtd |      non max |   alive |    dead |\n";
+    private static final String REPORT_LINE_FORMAT = "| %-15s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %7s | %7s |\n";
+
+    public static void report(List<ProfileStats> list) {
+        ProfileStats total = new ProfileStats();
+        for (int x = 0; x < list.size(); x++) {
+            ProfileStats ps = list.get(x);
+            updateTotal(ps, total);
+            report(ps, ps.contextId, x == 0, false, System.out);
+        }
+        System.out.println(REPORT_SEP_LINE);
+        report(total, "Total", false, true, System.out);
+    }
+
+    public static void report(ProfileStats p, String label, boolean header, boolean footer, PrintStream out) {
+        if (header) {
+            out.println("\n" + REPORT_SEP_LINE);
+            out.printf(REPORT_LINE_HEADER, p.action);
+            out.println(REPORT_SEP_LINE);
+        }
+        out.printf(REPORT_LINE_FORMAT, label,
+            Stats.humanBytes(p.maxMemory),
+            Stats.humanBytes(p.allocatedMemory),
+            Stats.humanBytes(p.freeMemory),
+            Stats.humanBytes(p.heapInit),
+            Stats.humanBytes(p.heapUsed),
+            Stats.humanBytes(p.heapCommitted),
+            Stats.humanBytes(p.heapMax),
+            Stats.humanBytes(p.nonHeapInit),
+            Stats.humanBytes(p.nonHeapUsed),
+            Stats.humanBytes(p.nonHeapCommitted),
+            Stats.humanBytes(p.nonHeapMax),
+            p.liveThreads.size() + "/" + p.threadCount,
+            p.deadThreads.size() + "/" + p.threadCount);
+
+        if (footer) {
+            out.println(REPORT_SEP_LINE);
+        }
+    }
+
+    private static void updateTotal(ProfileStats ps, ProfileStats total) {
+        total.maxMemory = Math.max(total.maxMemory, ps.maxMemory);
+        total.allocatedMemory = Math.max(total.allocatedMemory, ps.allocatedMemory);
+        total.freeMemory = Math.max(total.freeMemory, ps.freeMemory);
+        total.heapInit = Math.max(total.heapInit, ps.heapInit);
+        total.heapUsed = Math.max(total.heapUsed, ps.heapUsed);
+        total.heapCommitted = Math.max(total.heapCommitted, ps.heapCommitted);
+        total.heapMax = Math.max(total.heapMax, ps.heapMax);
+        total.nonHeapInit = Math.max(total.nonHeapInit, ps.nonHeapInit);
+        total.nonHeapUsed = Math.max(total.nonHeapUsed, ps.nonHeapUsed);
+        total.nonHeapCommitted = Math.max(total.nonHeapCommitted, ps.nonHeapCommitted);
+        total.nonHeapMax = Math.max(total.nonHeapMax, ps.nonHeapMax);
+        total.threadCount = Math.max(total.threadCount, ps.threadCount);
+        if (ps.deadThreads.size() > total.deadThreads.size()) {
+            total.deadThreads = ps.deadThreads;
+        }
+        if (ps.liveThreads.size() > total.liveThreads.size()) {
+            total.liveThreads = ps.liveThreads;
+        }
     }
 }

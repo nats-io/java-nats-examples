@@ -23,6 +23,8 @@ import static io.nats.jsmulti.shared.Utils.makeId;
 
 public class Stats {
 
+    private static final int VERSION = 1;
+
     private static final double MILLIS_PER_SECOND = 1000;
     private static final double NANOS_PER_MILLI = 1000000;
 
@@ -49,8 +51,9 @@ public class Stats {
     private static final String LCSV_HEADER = "Publish Time,Server Time,Received Time,Publish to Server,Server to Consumer,Publish to Consumer\n";
 
     // Misc
+    public final int version;
     public final String id;
-    public final String label;
+    public final String action;
     public final String key;
 
     private String exceptionMessage;
@@ -82,18 +85,20 @@ public class Stats {
     private final ExecutorService countService = Executors.newSingleThreadExecutor();
 
     public Stats() {
+        version = VERSION;
         id = makeId();
-        label = "";
+        action = "";
         key = "";
         ctx = null;
         lout = null;
     }
 
     public Stats(Context ctx) throws IOException {
+        version = VERSION;
         id = makeId();
         this.ctx = ctx;
-        label = ctx.action.getLabel();
-        key = label + "."  + ctx.id + "." + id;
+        action = ctx.action.getLabel();
+        key = action + "."  + ctx.id + "." + id;
         if (ctx.lcsv == null) {
             lout = null;
         }
@@ -106,8 +111,9 @@ public class Stats {
     public Stats(JsonValue jv) {
         ctx = null;
         lout = null;
+        version = JsonValueUtils.readInteger(jv, "version", 0);
         id = JsonValueUtils.readString(jv, "id", null);
-        label = JsonValueUtils.readString(jv, "hdrLabel", null);
+        action = JsonValueUtils.readString(jv, " action", null);
         key = JsonValueUtils.readString(jv, "subject", null);
         exceptionMessage = JsonValueUtils.readString(jv, "exceptionMessage", null);
         elapsed = JsonValueUtils.readLong(jv, "elapsed", 0);
@@ -129,8 +135,9 @@ public class Stats {
 
     public Map<String, JsonValue> toJsonValueMap() {
         return JsonValueUtils.mapBuilder()
+            .put("version", version)
             .put("id", id)
-            .put("hdrLabel", label)
+            .put(" action", action)
             .put("subject", key)
             .put("exceptionMessage", exceptionMessage)
             .put("elapsed", elapsed)
@@ -247,7 +254,7 @@ public class Stats {
         double bytesPerSecond = MILLIS_PER_SECOND * (stats.bytes) / (stats.elapsed);
         if (header) {
             out.println("\n" + REPORT_SEP_LINE);
-            out.printf(REPORT_LINE_HEADER, stats.label);
+            out.printf(REPORT_LINE_HEADER, stats.action);
             out.println(REPORT_SEP_LINE);
         }
         out.printf(REPORT_LINE_FORMAT, label,
@@ -263,7 +270,7 @@ public class Stats {
     public static void rttReport(Stats stats, String tlabel, boolean header, boolean footer, PrintStream out) {
         if (header) {
             out.println("\n" + RTT_REPORT_SEP_LINE);
-            out.printf(RTT_REPORT_LINE_HEADER, stats.label);
+            out.printf(RTT_REPORT_LINE_HEADER, stats.action);
             out.println(RTT_REPORT_SEP_LINE);
         }
         out.printf(RTT_REPORT_LINE_FORMAT, tlabel,
