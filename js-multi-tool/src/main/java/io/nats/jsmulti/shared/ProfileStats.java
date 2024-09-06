@@ -34,6 +34,7 @@ public class ProfileStats {
     private final String id;
     private String action;
     private String contextId;
+    private String label;
 
     private long maxMemory;
     private long allocatedMemory;
@@ -47,8 +48,8 @@ public class ProfileStats {
     private long nonHeapCommitted;
     private long nonHeapMax;
     private int threadCount;
-    private List<String> deadThreads;
-    private List<String> liveThreads;
+    private final List<String> deadThreads;
+    private final List<String> liveThreads;
 
     private ProfileStats() {
         version = VERSION;
@@ -150,6 +151,10 @@ public class ProfileStats {
             .toJsonValue().map;
     }
 
+    public String getLabel() {
+        return label;
+    }
+
     public String getAction() {
         return action;
     }
@@ -234,10 +239,15 @@ public class ProfileStats {
     private static final String REPORT_LINE_HEADER = "| %-15s |          max |    allocated |         free |    heap init |    heap used |    heap cmtd |     heap max |     non init |     non used |     non cmtd |      non max |   alive |    dead |\n";
     private static final String REPORT_LINE_FORMAT = "| %-15s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %7s | %7s |\n";
 
+    public ProfileStats label(String label) {
+        this.label = label;
+        return this;
+    }
+
     public static void report(List<ProfileStats> list) {
         for (int x = 0; x < list.size(); x++) {
             ProfileStats ps = list.get(x);
-            report(ps, ps.contextId, x == 0, false, System.out);
+            report(ps, lineLabel(x, ps.label), x == 0, false, System.out);
         }
         System.out.println(REPORT_SEP_LINE);
     }
@@ -245,7 +255,7 @@ public class ProfileStats {
     public static void report(ProfileStats p, String label, boolean header, boolean footer, PrintStream out) {
         if (header) {
             out.println("\n" + REPORT_SEP_LINE);
-            out.printf(REPORT_LINE_HEADER, p.action);
+            out.printf(REPORT_LINE_HEADER, "");
             out.println(REPORT_SEP_LINE);
         }
         out.printf(REPORT_LINE_FORMAT, label,
@@ -266,5 +276,12 @@ public class ProfileStats {
         if (footer) {
             out.println(REPORT_SEP_LINE);
         }
+    }
+
+    private static String lineLabel(int x, String profileLabel) {
+        if (profileLabel != null) {
+            return profileLabel;
+        }
+        return "Thread " + (x + 1);
     }
 }

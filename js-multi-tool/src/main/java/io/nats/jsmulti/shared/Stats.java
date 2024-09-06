@@ -57,6 +57,7 @@ public class Stats {
     public final String key;
 
     private String exceptionMessage;
+    public String label;
 
     // running numbers
     private long elapsed = 0;
@@ -156,6 +157,15 @@ public class Stats {
             .put("minMessageServerToReceiverElapsed", minMessageServerToReceiverElapsed)
             .put("minMessageFullElapsed", minMessageFullElapsed)
             .toJsonValue().map;
+    }
+
+    public Stats label(String label) {
+        this.label = label;
+        return this;
+    }
+
+    public String getLabel() {
+        return label;
     }
 
     public void setException(Exception e){
@@ -373,21 +383,17 @@ public class Stats {
     }
 
     public static void report(List<Stats> statList, PrintStream out) {
-        report(statList, out, true, false);
+        report(statList, out, true);
     }
 
-    public static void report(List<Stats> statList, boolean idAsColumnLabel) {
-        report(statList, System.out, true, idAsColumnLabel);
-    }
-
-    public static void report(List<Stats> statList, PrintStream out, boolean showTotal, boolean idAsColumnLabel) {
+    public static void report(List<Stats> statList, PrintStream out, boolean showTotal) {
         Stats totalStats = total(statList);
 
         Context ctx = statList.get(0).ctx;
         if (ctx != null && ctx.action == Action.RTT) {
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                rttReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
+                rttReport(stats, lineLabel(x, stats.label), x == 0, false, out);
             }
             out.println(RTT_REPORT_SEP_LINE);
             if (showTotal) {
@@ -398,7 +404,7 @@ public class Stats {
 
         for (int x = 0; x < statList.size(); x++) {
             Stats stats = statList.get(x);
-            report(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
+            report(stats, lineLabel(x, stats.label), x == 0, false, out);
         }
         out.println(REPORT_SEP_LINE);
         if (showTotal) {
@@ -408,7 +414,7 @@ public class Stats {
         if (statList.get(0).messagePubToServerTimeElapsed > 0) {
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                ltReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
+                ltReport(stats, lineLabel(x, stats.label), x == 0, false, out);
             }
             out.println(LT_REPORT_SEP_LINE);
             if (showTotal) {
@@ -417,7 +423,7 @@ public class Stats {
 
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                lmReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
+                lmReport(stats, lineLabel(x, stats.label), x == 0, false, out);
             }
             if (showTotal) {
                 lmReport(totalStats, "Total", false, true, out);
@@ -425,9 +431,9 @@ public class Stats {
         }
     }
 
-    private static String mainLabel(int x, boolean idAsColumnLabel, Stats stats) {
-        if (idAsColumnLabel) {
-            return stats.id;
+    private static String lineLabel(int x, String statsLabel) {
+        if (statsLabel != null) {
+            return statsLabel;
         }
         return "Thread " + (x + 1);
     }
