@@ -250,7 +250,7 @@ public class Context {
     }
 
     public Context(String[] args) {
-        id = makeId("ctx");
+        id = makeId();
 
         Action _action = null;
         String _customActionClassName = null;

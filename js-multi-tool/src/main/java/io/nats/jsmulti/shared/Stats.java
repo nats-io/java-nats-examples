@@ -373,14 +373,14 @@ public class Stats {
     }
 
     public static void report(List<Stats> statList, PrintStream out) {
-        report(statList, out, false);
+        report(statList, out, true, false);
     }
 
     public static void report(List<Stats> statList, boolean idAsColumnLabel) {
-        report(statList, System.out, idAsColumnLabel);
+        report(statList, System.out, true, idAsColumnLabel);
     }
 
-    public static void report(List<Stats> statList, PrintStream out, boolean idAsColumnLabel) {
+    public static void report(List<Stats> statList, PrintStream out, boolean showTotal, boolean idAsColumnLabel) {
         Stats totalStats = total(statList);
 
         Context ctx = statList.get(0).ctx;
@@ -390,7 +390,9 @@ public class Stats {
                 rttReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
             }
             out.println(RTT_REPORT_SEP_LINE);
-            rttReport(totalStats, "Total", false, true, out);
+            if (showTotal) {
+                rttReport(totalStats, "Total", false, true, out);
+            }
             return;
         }
 
@@ -399,7 +401,9 @@ public class Stats {
             report(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
         }
         out.println(REPORT_SEP_LINE);
-        report(totalStats, "Total", false, true, out);
+        if (showTotal) {
+            report(totalStats, "Total", false, true, out);
+        }
 
         if (statList.get(0).messagePubToServerTimeElapsed > 0) {
             for (int x = 0; x < statList.size(); x++) {
@@ -407,13 +411,17 @@ public class Stats {
                 ltReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
             }
             out.println(LT_REPORT_SEP_LINE);
-            ltReport(totalStats, "Total", false, true, out);
+            if (showTotal) {
+                ltReport(totalStats, "Total", false, true, out);
+            }
 
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
                 lmReport(stats, mainLabel(x, idAsColumnLabel, stats), x == 0, false, out);
             }
-            lmReport(totalStats, "Total", false, true, out);
+            if (showTotal) {
+                lmReport(totalStats, "Total", false, true, out);
+            }
         }
     }
 
