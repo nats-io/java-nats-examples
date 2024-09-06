@@ -33,7 +33,7 @@ public class Arguments {
     public static final String INDIVIDUAL = "individual";
     public static final String SHARED = "shared";
 
-    private final List<String> args = new ArrayList<>();
+    public final List<String> args = new ArrayList<>();
 
     public static Arguments instance() { return new Arguments(); }
     public static Arguments instance(String subject) { return instance().subject(subject); }
