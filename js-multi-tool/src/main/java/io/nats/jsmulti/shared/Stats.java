@@ -23,32 +23,32 @@ import static io.nats.jsmulti.shared.Utils.makeId;
 
 public class Stats {
 
-    private static final int VERSION = 1;
+    public static final int VERSION = 1;
 
-    private static final double MILLIS_PER_SECOND = 1000;
-    private static final double NANOS_PER_MILLI = 1000000;
+    public static final double MILLIS_PER_SECOND = 1000;
+    public static final double NANOS_PER_MILLI = 1000000;
 
-    private static final long HUMAN_BYTES_BASE = 1024;
-    private static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
-    private static final String ZEROS = "000000000";
+    public static final long HUMAN_BYTES_BASE = 1024;
+    public static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
+    public static final String ZEROS = "000000000";
 
-    private static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
-    private static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
-    private static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
+    public static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
+    public static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
+    public static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
 
-    private static final String RTT_REPORT_SEP_LINE    = "| --------------- | ------------ | ------------------ | ------------------ |";
-    private static final String RTT_REPORT_LINE_HEADER = "| %-15s |        count |         total time |       average time |\n";
-    private static final String RTT_REPORT_LINE_FORMAT = "| %-15s | %12s |    %12s ms | %15s ms |\n";
+    public static final String RTT_REPORT_SEP_LINE    = "| --------------- | ------------ | ------------------ | ------------------ |";
+    public static final String RTT_REPORT_LINE_HEADER = "| %-15s |        count |         total time |       average time |\n";
+    public static final String RTT_REPORT_LINE_FORMAT = "| %-15s | %12s |    %12s ms | %15s ms |\n";
 
-    private static final String LT_REPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
-    private static final String LT_REPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
-    private static final String LT_REPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
+    public static final String LT_REPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
+    public static final String LT_REPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
+    public static final String LT_REPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
 
-    private static final String LM_REPORT_SEP_LINE    = "| ----------------- | ------------------- | ------------------- | ------------------- |";
-    private static final String LM_REPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
-    private static final String LM_REPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
+    public static final String LM_REPORT_SEP_LINE    = "| ----------------- | ------------------- | ------------------- | ------------------- |";
+    public static final String LM_REPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
+    public static final String LM_REPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
 
-    private static final String LCSV_HEADER = "Publish Time,Server Time,Received Time,Publish to Server,Server to Consumer,Publish to Consumer\n";
+    public static final String LCSV_HEADER = "Publish Time,Server Time,Received Time,Publish to Server,Server to Consumer,Publish to Consumer\n";
 
     // Misc
     public final int version;
@@ -57,7 +57,6 @@ public class Stats {
     public final String key;
 
     private String exceptionMessage;
-    public String label;
 
     // running numbers
     private long elapsed = 0;
@@ -159,13 +158,16 @@ public class Stats {
             .toJsonValue().map;
     }
 
-    public Stats label(String label) {
-        this.label = label;
-        return this;
+    public long getElapsed() {
+        return elapsed;
     }
 
-    public String getLabel() {
-        return label;
+    public long getMessageCount() {
+        return messageCount;
+    }
+
+    public long getBytes() {
+        return bytes;
     }
 
     public void setException(Exception e){
@@ -355,27 +357,31 @@ public class Stats {
     public static Stats total(List<Stats> statList) {
         Stats total = new Stats();
         for (Stats stats : statList) {
-            total.elapsed = Math.max(total.elapsed, stats.elapsed);
-            total.messageCount += stats.messageCount;
-            total.bytes += stats.bytes;
-
-            total.messagePubToServerTimeElapsed = Math.max(total.messagePubToServerTimeElapsed, stats.messagePubToServerTimeElapsed);
-            total.messageServerToReceiverElapsed = Math.max(total.messageServerToReceiverElapsed, stats.messageServerToReceiverElapsed);
-            total.messageFullElapsed = Math.max(total.messageFullElapsed, stats.messageFullElapsed);
-
-            total.messagePubToServerTimeElapsedForAverage += stats.messagePubToServerTimeElapsed;
-            total.messageServerToReceiverElapsedForAverage += stats.messageServerToReceiverElapsed;
-            total.messageFullElapsedForAverage += stats.messageFullElapsed;
-
-            total.maxMessagePubToServerTimeElapsed = Math.max(total.maxMessagePubToServerTimeElapsed, stats.maxMessagePubToServerTimeElapsed);
-            total.maxMessageServerToReceiverElapsed = Math.max(total.maxMessageServerToReceiverElapsed, stats.maxMessageServerToReceiverElapsed);
-            total.maxMessageFullElapsed = Math.max(total.maxMessageFullElapsed, stats.maxMessageFullElapsed);
-
-            total.minMessagePubToServerTimeElapsed = Math.min(total.minMessagePubToServerTimeElapsed, stats.minMessagePubToServerTimeElapsed);
-            total.minMessageServerToReceiverElapsed = Math.min(total.minMessageServerToReceiverElapsed, stats.minMessageServerToReceiverElapsed);
-            total.minMessageFullElapsed = Math.min(total.minMessageFullElapsed, stats.minMessageFullElapsed);
+            totalOne(stats, total);
         }
         return total;
+    }
+
+    public static void totalOne(Stats stats, Stats total) {
+        total.elapsed = Math.max(total.elapsed, stats.elapsed);
+        total.messageCount += stats.messageCount;
+        total.bytes += stats.bytes;
+
+        total.messagePubToServerTimeElapsed = Math.max(total.messagePubToServerTimeElapsed, stats.messagePubToServerTimeElapsed);
+        total.messageServerToReceiverElapsed = Math.max(total.messageServerToReceiverElapsed, stats.messageServerToReceiverElapsed);
+        total.messageFullElapsed = Math.max(total.messageFullElapsed, stats.messageFullElapsed);
+
+        total.messagePubToServerTimeElapsedForAverage += stats.messagePubToServerTimeElapsed;
+        total.messageServerToReceiverElapsedForAverage += stats.messageServerToReceiverElapsed;
+        total.messageFullElapsedForAverage += stats.messageFullElapsed;
+
+        total.maxMessagePubToServerTimeElapsed = Math.max(total.maxMessagePubToServerTimeElapsed, stats.maxMessagePubToServerTimeElapsed);
+        total.maxMessageServerToReceiverElapsed = Math.max(total.maxMessageServerToReceiverElapsed, stats.maxMessageServerToReceiverElapsed);
+        total.maxMessageFullElapsed = Math.max(total.maxMessageFullElapsed, stats.maxMessageFullElapsed);
+
+        total.minMessagePubToServerTimeElapsed = Math.min(total.minMessagePubToServerTimeElapsed, stats.minMessagePubToServerTimeElapsed);
+        total.minMessageServerToReceiverElapsed = Math.min(total.minMessageServerToReceiverElapsed, stats.minMessageServerToReceiverElapsed);
+        total.minMessageFullElapsed = Math.min(total.minMessageFullElapsed, stats.minMessageFullElapsed);
     }
 
     public static void report(List<Stats> statList) {
@@ -393,7 +399,7 @@ public class Stats {
         if (ctx != null && ctx.action == Action.RTT) {
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                rttReport(stats, lineLabel(x, stats.label), x == 0, false, out);
+                rttReport(stats, lineLabel(x), x == 0, false, out);
             }
             out.println(RTT_REPORT_SEP_LINE);
             if (showTotal) {
@@ -404,7 +410,7 @@ public class Stats {
 
         for (int x = 0; x < statList.size(); x++) {
             Stats stats = statList.get(x);
-            report(stats, lineLabel(x, stats.label), x == 0, false, out);
+            report(stats, lineLabel(x), x == 0, false, out);
         }
         out.println(REPORT_SEP_LINE);
         if (showTotal) {
@@ -414,7 +420,7 @@ public class Stats {
         if (statList.get(0).messagePubToServerTimeElapsed > 0) {
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                ltReport(stats, lineLabel(x, stats.label), x == 0, false, out);
+                ltReport(stats, lineLabel(x), x == 0, false, out);
             }
             out.println(LT_REPORT_SEP_LINE);
             if (showTotal) {
@@ -423,7 +429,7 @@ public class Stats {
 
             for (int x = 0; x < statList.size(); x++) {
                 Stats stats = statList.get(x);
-                lmReport(stats, lineLabel(x, stats.label), x == 0, false, out);
+                lmReport(stats, lineLabel(x), x == 0, false, out);
             }
             if (showTotal) {
                 lmReport(totalStats, "Total", false, true, out);
@@ -431,10 +437,7 @@ public class Stats {
         }
     }
 
-    private static String lineLabel(int x, String statsLabel) {
-        if (statsLabel != null) {
-            return statsLabel;
-        }
+    public static String lineLabel(int x) {
         return "Thread " + (x + 1);
     }
 

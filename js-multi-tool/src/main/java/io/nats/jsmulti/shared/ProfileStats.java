@@ -34,7 +34,6 @@ public class ProfileStats {
     private final String id;
     private String action;
     private String contextId;
-    private String label;
 
     private long maxMemory;
     private long allocatedMemory;
@@ -151,18 +150,6 @@ public class ProfileStats {
             .toJsonValue().map;
     }
 
-    public String getLabel() {
-        return label;
-    }
-
-    public String getAction() {
-        return action;
-    }
-
-    public String getContextId() {
-        return contextId;
-    }
-
     private static boolean isAlive(long id, long[] deadThreadIds) {
         for (long dead : deadThreadIds) {
             if (dead == id) {
@@ -235,19 +222,14 @@ public class ProfileStats {
         return true;
     }
 
-    private static final String REPORT_SEP_LINE = "| --------------- | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ | ------- | ------- |";
-    private static final String REPORT_LINE_HEADER = "| %-15s |          max |    allocated |         free |    heap init |    heap used |    heap cmtd |     heap max |     non init |     non used |     non cmtd |      non max |   alive |    dead |\n";
-    private static final String REPORT_LINE_FORMAT = "| %-15s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %12s | %7s | %7s |\n";
-
-    public ProfileStats label(String label) {
-        this.label = label;
-        return this;
-    }
+    public static final String REPORT_SEP_LINE = "| -------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ------- | ------- |";
+    public static final String REPORT_LINE_HEADER = "| %-14s |        max |   heap max |  allocated |       free |  heap used |  heap cmtd |   non used |   non cmtd |   alive |    dead |\n";
+    public static final String REPORT_LINE_FORMAT = "| %-14s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %7s | %7s |\n";
 
     public static void report(List<ProfileStats> list) {
         for (int x = 0; x < list.size(); x++) {
             ProfileStats ps = list.get(x);
-            report(ps, lineLabel(x, ps.label), x == 0, false, System.out);
+            report(ps, lineLabel(x), x == 0, false, System.out);
         }
         System.out.println(REPORT_SEP_LINE);
     }
@@ -260,16 +242,13 @@ public class ProfileStats {
         }
         out.printf(REPORT_LINE_FORMAT, label,
             Stats.humanBytes(p.maxMemory),
+            Stats.humanBytes(p.heapMax),
             Stats.humanBytes(p.allocatedMemory),
             Stats.humanBytes(p.freeMemory),
-            Stats.humanBytes(p.heapInit),
             Stats.humanBytes(p.heapUsed),
             Stats.humanBytes(p.heapCommitted),
-            Stats.humanBytes(p.heapMax),
-            Stats.humanBytes(p.nonHeapInit),
             Stats.humanBytes(p.nonHeapUsed),
             Stats.humanBytes(p.nonHeapCommitted),
-            Stats.humanBytes(p.nonHeapMax),
             p.liveThreads.size() + "/" + p.threadCount,
             p.deadThreads.size() + "/" + p.threadCount);
 
@@ -278,10 +257,7 @@ public class ProfileStats {
         }
     }
 
-    private static String lineLabel(int x, String profileLabel) {
-        if (profileLabel != null) {
-            return profileLabel;
-        }
+    private static String lineLabel(int x) {
         return "Thread " + (x + 1);
     }
 }
