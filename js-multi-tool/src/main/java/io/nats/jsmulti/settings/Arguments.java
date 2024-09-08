@@ -13,6 +13,7 @@
 
 package io.nats.jsmulti.settings;
 
+import io.nats.client.BaseConsumeOptions;
 import io.nats.client.api.AckPolicy;
 import io.nats.client.support.JsonParser;
 import io.nats.client.support.JsonValue;
@@ -36,18 +37,33 @@ public class Arguments {
     public final List<String> args = new ArrayList<>();
 
     public static Arguments instance() { return new Arguments(); }
-    public static Arguments instance(String subject) { return instance().subject(subject); }
+    public static Arguments instance(Action action) { return instance().action(action); }
+
+    public static Arguments instance(Action action, String subject) { return instance(action).subject(subject); }
+    public static Arguments instance(Action action, String stream, String subject) { return instance(action).stream(stream).subject(subject); }
+
     public static Arguments rtt() { return instance().action(RTT); }
-    public static Arguments pubSync(String subject) { return instance().action(PUB_SYNC).subject(subject); }
-    public static Arguments pubAsync(String subject) { return instance().action(PUB_ASYNC).subject(subject); }
-    public static Arguments pubCore(String subject) { return instance().action(PUB_CORE).subject(subject); }
-    public static Arguments subCore(String subject) { return instance().action(SUB_CORE).subject(subject); }
-    public static Arguments subPush(String subject) { return instance().action(SUB_PUSH).subject(subject); }
-    public static Arguments subQueue(String subject) { return instance().action(SUB_QUEUE).subject(subject); }
-    public static Arguments subPull(String subject) { return instance().action(SUB_PULL).subject(subject); }
-    public static Arguments subPullQueue(String subject) { return instance().action(SUB_PULL_QUEUE).subject(subject); }
-    public static Arguments subPullRead(String subject) { return instance().action(SUB_PULL_READ).subject(subject); }
-    public static Arguments subPullReadQueue(String subject) { return instance().action(SUB_PULL_READ_QUEUE).subject(subject); }
+
+    public static Arguments pubSync(String subject) { return instance(PUB_SYNC, subject); }
+    public static Arguments pubAsync(String subject) { return instance(PUB_ASYNC, subject); }
+    public static Arguments pubCore(String subject) { return instance(PUB_CORE, subject); }
+
+    public static Arguments subCore(String subject) { return instance(SUB_CORE, subject); }
+    public static Arguments subPush(String subject) { return instance(SUB_PUSH, subject); }
+    public static Arguments subQueue(String subject) { return instance(SUB_QUEUE, subject); }
+
+    public static Arguments subPull(String subject) { return instance(SUB_PULL, subject); }
+    public static Arguments subPullQueue(String subject) { return instance(SUB_PULL_QUEUE, subject); }
+    public static Arguments subPullRead(String subject) { return instance(SUB_PULL_READ, subject); }
+    public static Arguments subPullReadQueue(String subject) { return instance(SUB_PULL_READ_QUEUE, subject); }
+
+    private static Arguments _consumeInstance(Action action, String stream, String subject) {
+        return instance(action, stream, subject).batchSize(BaseConsumeOptions.DEFAULT_MESSAGE_COUNT);
+    }
+    public static Arguments subFetch(String stream, String subject) { return _consumeInstance(SUB_FETCH, stream, subject); }
+    public static Arguments subIterate(String stream, String subject) { return _consumeInstance(SUB_ITERATE, stream, subject); }
+    public static Arguments subFetchQueue(String stream, String subject) { return _consumeInstance(SUB_FETCH_QUEUE, stream, subject); }
+    public static Arguments subIterateQueue(String stream, String subject) { return _consumeInstance(SUB_ITERATE_QUEUE, stream, subject); }
 
     public Arguments addJsonConfigFile(String jsonFileSpec) throws IOException {
         return _addJsonConfig(JsonParser.parse(Files.readAllBytes(Paths.get(jsonFileSpec))));
@@ -160,6 +176,13 @@ public class Arguments {
             return this;
         }
         return add("u", subject);
+    }
+
+    public Arguments stream(String stream) {
+        if (stream == null) {
+            return this;
+        }
+        return add("t", stream);
     }
 
     public Arguments messageCount(int messageCount) {

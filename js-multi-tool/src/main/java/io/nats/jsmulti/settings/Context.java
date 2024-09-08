@@ -58,6 +58,7 @@ public class Context {
     public final long reconnectWaitMillis;
 
     // general
+    public final String stream;
     public final String subject;
     public final int messageCount;
     public final int threads;
@@ -262,6 +263,7 @@ public class Context {
         long _reconnectWaitMillis = 1000;
         String _optionsFactoryClassName = null;
         Integer _reportFrequency = null;
+        String _stream = null;
         String _subject = "sub" + randomString();
         int _messageCount = 100_000;
         int _threads = 1;
@@ -315,6 +317,10 @@ public class Context {
                         case "-lf":
                         case "-latency_flag":
                             _latencyFlag = true;
+                            break;
+                        case "-t":
+                        case "-stream":
+                            _stream = asString(args[++x]);
                             break;
                         case "-u":
                         case "-subject":
@@ -413,9 +419,27 @@ public class Context {
             }
         }
 
+        if (_action == Action.CUSTOM) {
+            if (_customActionClassName == null) {
+                action = null;
+                customActionRunner = null;
+            }
+            else {
+                action = _action;
+                customActionRunner = (ActionRunner)classForName(_customActionClassName, "Custom Action Runner");
+            }
+        }
+        else {
+            action = _action;
+            customActionRunner = null;
+        }
+
         // all errors exit
         if (_action == null) {
             error("Valid action required!");
+        }
+        else if (_action.requiresStreamName() && _stream == null) {
+            error("Action requires stream name");
         }
         else if (_messageCount < 1) {
             error("Message count required!");
@@ -433,26 +457,12 @@ public class Context {
             error("Request max wait millis is too short!");
         }
 
-        if (_action == Action.CUSTOM) {
-            if (_customActionClassName == null) {
-                action = null;
-                customActionRunner = null;
-            }
-            else {
-                action = _action;
-                customActionRunner = (ActionRunner)classForName(_customActionClassName, "Custom Action Runner");
-            }
-        }
-        else {
-            action = _action;
-            customActionRunner = null;
-        }
-
         latencyFlag = _latencyFlag;
         servers = _servers;
         credsFile = _credsFile;
         connectionTimeoutMillis = _connectionTimeoutMillis;
         reconnectWaitMillis = _reconnectWaitMillis;
+        stream = _stream;
         subject = _subject;
         lcsv = _lcsv;
         messageCount = _messageCount;
@@ -509,7 +519,6 @@ public class Context {
             total++;
         }
 
-        //
         if (_customAppClassName == null) {
             app = new Application() {};
         }
@@ -547,8 +556,14 @@ public class Context {
     }
 
     private void error(String errMsg) {
-        app.reportErr("ERROR: " + errMsg);
-        app.exit(-1);
+        if (app == null) {
+            System.err.println("ERROR: " + errMsg);
+            System.exit(-1);
+        }
+        else {
+            app.reportErr("ERROR: " + errMsg);
+            app.exit(-1);
+        }
     }
 
     private String asString(String val) {

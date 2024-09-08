@@ -14,27 +14,35 @@
 package io.nats.jsmulti.settings;
 
 public enum Action {
-    PUB_SYNC(            "PubSync",             true,  true,  false, false, false),
-    PUB_ASYNC(           "PubAsync",            true,  false, false, false, false),
-    PUB_CORE(            "PubCore",             true,  true,  false, false, false),
-    PUB(                 "Pub",                 true,  true,  true,  false, false),
+    PUB_SYNC(            "PubSync",             true,  true,  false, false, false, false),
+    PUB_ASYNC(           "PubAsync",            true,  false, false, false, false, false),
+    PUB_CORE(            "PubCore",             true,  true,  false, false, false, false),
+    PUB(                 "Pub",                 true,  true,  true,  false, false, false),
 
-    REQUEST(             "Request",             true,  true,  true,  false, false),
+    REQUEST(             "Request",             true,  true,  true,  false, false, false),
     // REQUEST_ASYNC(       "RequestAsync",        true,  false, true,  false, false),
-    REPLY(               "Reply",               false, false, true,  true,  false),
+    REPLY(               "Reply",               false, false, true,  true,  false, false),
 
-    SUB_CORE(            "SubCore",             false, false, true,  true,  false),
-    SUB_CORE_QUEUE(      "SubCoreQueue",        false, false, true,  true,  true),
+    SUB_CORE(            "SubCore",             false, false, true,  true,  false, false),
+    SUB_CORE_QUEUE(      "SubCoreQueue",        false, false, true,  true,  true, false),
 
-    SUB_PUSH(            "SubPush",             false, false, false, true,  false),
-    SUB_QUEUE(           "SubQueue",            false, false, false, true,  true),
-    SUB_PULL(            "SubPull",             false, false, false, false, false),
-    SUB_PULL_READ(       "SubPullRead",         false, false, false, false, false),
-    SUB_PULL_QUEUE(      "SubPullQueue",        false, false, false, false, true),
-    SUB_PULL_READ_QUEUE( "SubPullReadQueue",    false, false, false, false, false),
+    SUB_PUSH(            "SubPush",             false, false, false, true,  false, false),
+    SUB_QUEUE(           "SubQueue",            false, false, false, true,  true, false),
+    SUB_PULL(            "SubPull",             false, false, false, false, false, false),
+    SUB_PULL_READ(       "SubPullRead",         false, false, false, false, false, false), // read is manual continuous sync pull (pre-simplification)
+    SUB_PULL_QUEUE(      "SubPullQueue",        false, false, false, false, true, false),
+    SUB_PULL_READ_QUEUE( "SubPullReadQueue",    false, false, false, false, false, false), // read is manual continuous sync pull (pre-simplification)
 
-    RTT(                 "RTT",                 true,  true,  true,  false, false),
-    CUSTOM(              "CUSTOM",              false, false, false, false, false);
+    // simplification
+    SUB_FETCH(           "SubFetch",            false, false, false, false, false, true),
+    SUB_ITERATE(         "SubIterate",          false, false, false, false, false, true),
+    // SUB_CONSUME(         "SubConsume",          false, false, false, false, false, true),
+    SUB_FETCH_QUEUE(     "SubFetchQueue",       false, false, false, false, true,  true),
+    SUB_ITERATE_QUEUE(   "SubIterateQueue",     false, false, false, false, true,  true),
+    // SUB_CONSUME_QUEUE(   "SubConsumeQueue",     false, false, false, false, true,  true),
+
+    RTT(                 "RTT",                 true,  true,  true,  false, false, false),
+    CUSTOM(              "CUSTOM",              false, false, false, false, false, false);
 
     private final String label;
     private final boolean pubAction;
@@ -44,8 +52,9 @@ public enum Action {
     private final boolean push;
     private final boolean pull;
     private final boolean queue;
+    private final boolean requiresStreamName;
 
-    Action(String label, boolean pub, boolean pubSync, boolean regularCore, boolean push, boolean queue) {
+    Action(String label, boolean pub, boolean pubSync, boolean regularCore, boolean push, boolean queue, boolean requiresStreamName) {
         this.label = label;
         this.pubAction = pub;
         this.pubSync = pubSync;
@@ -54,6 +63,7 @@ public enum Action {
         this.push = push;
         this.pull = !regularCore && !push;
         this.queue = queue;
+        this.requiresStreamName = requiresStreamName;
     }
 
     public static Action getInstance(String text) {
@@ -99,6 +109,10 @@ public enum Action {
 
     public boolean isQueue() {
         return queue;
+    }
+
+    public boolean requiresStreamName() {
+        return requiresStreamName;
     }
 
     @Override

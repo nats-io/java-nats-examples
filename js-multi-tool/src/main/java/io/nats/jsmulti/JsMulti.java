@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nats.jsmulti.shared.Utils.*;
 
@@ -114,38 +115,48 @@ public class JsMulti {
 
     private static ActionRunner getRunner(final Context ctx) {
         try {
-            switch (ctx.action) {
-                case CUSTOM:    return ctx.customActionRunner;
+            if (!ctx.action.isQueue() || ctx.threads > 1) {
 
-                case PUB_SYNC:  return JsMulti::pubSync;
-                case PUB_ASYNC: return JsMulti::pubAsync;
-                case PUB_CORE:  return JsMulti::pubCore;
-                case PUB:       return JsMulti::pub;
+                switch (ctx.action) {
+                    case CUSTOM:
+                        return ctx.customActionRunner;
 
-                case RTT:       return JsMulti::rtt;
+                    case PUB_SYNC:
+                        return JsMulti::pubSync;
+                    case PUB_ASYNC:
+                        return JsMulti::pubAsync;
+                    case PUB_CORE:
+                        return JsMulti::pubCore;
+                    case PUB:
+                        return JsMulti::pub;
 
-                case REQUEST:   return JsMulti::request;
-                case REPLY:     return JsMulti::reply;
+                    case RTT:
+                        return JsMulti::rtt;
 
-                case SUB_CORE:  return JsMulti::subCore;
-                case SUB_PUSH:  return JsMulti::subPush;
+                    case REQUEST:
+                        return JsMulti::request;
+                    case REPLY:
+                        return JsMulti::reply;
 
-                case SUB_PULL:
-                case SUB_PULL_READ:
-                    return JsMulti::subPull;
+                    case SUB_CORE:
+                        return JsMulti::subCore;
 
-                case SUB_QUEUE:
-                    if (ctx.threads > 1) {
+                    case SUB_PUSH:
+                    case SUB_QUEUE:
                         return JsMulti::subPush;
-                    }
-                    break;
 
-                case SUB_PULL_QUEUE:
-                case SUB_PULL_READ_QUEUE:
-                    if (ctx.threads > 1) {
+                    case SUB_PULL:
+                    case SUB_PULL_READ:
+                    case SUB_PULL_QUEUE:
+                    case SUB_PULL_READ_QUEUE:
                         return JsMulti::subPull;
-                    }
-                    break;
+
+                    case SUB_ITERATE:
+                    case SUB_FETCH:
+                    case SUB_ITERATE_QUEUE:
+                    case SUB_FETCH_QUEUE:
+                        return JsMulti::subSimple;
+                }
             }
             throw new Exception("Invalid Action");
         }
@@ -337,16 +348,23 @@ public class JsMulti {
     }
 
     // ----------------------------------------------------------------------------------------------------
+    // SyncConsumer - Used when consuming sync where you have to call a "next"
+    // ----------------------------------------------------------------------------------------------------
+    interface SyncConsumer {
+        Message next() throws Exception;
+    }
+
+    // ----------------------------------------------------------------------------------------------------
     // Push
     // ----------------------------------------------------------------------------------------------------
-    private static final Object QUEUE_LOCK = new Object();
+    private static final Object CREATE_CONSUMER_LOCK = new Object();
 
     private static void reply(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         Subscription sub;
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at a time.
-            synchronized (QUEUE_LOCK) {
+            synchronized (CREATE_CONSUMER_LOCK) {
                 sub = nc.subscribe(ctx.subject, ctx.queueName);
             }
         }
@@ -354,7 +372,7 @@ public class JsMulti {
             sub = nc.subscribe(ctx.subject);
         }
 
-        _coreReadLikePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> nc.publish(m.getReplyTo(), m.getData()));
+        _coreReadLikePush(ctx, stats, ctx.getSubName(id), () -> sub.nextMessage(ctx.readTimeoutDuration), m -> nc.publish(m.getReplyTo(), m.getData()));
     }
 
     private static void subCore(Context ctx, Connection nc, Stats stats, int id) throws Exception {
@@ -362,7 +380,7 @@ public class JsMulti {
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at a time.
-            synchronized (QUEUE_LOCK) {
+            synchronized (CREATE_CONSUMER_LOCK) {
                 sub = nc.subscribe(ctx.subject, ctx.queueName);
             }
         }
@@ -370,10 +388,10 @@ public class JsMulti {
             sub = nc.subscribe(ctx.subject);
         }
 
-        _coreReadLikePush(ctx, stats, ctx.getSubName(id), sub::nextMessage, m -> {});
+        _coreReadLikePush(ctx, stats, ctx.getSubName(id), () -> sub.nextMessage(ctx.readTimeoutDuration), m -> {});
     }
 
-    private static void _coreReadLikePush(Context ctx, Stats stats, String subName, SimpleReader reader, ResultHandler<Message> rh) throws InterruptedException {
+    private static void _coreReadLikePush(Context ctx, Stats stats, String subName, SyncConsumer syncConsumer, ResultHandler<Message> rh) throws Exception {
         int rcvd = 0;
         int unReported = 0;
         long noMessageTotalElapsed = 0;
@@ -381,7 +399,7 @@ public class JsMulti {
         report(ctx, rcvd, "Begin Reading");
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            Message m = reader.nextMessage(ctx.readTimeoutDuration);
+            Message m = syncConsumer.next();
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
@@ -411,7 +429,7 @@ public class JsMulti {
         if (ctx.action.isQueue()) {
             // if we don't do this, multiple threads will try to make the same consumer because
             // when they start, the consumer does not exist. So force them do it one at a time.
-            synchronized (QUEUE_LOCK) {
+            synchronized (CREATE_CONSUMER_LOCK) {
                 sub = js.subscribe(ctx.subject, ctx.queueName,
                     ConsumerConfiguration.builder()
                         .ackPolicy(ctx.ackPolicy)
@@ -430,17 +448,10 @@ public class JsMulti {
                     .buildPushSubscribeOptions());
         }
 
-        _jsReadLikePush(ctx, stats, durable, sub::nextMessage);
+        _jsSyncConsume(ctx, stats, durable, () -> sub.nextMessage(ctx.readTimeoutDuration));
     }
 
-    // ----------------------------------------------------------------------------------------------------
-    // Simple Reader - Used by push and pull reader
-    // ----------------------------------------------------------------------------------------------------
-    interface SimpleReader {
-        Message nextMessage(Duration timeout) throws InterruptedException, IllegalStateException;
-    }
-
-    private static void _jsReadLikePush(Context ctx, Stats stats, String durable, SimpleReader reader) throws InterruptedException {
+    private static void _jsSyncConsume(Context ctx, Stats stats, String durable, SyncConsumer syncConsumer) throws Exception {
         int rcvd = 0;
         Message lastUnAcked = null;
         int unAckedCount = 0;
@@ -450,7 +461,7 @@ public class JsMulti {
         report(ctx, rcvd, "Begin Reading");
         while (counter.get() < ctx.messageCount) {
             stats.start();
-            Message m = reader.nextMessage(ctx.readTimeoutDuration);
+            Message m = syncConsumer.next();
             long hold = stats.elapsed();
             long received = System.currentTimeMillis();
             if (m == null) {
@@ -479,6 +490,53 @@ public class JsMulti {
     }
 
     // ----------------------------------------------------------------------------------------------------
+    // Simplification
+    // ----------------------------------------------------------------------------------------------------
+    private static void subSimple(Context ctx, Connection nc, Stats stats, int id) throws Exception {
+        // Really only need to lock when queueing b/c it's the same durable...
+        // ... to ensure protection from multiple threads trying to make the same consumer
+        String durable = ctx.getSubDurable(id);
+        StreamContext streamContext = nc.getStreamContext(ctx.stream);
+        ConsumerContext cc;
+        synchronized (CREATE_CONSUMER_LOCK) {
+            cc = streamContext.createOrUpdateConsumer(
+                ConsumerConfiguration.builder()
+                    .ackPolicy(ctx.ackPolicy)
+                    .ackWait(Duration.ofSeconds(ctx.ackWaitSeconds))
+                    .durable(durable)
+                    .build());
+        }
+
+        if (ctx.action == Action.SUB_FETCH || ctx.action == Action.SUB_FETCH_QUEUE) {
+            FetchConsumeOptions opts = FetchConsumeOptions.builder().maxMessages(ctx.batchSize).build();
+            AtomicReference<FetchConsumer> fcRef = new AtomicReference<>();
+            _jsSyncConsume(ctx, stats, durable, () -> {
+                if (fcRef.get() == null) {
+                    FetchConsumer fc = cc.fetch(opts);
+                    fcRef.set(fc);
+                }
+                Message m = fcRef.get().nextMessage();
+                if (m == null) {
+                    fcRef.set(null);
+                }
+                return m;
+            });
+        }
+        else if (ctx.action == Action.SUB_ITERATE || ctx.action == Action.SUB_ITERATE_QUEUE) {
+            ConsumeOptions opts = ConsumeOptions.builder().batchSize(ctx.batchSize).build();
+            try (IterableConsumer ic = cc.iterate(opts)) {
+                _jsSyncConsume(ctx, stats, durable, () -> ic.nextMessage(ctx.readTimeoutDuration));
+            }
+        }
+//        else if (ctx.action == Action.SUB_CONSUME) {
+// TODO
+//        }
+        else {
+            throw new Exception("Action Not Implemented: " + ctx.action.getLabel());
+        }
+    }
+
+    // ----------------------------------------------------------------------------------------------------
     // Pull
     // ----------------------------------------------------------------------------------------------------
     private static void subPull(Context ctx, Connection nc, Stats stats, int id) throws Exception {
@@ -488,7 +546,7 @@ public class JsMulti {
         // ... to ensure protection from multiple threads trying to make the same consumer
         String durable = ctx.getSubDurable(id);
         JetStreamSubscription sub;
-        synchronized (QUEUE_LOCK) {
+        synchronized (CREATE_CONSUMER_LOCK) {
             sub = js.subscribe(ctx.subject,
                 ConsumerConfiguration.builder()
                     .ackPolicy(ctx.ackPolicy)
@@ -500,8 +558,11 @@ public class JsMulti {
         if (ctx.action == Action.SUB_PULL || ctx.action == Action.SUB_PULL_QUEUE) {
             _subPullFetch(ctx, stats, sub, durable);
         }
-        else {
+        else if (ctx.action == Action.SUB_PULL_READ) {
             _subPullRead(ctx, stats, sub, durable);
+        }
+        else {
+            throw new Exception("Action Not Implemented: " + ctx.action.getLabel());
         }
     }
 
@@ -537,9 +598,9 @@ public class JsMulti {
         report(ctx, rcvd, "Finished Reading Messages");
     }
 
-    private static void _subPullRead(Context ctx, Stats stats, JetStreamSubscription sub, String durable) throws InterruptedException {
+    private static void _subPullRead(Context ctx, Stats stats, JetStreamSubscription sub, String durable) throws Exception {
         JetStreamReader reader = sub.reader(ctx.batchSize, ctx.batchSize / 4); // repullAt 25% of batch size
-        _jsReadLikePush(ctx, stats, durable, reader::nextMessage);
+        _jsSyncConsume(ctx, stats, durable, () -> reader.nextMessage(ctx.readTimeoutDuration));
         reader.stop();
     }
 
