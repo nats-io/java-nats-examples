@@ -26,11 +26,11 @@ public abstract class Utils {
         return new NUID().nextSequence();
     }
 
-    public static void report(Context ctx, int total, String message) {
+    public static void report(Context ctx, long total, String message) {
         ctx.app.report(message + " " + Stats.format(total));
     }
 
-    public static int reportAndTrackMaybe(Context ctx, int total, int unReported, String message, Stats stats) {
+    public static long reportAndTrackMaybe(Context ctx, long total, long unReported, String message, Stats stats) {
         if (unReported >= ctx.reportFrequency) {
             report(ctx, total, message);
             if (stats != null) {

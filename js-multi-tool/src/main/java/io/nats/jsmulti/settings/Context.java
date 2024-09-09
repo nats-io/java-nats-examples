@@ -60,7 +60,7 @@ public class Context {
     // general
     public final String stream;
     public final String subject;
-    public final int messageCount;
+    public final long messageCount;
     public final int threads;
     public final boolean connShared;
     public final long jitter;
@@ -70,7 +70,7 @@ public class Context {
     public final AckPolicy ackPolicy;
     public final int ackAllFrequency;
     public final int batchSize;
-    public final int reportFrequency;
+    public final long reportFrequency;
 
     public final Duration requestWaitDuration;
     public final Duration readTimeoutDuration;
@@ -99,7 +99,7 @@ public class Context {
     // ----------------------------------------------------------------------------------------------------
     private final String[] servers;
     private final OptionsFactory optionsFactory;
-    private final int[] perThread;
+    private final long[] perThread;
     private final List<byte[]> payloads; // private and with getter in case I want to do more with payload later
     private final Map<String, AtomicLong> subscribeCounters = Collections.synchronizedMap(new HashMap<>());
     private final String subNameWhenQueue;
@@ -184,7 +184,7 @@ public class Context {
         return sd;
     }
 
-    public int getPubCount(int id) {
+    public long getPubCount(int id) {
         return perThread[id-1]; // ids start at 1
     }
 
@@ -328,31 +328,31 @@ public class Context {
                             break;
                         case "-m":
                         case "-message_count":
-                            _messageCount = asNumber("total messages", args[++x], -1);
+                            _messageCount = asInt("total messages", args[++x], -1);
                             break;
                         case "-ps":
                         case "-payload_size":
-                            _payloadSize = asNumber("payload size", args[++x], 64 * 1024 * 1024); // 67108864
+                            _payloadSize = asInt("payload size", args[++x], 64 * 1024 * 1024); // 67108864
                             break;
                         case "-pv":
                         case "-payload_variants":
-                            _payloadVariants = asNumber("payload variants", args[++x], 100); // 67108864
+                            _payloadVariants = asInt("payload variants", args[++x], 100); // 67108864
                             break;
                         case "-bs":
                         case "-batch_size":
-                            _batchSize = asNumber("batch size", args[++x], 200);
+                            _batchSize = asInt("batch size", args[++x], 200);
                             break;
                         case "-rs":
                         case "-round_size":
-                            _roundSize = asNumber("round size", args[++x], 1000);
+                            _roundSize = asInt("round size", args[++x], 1000);
                             break;
                         case "-d":
                         case "-threads":
-                            _threads = asNumber("number of threads", args[++x], 20);
+                            _threads = asInt("number of threads", args[++x], 20);
                             break;
                         case "-j":
                         case "-jitter":
-                            _jitter = asNumber("jitter", args[++x], 10_000);
+                            _jitter = asInt("jitter", args[++x], 10_000);
                             break;
                         case "-n":
                         case "-connection_strategy":
@@ -367,11 +367,11 @@ public class Context {
                             break;
                         case "-kf":
                         case "-ack_all_frequency":
-                            _ackAllFrequency = asNumber("ack frequency", args[++x], MIN_WAIT_MS);
+                            _ackAllFrequency = asInt("ack frequency", args[++x], MIN_WAIT_MS);
                             break;
                         case "-rf":
                         case "-report_frequency":
-                            _reportFrequency = asNumber("report frequency", args[++x]);
+                            _reportFrequency = asInt("report frequency", args[++x]);
                             break;
                         case "-cf":
                         case "-creds_file":
@@ -379,11 +379,11 @@ public class Context {
                             break;
                         case "-ctms":
                         case "-connection_timeout_millis":
-                            _connectionTimeoutMillis = asNumber("connection timeout millis", args[++x]);
+                            _connectionTimeoutMillis = asInt("connection timeout millis", args[++x]);
                             break;
                         case "-rwms":
                         case "-recconect_wait_millis":
-                            _reconnectWaitMillis = asNumber("reconnect wait millis", args[++x]);
+                            _reconnectWaitMillis = asInt("reconnect wait millis", args[++x]);
                             break;
                         case "-q":
                         case "-queue":
@@ -396,15 +396,15 @@ public class Context {
                             break;
                         case "-rqwms":
                         case "-request_wait_Millis":
-                            _requestWaitMillis = asNumber("request wait millis", args[++x]);
+                            _requestWaitMillis = asInt("request wait millis", args[++x]);
                             break;
                         case "-rtoms":
                         case "-read_timeout_millis":
-                            _readTimeoutMillis = asNumber("read timeout wait millis", args[++x]);
+                            _readTimeoutMillis = asInt("read timeout wait millis", args[++x]);
                             break;
                         case "-rmxwms":
                         case "-read_max_wait_millis":
-                            _readMaxWaitMillis = asNumber("read max wait millis", args[++x]);
+                            _readMaxWaitMillis = asInt("read max wait millis", args[++x]);
                             break;
                         case "":
                             break;
@@ -503,8 +503,8 @@ public class Context {
             }
         }
 
-        int total = 0;
-        perThread = new int[threads];
+        long total = 0;
+        perThread = new long[threads];
         for (int x = 0; x < threads; x++) {
             perThread[x] = messageCount / threads;
             total += perThread[x];
@@ -570,11 +570,11 @@ public class Context {
         return val.trim();
     }
 
-    private int asNumber(String name, String val) {
-        return asNumber(name, val, -2);
+    private int asInt(String name, String val) {
+        return asInt(name, val, -2);
     }
 
-    private int asNumber(String name, String val, int upper) {
+    private int asInt(String name, String val, int upper) {
         int v = parseInt(val);
         if (upper == -2 && v < 1) {
             return Integer.MAX_VALUE;
@@ -587,7 +587,7 @@ public class Context {
         return v;
     }
 
-    private int asNumber(String name, String val, int lower, int upper) {
+    private int asInt(String name, String val, int lower, int upper) {
         int v = parseInt(val);
         if (v < lower) {
             error("Value for " + name + " cannot be less than " + lower);
@@ -598,6 +598,33 @@ public class Context {
         return v;
     }
 
+    private long asLong(String name, String val) {
+        return asLong(name, val, -2);
+    }
+
+    private long asLong(String name, String val, long upper) {
+        long v = parseLong(val);
+        if (upper == -2 && v < 1) {
+            return Long.MAX_VALUE;
+        }
+        if (upper > 0) {
+            if (v > upper) {
+                error("Value for " + name + " cannot exceed " + upper);
+            }
+        }
+        return v;
+    }
+
+    private long asLong(String name, String val, long lower, long upper) {
+        long v = parseLong(val);
+        if (v < lower) {
+            error("Value for " + name + " cannot be less than " + lower);
+        }
+        if (v > upper) {
+            error("Value for " + name + " cannot exceed " + upper);
+        }
+        return v;
+    }
 
     private boolean bool(String name, String val, String trueChoice, String falseChoice) {
         return choiceInt(name, val, trueChoice, falseChoice) == 0;
