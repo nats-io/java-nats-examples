@@ -486,8 +486,18 @@ public class JsMulti {
     private static void subSimple(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         // Really only need to lock when queueing b/c it's the same durable...
         // ... to ensure protection from multiple threads trying to make the same consumer
+        String stream = ctx.stream;
+        if (stream == null) {
+            List<String> streamNames = nc.jetStreamManagement(ctx.getJetStreamOptions()).getStreamNames(ctx.subject);
+            if (streamNames.size() == 1) {
+                stream = streamNames.get(0);
+            }
+            else {
+                throw new TerminalException("Action requires stream name");
+            }
+        }
         String durable = ctx.getSubDurable(id);
-        StreamContext streamContext = nc.getStreamContext(ctx.stream);
+        StreamContext streamContext = nc.getStreamContext(stream);
         ConsumerContext cc;
         synchronized (CREATE_CONSUMER_LOCK) {
             cc = streamContext.createOrUpdateConsumer(

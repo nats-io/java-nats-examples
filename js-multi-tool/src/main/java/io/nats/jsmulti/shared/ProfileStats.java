@@ -222,9 +222,9 @@ public class ProfileStats {
         return true;
     }
 
-    public static final String REPORT_SEP_LINE = "| -------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ------- | ------- |";
-    public static final String REPORT_LINE_HEADER = "| %-14s |        max |   heap max |  allocated |       free |  heap used |  heap cmtd |   non used |   non cmtd |   alive |    dead |\n";
-    public static final String REPORT_LINE_FORMAT = "| %-14s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %7s | %7s |\n";
+    public static final String REPORT_SEP_LINE = "| ------------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ------- | ------- |";
+    public static final String REPORT_LINE_HEADER = "| %-19s |        max |   heap max |  allocated |       free |  heap used |  heap cmtd |   non used |   non cmtd |   alive |    dead |\n";
+    public static final String REPORT_LINE_FORMAT = "| %-19s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %10s | %7s | %7s |\n";
 
     public static void report(List<ProfileStats> list) {
         for (int x = 0; x < list.size(); x++) {

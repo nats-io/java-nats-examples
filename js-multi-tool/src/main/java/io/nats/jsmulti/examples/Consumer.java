@@ -42,12 +42,13 @@ public class Consumer {
         // You could code this to use args to create the Arguments
         Arguments a = Arguments.instance()
             .server(SERVER)
+            .stream(STREAM)
             .subject(SUBJECT)
-            .action(Action.SUB_PULL_QUEUE)  // could be Action.SUB_PULL_READ for example
-            .messageCount(50_000)           // default is 100_000. Consumer needs this to know when to stop.
+            .action(Action.SUB_FETCH_QUEUE)  // could be Action.SUB_PULL_READ for example
+            .messageCount(600_000)           // default is 100_000. Consumer needs this to know when to stop.
             // .ackPolicy(AckPolicy.None)   // default is AckPolicy.Explicit which is the only policy allowed for PULL at the moment
             // .ackAllFrequency(20)         // for AckPolicy.All how many message to wait before acking, DEFAULT IS 1
-            .batchSize(20)                  // default is 10 only used with pull subs
+            // .batchSize(20)                  // default is 10 only used with pull subs
             .threads(3)                     // default is 1
             .individualConnection()         // versus .sharedConnection()
             // .reportFrequency(500)        // default is 10% of message count
@@ -62,7 +63,7 @@ public class Consumer {
         // Uncomment for latency runs. The stream needs to exist
         // before the consumers start.
         // -----------------------------------------------------
-        StreamUtils.setupStream(STREAM, ctx);
+//        StreamUtils.setupStream(STREAM, ctx);
 
         JsMulti.run(ctx, true, true);
     }

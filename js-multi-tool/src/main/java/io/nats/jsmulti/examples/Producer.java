@@ -46,11 +46,11 @@ public class Producer {
             .server(SERVER)
             .subject(SUBJECT)
             .action(Action.PUB_SYNC)    // or Action.PUB_ASYNC or Action.PUB_CORE for example
-            .latencyFlag(LATENCY_RUN)   // tells the code to add latency info to the header
-            .messageCount(50_000)       // default is 100_000
-            .payloadSize(0)           // default is 128
+//            .latencyFlag(LATENCY_RUN)   // tells the code to add latency info to the header
+            .messageCount(1_000_000)    // default is 100_000
+            .payloadSize(0)             // default is 128
             .roundSize(50)              // how often to check Async Publish Acks, default is 100
-            .threads(3)                 // default is 1
+            .threads(1)                 // default is 1
             .individualConnection()     // versus .sharedConnection()
             // .reportFrequency(500)    // default is 10% of message count
             ;
@@ -64,9 +64,9 @@ public class Producer {
         // stream because the stream needs to exist before the
         // consumers start.
         // ---------------------------------------------------
-        if (!LATENCY_RUN) {
+//        if (!LATENCY_RUN) {
             StreamUtils.setupStream(STREAM, ctx);
-        }
+//        }
 
         JsMulti.run(ctx);
     }

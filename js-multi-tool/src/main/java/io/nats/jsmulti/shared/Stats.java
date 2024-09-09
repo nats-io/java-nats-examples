@@ -32,21 +32,21 @@ public class Stats {
     public static final String[] HUMAN_BYTES_UNITS = new String[] {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
     public static final String ZEROS = "000000000";
 
-    public static final String REPORT_SEP_LINE    = "| --------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
-    public static final String REPORT_LINE_HEADER = "| %-15s |             count |            time |                 msgs/sec |        bytes/sec |\n";
-    public static final String REPORT_LINE_FORMAT = "| %-15s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
+    public static final String REPORT_SEP_LINE    = "| ------------------- | ----------------- | --------------- | ------------------------ | ---------------- |";
+    public static final String REPORT_LINE_HEADER = "| %-19s |             count |            time |                 msgs/sec |        bytes/sec |\n";
+    public static final String REPORT_LINE_FORMAT = "| %-19s | %12s msgs | %12s ms | %15s msgs/sec | %12s/sec |\n";
 
-    public static final String RTT_REPORT_SEP_LINE    = "| --------------- | ------------ | ------------------ | ------------------ |";
-    public static final String RTT_REPORT_LINE_HEADER = "| %-15s |        count |         total time |       average time |\n";
-    public static final String RTT_REPORT_LINE_FORMAT = "| %-15s | %12s |    %12s ms | %15s ms |\n";
+    public static final String RTT_REPORT_SEP_LINE    = "| ------------------- | ------------ | ------------------ | ------------------ |";
+    public static final String RTT_REPORT_LINE_HEADER = "| %-19s |        count |         total time |       average time |\n";
+    public static final String RTT_REPORT_LINE_FORMAT = "| %-19s | %12s |    %12s ms | %15s ms |\n";
 
-    public static final String LT_REPORT_SEP_LINE    = "| --------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
+    public static final String LT_REPORT_SEP_LINE    = "| ------------------- | ------------------------ | ---------------- | ------------------------ | ---------------- | ------------------------ | ---------------- |";
     public static final String LT_REPORT_LINE_HEADER = "| Latency Total   |                   Publish to Server Created |         Server Created to Consumer Received |                Publish to Consumer Received |";
-    public static final String LT_REPORT_LINE_FORMAT = "| %-15s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
+    public static final String LT_REPORT_LINE_FORMAT = "| %-19s | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec | %15s msgs/sec | %12s/sec |\n";
 
-    public static final String LM_REPORT_SEP_LINE    = "| ----------------- | ------------------- | ------------------- | ------------------- |";
+    public static final String LM_REPORT_SEP_LINE    = "| ------------------- | ------------------- | ------------------- | ------------------- |";
     public static final String LM_REPORT_LINE_HEADER = "| Latency Message   | Publish to Server   | Server to Consumer  | Publish to Consumer |";
-    public static final String LM_REPORT_LINE_FORMAT = "| %17s |  %15s ms |  %15s ms |  %15s ms |\n";
+    public static final String LM_REPORT_LINE_FORMAT = "| %19s |  %15s ms |  %15s ms |  %15s ms |\n";
 
     public static final String LCSV_HEADER = "Publish Time,Server Time,Received Time,Publish to Server,Server to Consumer,Publish to Consumer\n";
 

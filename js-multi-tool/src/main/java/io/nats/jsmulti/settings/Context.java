@@ -438,9 +438,6 @@ public class Context {
         if (_action == null) {
             error("Valid action required!");
         }
-        else if (_action.requiresStreamName() && _stream == null) {
-            error("Action requires stream name");
-        }
         else if (_messageCount < 1) {
             error("Message count required!");
         }
@@ -555,7 +552,7 @@ public class Context {
         }
     }
 
-    private void error(String errMsg) {
+    public void error(String errMsg) {
         if (app == null) {
             System.err.println("ERROR: " + errMsg);
             System.exit(-1);
