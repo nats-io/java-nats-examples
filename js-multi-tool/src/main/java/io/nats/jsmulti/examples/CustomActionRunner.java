@@ -41,7 +41,7 @@ public class CustomActionRunner implements ActionRunner {
     @Override
     public void run(Context ctx, Connection nc, Stats stats, int id) throws Exception {
         int round = 0;
-        int unReported = 0;
+        long unReported = 0;
         report(ctx, round, "Begin Custom");
         while (round < ctx.messageCount) {
             stats.manualElapsed(nc.RTT().toNanos(), 1);
