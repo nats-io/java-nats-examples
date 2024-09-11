@@ -17,10 +17,7 @@ import io.nats.client.support.JsonValue;
 import io.nats.client.support.JsonValueUtils;
 
 import java.io.PrintStream;
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryUsage;
-import java.lang.management.ThreadMXBean;
+import java.lang.management.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,37 +25,34 @@ import java.util.Map;
 import static io.nats.jsmulti.shared.Utils.makeId;
 
 public class ProfileStats {
-    private static final int VERSION = 1;
+    public static final int VERSION = 1;
 
-    private final int version;
-    private final String id;
-    private String action;
-    private String contextId;
+    public final int version;
+    public final String id;
+    public String action;
+    public String contextId;
 
-    private long maxMemory;
-    private long allocatedMemory;
-    private long freeMemory;
-    private long heapInit;
-    private long heapUsed;
-    private long heapCommitted;
-    private long heapMax;
-    private long nonHeapInit;
-    private long nonHeapUsed;
-    private long nonHeapCommitted;
-    private long nonHeapMax;
-    private int threadCount;
-    private final List<String> deadThreads;
-    private final List<String> liveThreads;
+    public final long maxMemory;
+    public final long allocatedMemory;
+    public final long freeMemory;
+    public final long heapInit;
+    public final long heapUsed;
+    public final long heapCommitted;
+    public final long heapMax;
+    public final long nonHeapInit;
+    public final long nonHeapUsed;
+    public final long nonHeapCommitted;
+    public final long nonHeapMax;
+    public int threadCount;
+    public final List<String> deadThreads;
+    public final List<String> liveThreads;
 
-    private ProfileStats() {
+    public ProfileStats(String contextId, String action) {
         version = VERSION;
         id = makeId();
         deadThreads = new ArrayList<>();
         liveThreads = new ArrayList<>();
-    }
 
-    public ProfileStats(String contextId, String action) {
-        this();
         this.action = action;
         this.contextId = contextId;
 
@@ -87,12 +81,15 @@ public class ProfileStats {
             deadThreadIds = new long[0];
         }
         for (long id : threadBean.getAllThreadIds()) {
-            String text = "<" + id + "> " + threadBean.getThreadInfo(id).getThreadName();
-            if (isAlive(id, deadThreadIds)) {
-                liveThreads.add(text);
-            }
-            else {
-                deadThreads.add(text);
+            ThreadInfo ti = threadBean.getThreadInfo(id);
+            if (ti != null) {
+                String text = "<" + id + "> " + ti.getThreadName();
+                if (isAlive(id, deadThreadIds)) {
+                    liveThreads.add(text);
+                }
+                else {
+                    deadThreads.add(text);
+                }
             }
         }
     }
@@ -127,7 +124,6 @@ public class ProfileStats {
         for (String s : liveThreads) {
             liveBuilder.add(s);
         }
-
         return JsonValueUtils.mapBuilder()
             .put("version", version)
             .put("id", id)
