@@ -1,12 +1,17 @@
 ![NATS](../images/large-logo.png)
 
-# Server List Provider
+# Example Server Pool
 
-Example how the developer can provide the connection/reconnection info themselves / dynamically.
+This example is a template example for implementing a server pool.
 
-__TODO: FIX!!!__
+The ExampleServerPool class extends the internal implementation, NatsServerPool.
 
-CURRENTLY NON-FUNCTIONAL AGAINST LATEST VERSION AS INITIAL IMPLEMENTATION WAS EXPERIMENTAL
+There are comments in the example code to explain the intention of each method in the interface and custom methods in the implementation.
+
+## Source Code
+[ServerPool](https://github.com/nats-io/nats.java/blob/main/src/main/java/io/nats/client/ServerPool.java) interface.
+
+[NatsServerPool](https://github.com/nats-io/nats.java/blob/main/src/main/java/io/nats/client/impl/NatsServerPool.java) implementation.
 
 ## License
 
