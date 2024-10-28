@@ -16,7 +16,7 @@ There are comments in the example code to explain the intention of each method i
 
 [ExampleServerPool](src/main/java/io/nats/pool/ExampleServerPool.java) example code.
 
-[Main](src/main/java/io/nats/pool/Main.java) example ho to initialize the connection with the custom implementation.
+[Main](src/main/java/io/nats/pool/Main.java) example how to initialize the connection with the custom implementation.
 
 ## License
 
