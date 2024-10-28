@@ -1,4 +1,4 @@
-package io.nats.slp;
+package io.nats.pool;
 
 import io.nats.client.Connection;
 import io.nats.client.Nats;

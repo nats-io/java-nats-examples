@@ -13,6 +13,8 @@ There are comments in the example code to explain the intention of each method i
 
 [NatsServerPool](https://github.com/nats-io/nats.java/blob/main/src/main/java/io/nats/client/impl/NatsServerPool.java) implementation.
 
+[ExampleServerPool](src/main/java/io/nats/pool/ExampleServerPool.java) example code.
+
 ## License
 
 [![License Apache 2](https://img.shields.io/badge/License-Apache2-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
