@@ -57,8 +57,12 @@ public abstract class Utils {
     }
 
     public static void sleep(long ms) {
-        try { Thread.sleep(ms); } catch (InterruptedException ignored) {
-            System.exit(-1);
+        try {
+            Thread.sleep(ms);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
