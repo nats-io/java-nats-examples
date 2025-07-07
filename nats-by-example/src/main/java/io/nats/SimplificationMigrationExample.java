@@ -22,7 +22,6 @@ import java.util.Iterator;
 
 /**
  * This example will demonstrate migrating from current api to simplification api
- * SIMPLIFICATION IS EXPERIMENTAL AND SUBJECT TO CHANGE
  */
 public class SimplificationMigrationExample {
 
