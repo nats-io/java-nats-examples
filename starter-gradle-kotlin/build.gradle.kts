@@ -16,8 +16,8 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven { url "https://repo1.maven.org/maven2/" }
-    maven { url "https://central.sonatype.com/repository/maven-snapshots" }
+    maven { url = uri("https://repo1.maven.org/maven2/") }
+    maven { url = uri("https://central.sonatype.com/repository/maven-snapshots") }
 }
 
 dependencies {
