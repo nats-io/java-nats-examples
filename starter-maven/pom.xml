@@ -17,6 +17,11 @@
 
   <repositories>
     <repository>
+      <id>mvnrepository</id>
+      <name>Maven Repository</name>
+      <url>http://www.mvnrepository.com</url>
+    </repository>
+    <repository>
       <id>central</id>
       <name>Central Repository</name>
       <url>https://repo.maven.apache.org/maven2</url>
@@ -27,16 +32,14 @@
     </repository>
     <repository>
       <id>sonatype releases</id>
-      <url>https://oss.sonatype.org/content/repositories/releases</url>
+      <url>https://repo1.maven.org/maven2/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
     </repository>
     <repository>
-      <id>snapshot</id>
-      <name>oss.sonatype.org Snapshots</name>
-      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-      <layout>default</layout>
+      <id>sonatype snapshots</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>

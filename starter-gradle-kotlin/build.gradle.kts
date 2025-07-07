@@ -15,16 +15,13 @@ plugins {
 }
 
 repositories {
-    // Use jcenter for resolving dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    mavenLocal()
     mavenCentral()
-    maven { url = uri("https://oss.sonatype.org/content/repositories/releases/") }
-    maven { url = uri("https://oss.sonatype.org/content/repositories/snapshots/") }
+    maven { url "https://repo1.maven.org/maven2/" }
+    maven { url "https://central.sonatype.com/repository/maven-snapshots" }
 }
 
 dependencies {
-    implementation("io.nats:jnats:2.16.14")
+    implementation("io.nats:jnats:2.21.4")
     testImplementation(platform("org.junit:junit-bom:5.7.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
