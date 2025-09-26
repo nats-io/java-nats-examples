@@ -6,7 +6,7 @@ import io.nats.client.Nats;
 import io.nats.client.Options;
 import nl.altindag.ssl.util.CertificateUtils;
 import nl.altindag.ssl.util.KeyStoreUtils;
-import nl.altindag.ssl.util.PemUtils;
+import nl.altindag.ssl.pem.util.PemUtils;
 
 import javax.net.ssl.*;
 import java.io.BufferedInputStream;

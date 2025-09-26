@@ -10,8 +10,8 @@ This file lists the dependencies used in this repository.
 | com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2 | Apache 2.0 License |
 | com.fasterxml.jackson:jackson-bom:2.13.2                      | Apache 2.0 License |
 | com.google.code.gson:gson:2.8.5                               | Apache 2.0 License |
-| io.github.hakky54:sslcontext-kickstart-for-pem:jar:6.7.0      | Apache 2.0 License |
-| io.github.hakky54:sslcontext-kickstart:jar:6.7.0              | Apache 2.0 License |
+| io.github.hakky54:ayza-for-pem:jar:10.0.0                     | Apache 2.0 License |
+| io.github.hakky54:ayza:jar:10.0.0             | Apache 2.0 License |
 | io.nats:jnats:2.16.14                                         | Apache 2.0 License |
 | net.i2p.crypto:eddsa:0.3.0                                    | CC 1.0 Universal |
 | org.apiguardian:apiguardian-api:1.1.2                         | Apache 2.0 License |

@@ -62,8 +62,8 @@ but none of them set the `enableStatusRequestExtension` flag. As far as we can t
 
 ## Licenses
 
-This example leverages the [SSLContext Kickstart project](https://github.com/Hakky54/sslcontext-kickstart)
-which operates under the [Apache License 2.0](https://github.com/Hakky54/sslcontext-kickstart/blob/master/LICENSE)
+This example leverages the [SSLContext Kickstart project](https://github.com/Hakky54/ayza)
+which operates under the [Apache License 2.0](https://github.com/Hakky54/ayza/blob/master/LICENSE)
 Their library had some functionality scoped `private` which we needed to use directly so we copied it and made it public.
 This usage is allowed by Apache 2.0 license policy, but we are noting it here for full transparency.
 

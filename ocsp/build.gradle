@@ -22,7 +22,7 @@ repositories {
 
 dependencies {
     implementation 'io.nats:jnats:2.23.0'
-    implementation 'io.github.hakky54:sslcontext-kickstart-for-pem:6.7.0'
+    implementation 'io.github.hakky54:ayza-for-pem:10.0.0'
 }
 
 test {
